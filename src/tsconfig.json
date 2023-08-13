@@ -1,0 +1,17 @@
+{
+	"extends": "fastify-tsconfig",
+	"compilerOptions": {
+		"baseUrl": ".",
+		"allowJs": true,
+		"declaration": false,
+		"outDir": "../dist/src",
+		"target": "es2020",
+		"esModuleInterop": true,
+		"moduleResolution": "node",
+		"strict": true,
+		"forceConsistentCasingInFileNames": true,
+		"sourceMap": false,
+		"skipLibCheck": true
+	},
+	"include": [ "**/*.ts", "vercel.json" ],
+}

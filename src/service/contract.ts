@@ -1,0 +1,662 @@
+import { BaseService } from "./base";
+import * as errors from "../errors";
+import { attachContract } from "../utils";
+// import { PrismaClient } from "@prisma/client";
+import { ethers, ContractFactory } from "ethers";
+import { signer } from "../constants/env.constants";
+import dotenv from "dotenv";
+dotenv.config();
+
+// const prisma = new PrismaClient();
+
+export class ContractService extends BaseService {
+	async version() {
+		return "Contract API v" + process.env.VERSION;
+	}
+	async network() {
+		return "Current network is " + process.env.DEFAULT_NETWORK;
+	}
+
+	async addContractAbi(
+		abi: string,
+		bytecode: string,
+		contract_name: string,
+		source_name: string,
+		version: string,
+		isDefault: boolean
+	) {
+		try {
+			const newContract = await this.prisma.contract_version.create({
+				data: {
+					abi: abi,
+					bytecode: bytecode,
+					contract_name: contract_name,
+					source_name: source_name,
+					version: version,
+					default: isDefault,
+				},
+				select: {
+					id: true,
+				},
+			});
+
+			if (isDefault) {
+				// set all other Default to false, except the data.id
+				await this.prisma.contract_version.updateMany({
+					where: {
+						AND: [
+							{
+								default: {
+									equals: true,
+								},
+								contract_name: {
+									equals: contract_name,
+								},
+								id: {
+									not: {
+										equals: newContract.id,
+									},
+								},
+							},
+						],
+					},
+					data: {
+						default: false,
+					},
+				});
+			}
+		} catch (error) {
+			console.log("contractData Error: ", error);
+		}
+	}
+
+	// async getDefaultContractAbi(contractName: string) {
+	// 	const data = await this.prisma.contract_version.findFirst({
+	// 		where: {
+	// 			AND: [
+	// 				{
+	// 					default: {
+	// 						equals: true,
+	// 					},
+	// 					contract_name: {
+	// 						equals: contractName,
+	// 					},
+	// 				},
+	// 			],
+	// 		},
+	// 		select: {
+	// 			abi: true,
+	// 			bytecode: true,
+	// 			contract_name: true,
+	// 			source_name: true,
+	// 		},
+	// 	});
+	// };
+
+	async addClass(contract_address: string, reqBody: any) {
+		const contractProxy = await attachContract(
+			this.config.artifacts.tokenAbi as any,
+			this.config.artifacts.tokenBytecode,
+			contract_address,
+			this.config.artifacts.tokenContractName
+		);
+		// const contractProxy = await attachContract(owner, contract_address, ProxySol);
+
+		console.log("contractProxy contractURI: ", await contractProxy.contractURI());
+
+		// const contractDelegate = new ethers.Contract(DelegateSol, abi, owner);
+		// const proxyFactory = await ethers.getContractFactory("Proxy");
+
+		let class_id = "0";
+
+		console.log("request body: ", reqBody);
+
+		try {
+			// console.log("uri:", await contractProxy.uri(1));
+
+			const response = await contractProxy._setClass(
+				Number(class_id),
+				reqBody.name,
+				reqBody.desc,
+				"",
+				reqBody.template
+			);
+			const receipt = await response.wait();
+			console.log("Receipt: ", receipt);
+			for (const event of receipt.events) {
+				if (event.eventSignature === "ClassCreated(string,uint256)") {
+					const arg = event.args[1]; // uint256 value is 2nd arg in array as hex value
+					class_id = arg.toString();
+				}
+			}
+		} catch (e) {
+			console.log(e);
+			throw new Error("Error in _setClass");
+		}
+		// if (reqBody.template != "0x0000000000000000000000000000000000000000") {
+		// 	await contractProxy.connect(owner).setTemplateContract(1, reqBody.template);
+		// }
+
+		const newXp = await this.prisma.series.update({
+			where: {
+				id: Number(reqBody.series_id),
+			},
+			data: {
+				xp: {
+					create: {
+						// contract: contract_address,
+						class_id,
+						contract_address,
+						title: reqBody.name,
+						description: reqBody.desc,
+						image_url: reqBody.image_url,
+						slug: reqBody.slug,
+					},
+				},
+			},
+			include: {
+				xp: {
+					select: {
+						id: true,
+					},
+				},
+			},
+		});
+
+		return newXp.xp;
+	}
+
+	async cloneProxy(reqBody: any) {
+		const {
+			uuid,
+			factory_address,
+			contract_address,
+			delegate_address,
+			org_id,
+			name,
+			baseUri,
+			description,
+			requirements,
+			slug,
+			image_url,
+			template_id,
+		} = reqBody;
+		// const utils = ethers.utils;
+		const salt = ethers.utils.formatBytes32String(uuid);
+		// const [owner] = reqBody.owner_address;
+
+		const contractFactory = await attachContract(
+			this.config.artifacts.factoryAbi as any,
+			this.config.artifacts.factoryBytecode,
+			factory_address,
+			this.config.artifacts.factoryContractName
+		);
+		// const contractFactory = await attachContract(this.config.artifacts.factoryAbi, owner, factory_address, FactorySol);
+
+		// salt MUST be unique for eip-1167 cloning to work
+		const response = await contractFactory.connect(signer).cloneProxy(contract_address, salt);
+
+		let addressClone;
+		const receipt = await response.wait(); // response is empty if using hardhat network
+		// console.log("response=", await receipt.events);
+		for (const event of receipt.events) {
+			if (event.event === "ProxyCloned") {
+				addressClone = event.args.cloneAddress;
+			}
+		}
+
+		// initialize clone
+
+		const clonedContract = await attachContract(
+			this.config.artifacts.tokenAbi as any,
+			this.config.artifacts.tokenBytecode,
+			addressClone,
+			this.config.artifacts.tokenContractName
+		);
+		const initResponse = await clonedContract.connect(signer).initialize(name, baseUri);
+
+		console.log("initResponse: ", initResponse);
+
+		// grant access to delegate
+		// const delegateContract = await attachContract(owner, delegate_address, DelegateSol);
+		// const delegateResponse = await delegateContract.grantAccess(addressClone, "OPS_ROLE");
+
+		// console.log("delegateResponse: ", delegateResponse);
+
+		// const prisma = new PrismaClient();
+
+		try {
+			await this.prisma.contract.create({
+				data: {
+					name: name,
+					type: "clone",
+					contract_address: addressClone,
+					factory_address: factory_address,
+					cloned_from: contract_address,
+					owner_address: await signer.getAddress(),
+				},
+			});
+		} catch (error) {
+			console.log("contractData Error: ", error);
+		}
+
+		let seriesData;
+		try {
+			seriesData = await this.prisma.series.create({
+				data: {
+					org_id: org_id,
+					contract_address: addressClone,
+					delegate_address: delegate_address,
+					owner: await signer.getAddress(),
+					title: name,
+					description: description,
+					requirements: requirements,
+					image_url: image_url,
+					slug: slug,
+					template_id: template_id as number,
+				},
+				select: {
+					id: true, // Include the new series id in the returned data
+				},
+			});
+		} catch (error) {
+			console.log("seriesData Error: ", error);
+		}
+		// return new id of series created
+
+		console.log("seriesData: ", seriesData);
+		return addressClone;
+	}
+
+	async deploySingle(abi: any, bytecode: string, contractName: string, sourceName: string) {
+		// const factory = await ethers.getContractFactory(sol);
+
+		// const signer = new Wallet(signerAddress, provider);
+
+		console.log("signer: ", await signer.getAddress());
+		console.log("contractName: ", contractName);
+		
+		const newContractFactory = new ContractFactory(abi, bytecode);
+
+		const newContract = await newContractFactory
+			.connect(signer)
+			.deploy()
+			.then((contract: any) => contract.deployed());
+
+		console.log("Deployed %s: %s", contractName, newContract.address);
+
+		try {
+			await this.prisma.contract.create({
+				data: {
+					contract_address: newContract.address,
+					name: contractName,
+					source_name: sourceName,
+					owner_address: await signer.getAddress(),
+					abi: JSON.stringify(abi),
+					bytecode: bytecode,
+				},
+			});
+		} catch (error) {
+			console.log("contractData Error: ", error);
+		}
+		return newContract;
+	}
+
+	async deployFactory(reqBody: any) {
+		var contractFactory;
+		var addressFactory;
+
+		const { proxy_address } = reqBody;
+
+		try {
+			contractFactory = await this.deploySingle(
+				this.config.artifacts.factoryAbi as any,
+				this.config.artifacts.factoryBytecode,
+				this.config.artifacts.factoryContractName,
+				this.config.artifacts.factorySourceName
+			);
+
+			console.log("	contractFactory owner: ", await contractFactory.owner());
+			console.log("	ProxyFactory address: ", contractFactory.address);
+			addressFactory = contractFactory.address;
+			await contractFactory.connect(signer).initialize();
+
+			// attach initial token proxy contract and register newly deployed factory
+			const proxyContract = await attachContract(
+				this.config.artifacts.tokenAbi as any,
+				this.config.artifacts.tokenBytecode,
+				proxy_address,
+				this.config.artifacts.tokenContractName
+			);
+
+			console.log("Before registerFactory: ", proxyContract.address);
+			//register factory
+			await proxyContract.connect(signer).registerFactory(contractFactory.address);
+		} catch (error) {
+			console.log("Deploy Error: ", error);
+			return error;
+		}
+
+		return { addressFactory };
+	}
+
+	async deployAll(reqBody: any) {
+		var addressTemplate, addressDelegate;
+		var contractDelegate, contractProxy, contractTemplate;
+		var addressProxy, addressTemplate, addressDelegate;
+
+		console.log("this.config.baseUrl: ", this.config.baseUrl);
+		try {
+			contractDelegate = await this.deploySingle(
+				this.config.artifacts.delegateAbi as any,
+				this.config.artifacts.delegateBytecode,
+				this.config.artifacts.delegateContractName,
+				this.config.artifacts.delegateSourceName
+			); // #1 Delegate
+			addressDelegate = contractDelegate.address;
+			contractProxy = await this.deploySingle(
+				this.config.artifacts.tokenAbi as any,
+				this.config.artifacts.tokenBytecode,
+				this.config.artifacts.tokenContractName,
+				this.config.artifacts.tokenSourceName
+			); // #2 Proxy
+			await contractProxy.initialize("", "");
+
+			// ?await contractProxy.;
+			addressProxy = contractProxy.address;
+			contractTemplate = await this.deploySingle(
+				this.config.artifacts.templateAbi as any,
+				this.config.artifacts.templateBytecode,
+				this.config.artifacts.templateContractName,
+				this.config.artifacts.templateSourceName
+			); // #3 Template
+			addressTemplate = contractTemplate.address;
+		} catch (error) {
+			console.log("Deploy Error: ", error);
+			return error;
+		}
+
+		try {
+			await contractProxy.connect(signer).setDelegateAddress(addressDelegate);
+			const setDefaultTemplate = await contractProxy.setDefaultTemplate(addressTemplate);
+
+			console.log("setDefaultTemplate - chainId: ", setDefaultTemplate.chainId);
+
+			await contractProxy.grantAccess(addressTemplate, "ADMIN_ROLE");
+			await contractProxy.connect(signer).setTemplateContract(1, addressTemplate);
+			console.log("Config done");
+		} catch (error) {
+			console.log("Config Error: ", error);
+			return error;
+		}
+
+		return { addressProxy };
+	}
+
+	async register(
+		contract_address: string,
+		class_id: string,
+		organizerId: string,
+		eventId: string,
+		ticketId: string,
+		ticketTypeId: string
+	) {
+		await this.findContract(contract_address);
+
+		// await this.prisma.xp.create({
+		//   data: {
+		//     contract_address,
+		//     class_id,
+		//     organizerId,
+		//     eventId,
+		//     ticketId,
+		//     ticketTypeId,
+		//   }
+		// });
+	}
+
+	async addAdminUser(contract_address: string, userAddress: string) {
+		// const contract = await this.findContract(contract_address);
+
+		const factoryContract = await attachContract(
+			this.config.artifacts.factoryAbi as any,
+			this.config.artifacts.factoryBytecode,
+			contract_address,
+			this.config.artifacts.factoryContractName
+		);
+		const role = "ADMIN_ROLE";
+
+		const response = await factoryContract.grantUserRole(userAddress, role);
+		console.log(`Txn: ${response.hash}`);
+
+		// const contractUser = await this.prisma.contractUser.create({
+		//   data: {
+		//     contract_address: contract_address,
+		//     userId: userAddress,
+		//     role: role,
+		//   }
+		// });
+		// await response.wait();
+
+		// return contractUser;
+	}
+
+	// async setClassMetadata(contract_address: string, class_id: string, metadata_url: string) {
+	// 	await this.findContractClass(contract_address, class_id);
+
+	// 	const factory = new ContractFactory(this.config.artifacts.factoryAbi, this.config.artifacts.factoryBytecode);
+	// 	const attachedContract = factory.attach(contract_address);
+
+	// 	const response = await attachedContract.setURI(class_id, metadata_url);
+	// 	console.log(`Txn: ${response.hash}`);
+	// 	console.log("NFT setURI: ", metadata_url);
+
+	// 	const contract_classes = await this.prisma.xp.update({
+	// 		where: {
+	// 			contract_address_class_id: {
+	// 				contract_address: contract_address,
+	// 				class_id: class_id,
+	// 			},
+	// 		},
+	// 		data: {
+	// 			metadata_url,
+	// 		},
+	// 	});
+	// 	await response.wait();
+	// 	return contract_classes;
+	// }
+
+	async mintNFT(contract_address: string, class_id: string, user_address: string) {
+		// await this.findContractClass(contract_address, class_id);
+
+		const tokenContract = await attachContract(
+			this.config.artifacts.tokenAbi as any,
+			this.config.artifacts.tokenBytecode,
+			contract_address,
+			this.config.artifacts.tokenContractName
+		);
+
+		// const factory = await ethers.getContractFactory(ProxySol);
+		// const factoryContract = factory.attach(contract_address);
+
+		let response;
+		try {
+			response = await tokenContract.mint(Number(class_id), user_address);
+		} catch (e) {
+			console.log(e);
+			throw e;
+		}
+		let token_id;
+
+		const receipt = await response.wait();
+		console.log("Receipt: ", receipt);
+		for (const event of receipt.events) {
+			if (event.eventSignature === "TokenCreated(address,uint256)") {
+				const arg = event.args[1]; // uint256 value is 2nd arg in array as hex value
+				token_id = arg.toString();
+			}
+		}
+
+		console.log("token_id = ", token_id);
+
+		// const prisma = new PrismaClient();
+
+		const txn = [
+			{
+				txn_hash: response.hash, // must be unique
+				contract_address, // required
+				class_id, // must be string
+				token_id: token_id + "", // must be string
+				from: await signer.getAddress(), // required
+				to: user_address, // required
+				status: -1,
+			},
+		];
+
+		for (const t of txn) {
+			const transaction = await this.prisma.transaction.create({
+				data: t,
+			});
+			console.log(`Created transaction with hash: ${transaction.txn_hash}`);
+		}
+
+		// const allowlist = await this.prisma.allowlist.updateMany({
+		// 	data: {
+		// 		// txn_hash: response.hash,
+		// 		token_id,
+		// 		is_owned: true,
+		// 	},
+		// 	where: {
+		// 		contract_address,
+		// 		class_id,
+		// 		user_address,
+		// 	},
+		// });
+
+		// console.log("before await");
+		// await response.wait();
+		// console.log("transaction: ", transaction);
+
+		return txn;
+	}
+
+	async transferNFT(
+		signerAddress: string,
+		contract_address: string,
+		class_id: string,
+		from: string,
+		to: string,
+		amount: number
+	) {
+		await this.findContractClass(contract_address, class_id);
+
+		// const [deployer] = await ethers.getSigners();
+
+		const factory = new ContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
+		const factoryContract = factory.attach(contract_address);
+
+		const response = await factoryContract.safeTransferFrom(from, to, class_id, amount, 6);
+		console.log(`transfer NFT from '${from}' to '${to}' Txn: ${response.hash}`);
+		// await response.wait(2);
+
+		// note: add token_id
+		const transaction = await this.prisma.transaction.create({
+			data: {
+				txn_hash: response.hash,
+				contract_address: contract_address,
+				class_id: class_id,
+				from: from,
+				to: to,
+				status: -1,
+			},
+		});
+		// await response.wait();
+		return transaction;
+	}
+
+	async burnNFT(
+		signerAddress: string,
+		contract_address: string,
+		class_id: string,
+		userAddress: string,
+		amount: number
+	) {
+		await this.findContractClass(contract_address, class_id);
+
+		// const [deployer] = await ethers.getSigners();r);
+		const factory = new ContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
+		const factoryContract = factory.attach(contract_address);
+
+		const response = await factoryContract.burn(userAddress, class_id, amount);
+		console.log(`burn NFT from '${userAddress}' Txn: ${response.hash}`);
+
+		// note: add token_id
+		const transaction = await this.prisma.transaction.create({
+			data: {
+				txn_hash: response.hash,
+				contract_address: contract_address,
+				class_id: class_id,
+				from: signerAddress,
+				to: userAddress,
+				status: -1,
+			},
+		});
+		await response.wait();
+		return transaction;
+	}
+
+	async verify(txn_hash: string): Promise<number> {
+		const transaction = await this.prisma.transaction.findUnique({
+			where: {
+				txn_hash,
+			},
+		});
+
+		if (!transaction) {
+			throw errors.create(errors.StatusCodes.NOT_FOUND);
+		}
+
+		const status = await this.polygon.scanTransaction(transaction.txn_hash);
+
+		await this.prisma.transaction.update({
+			where: {
+				txn_hash,
+			},
+			data: {
+				status,
+			},
+		});
+
+		return status;
+	}
+
+	async findContract(contract_address: string) {
+		const data = await this.prisma.series.findFirst({
+			where: {
+				contract_address: {
+					equals: contract_address,
+				},
+			},
+		});
+		if (!data) {
+			throw errors.create(errors.StatusCodes.NOT_FOUND);
+		}
+		return data.contract_address;
+	}
+
+	async findContractClass(contract_address: string, class_id: string) {
+		const contract_classes = await this.prisma.xp.findFirst({
+			where: {
+				contract_address: contract_address,
+				class_id: class_id,
+			},
+			select: {
+				contract_address: true,
+			},
+		});
+		if (!contract_classes) {
+			throw errors.create(errors.StatusCodes.NOT_FOUND);
+		}
+		return contract_classes;
+	}
+}

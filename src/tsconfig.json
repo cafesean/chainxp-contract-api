@@ -2,6 +2,13 @@
 	"extends": "fastify-tsconfig",
 	"compilerOptions": {
 		"baseUrl": ".",
+		"paths": {
+			"@root/*": [ "./*" ],
+			"@service/*": [ "./service/*" ],
+			"@providers/*": [ "./providers/*" ],
+			"@constants/*": [ "./constants/*" ],
+			"@schemas/*": [ "./schemas/*" ],
+		},
 		"allowJs": true,
 		"declaration": false,
 		"outDir": "../dist/src",
@@ -13,5 +20,5 @@
 		"sourceMap": false,
 		"skipLibCheck": true
 	},
-	"include": [ "**/*.ts", "vercel.json" ],
+	"include": [ "**/*.ts", "lib/**/*.sol", "vercel.json" ],
 }

@@ -7,8 +7,8 @@
     "devCommand": null,
     "installCommand": null,
     "buildCommand": null,
-    "outputDirectory": "dist",
-    "rootDirectory": null,
+    "outputDirectory": null,
+    "rootDirectory": "dist/src",
     "directoryListing": false,
     "nodeVersion": "18.x"
   }

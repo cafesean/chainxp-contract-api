@@ -2,12 +2,13 @@
   "name": "fastify-serverless",
   "version": "1.0.0",
   "description": "",
+  "main": "local.ts",
   "directories": {
     "test": "test"
   },
   "scripts": {
     "start": "pnpm build && node dist/src/server.js",
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/local.ts",
     "build": "rm -rf dist && pnpm gen && cd src && tsc --build tsconfig.json && cp -r lib ../dist/src",
     "test": "tap \"test/**/*.test.js\"",
     "gen": "prisma generate",

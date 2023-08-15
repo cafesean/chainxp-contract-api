@@ -101,26 +101,43 @@ export class ContractService extends BaseService {
 			this.config.artifacts.tokenContractName
 		);
 		// const contractProxy = await attachContract(owner, contract_address, ProxySol);
-
-		console.log("contractProxy contractURI: ", await contractProxy.contractURI());
-
 		// const contractDelegate = new ethers.Contract(DelegateSol, abi, owner);
 		// const proxyFactory = await ethers.getContractFactory("Proxy");
 
 		let class_id = "0";
 
-		console.log("request body: ", reqBody);
+		// get series_id
+		const series = await this.prisma.series.findFirst({
+			select: {
+				id: true,
+			},
+			where: {
+				contract_address: reqBody.contract_address,
+			},
+		});
+
+		console.log("series?.id: ", series?.id);
+		// get next class_id automatically
+		// let lastXp = await this.prisma.xp.aggregate({
+		// 	where: {
+		// 		series: {
+		// 			contract_address: reqBody.contract_address,
+		// 		},
+		// 	},
+		// 	_max: {
+		// 		class_id: true,
+		// 	},
+		// });
+
+		// increment lastClassId by 1
+		// const nextClassId = (Number(lastXp._max) + 1).toString();
 
 		try {
 			// console.log("uri:", await contractProxy.uri(1));
 
-			const response = await contractProxy._setClass(
-				Number(class_id),
-				reqBody.name,
-				reqBody.desc,
-				"",
-				reqBody.template
-			);
+			const response = await contractProxy
+				.connect(signer)
+				._setClass(Number(class_id), reqBody.name, reqBody.desc, "", reqBody.template);
 			const receipt = await response.wait();
 			console.log("Receipt: ", receipt);
 			for (const event of receipt.events) {
@@ -133,24 +150,23 @@ export class ContractService extends BaseService {
 			console.log(e);
 			throw new Error("Error in _setClass");
 		}
-		// if (reqBody.template != "0x0000000000000000000000000000000000000000") {
-		// 	await contractProxy.connect(owner).setTemplateContract(1, reqBody.template);
-		// }
 
 		const newXp = await this.prisma.series.update({
 			where: {
-				id: Number(reqBody.series_id),
+				id: Number(series?.id),
 			},
 			data: {
 				xp: {
 					create: {
 						// contract: contract_address,
-						class_id,
+						class_id: class_id,
 						contract_address,
 						title: reqBody.name,
 						description: reqBody.desc,
+						requirements: reqBody.requirements,
 						image_url: reqBody.image_url,
 						slug: reqBody.slug,
+						status: 1,
 					},
 				},
 			},
@@ -275,7 +291,7 @@ export class ContractService extends BaseService {
 
 		console.log("signer: ", await signer.getAddress());
 		console.log("contractName: ", contractName);
-		
+
 		const newContractFactory = new ContractFactory(abi, bytecode);
 
 		const newContract = await newContractFactory
@@ -340,7 +356,7 @@ export class ContractService extends BaseService {
 		return { addressFactory };
 	}
 
-	async deployAll(reqBody: any) {
+	async deployAll(name: string, baseUri: string) {
 		var addressTemplate, addressDelegate;
 		var contractDelegate, contractProxy, contractTemplate;
 		var addressProxy, addressTemplate, addressDelegate;
@@ -354,13 +370,14 @@ export class ContractService extends BaseService {
 				this.config.artifacts.delegateSourceName
 			); // #1 Delegate
 			addressDelegate = contractDelegate.address;
+
 			contractProxy = await this.deploySingle(
 				this.config.artifacts.tokenAbi as any,
 				this.config.artifacts.tokenBytecode,
 				this.config.artifacts.tokenContractName,
 				this.config.artifacts.tokenSourceName
 			); // #2 Proxy
-			await contractProxy.initialize("", "");
+			await contractProxy.initialize(name, baseUri);
 
 			// ?await contractProxy.;
 			addressProxy = contractProxy.address;
@@ -481,7 +498,7 @@ export class ContractService extends BaseService {
 
 		let response;
 		try {
-			response = await tokenContract.mint(Number(class_id), user_address);
+			response = await tokenContract.connect(signer).mint(Number(class_id), user_address);
 		} catch (e) {
 			console.log(e);
 			throw e;

@@ -8,3 +8,4 @@ layer
 src/lib
 .env
 *.json
+type*

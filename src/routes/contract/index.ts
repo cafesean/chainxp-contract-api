@@ -74,9 +74,9 @@ export default async function contractController(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/deploy", deployContractSchema(fastify), async (request: any, resp: any) => {
-		// const { name,  } = request.body;
+		const { name, baseUri } = request.body;
 
-		const contract = await fastify.service.contract.deployAll(request.body);
+		const contract = await fastify.service.contract.deployAll(name, baseUri);
 
 		return {
 			contract_id: contract,
@@ -192,7 +192,7 @@ export default async function contractController(fastify: FastifyInstance) {
 	//   }
 	// );
 
-	fastify.post("/:contract_id/mint/:class_id", mintContractNFTSchema(fastify), async (request: any, resp: any) => {
+	fastify.put("/:contract_id/mint/:class_id", mintContractNFTSchema(fastify), async (request: any, resp: any) => {
 		const { contract_id, class_id } = request.params;
 		const { address } = request.query;
 

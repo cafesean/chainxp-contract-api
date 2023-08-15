@@ -22,7 +22,7 @@ import { PrismaClient } from "@prisma/client";
 // }
 
 export const getAbi = async (contractName: string) => {
-	console.log("in getAbi: ", contractName);
+	// console.log("in getAbi: ", contractName);
 	const abiPath = "lib/" + contractName + ".sol/" + contractName + "Contract.json";
 	const dir = path.join(process.cwd(), abiPath);
 
@@ -37,8 +37,8 @@ export const getAbi = async (contractName: string) => {
 
 		const json = JSON.parse(file);
 
-		console.log("json.contractName: ", json.contractName);
-		console.log("json.sourceName: ", json.sourceName);
+		// console.log("json.contractName: ", json.contractName);
+		// console.log("json.sourceName: ", json.sourceName);
 		return json;
 	} catch (e) {
 		console.log(`e`, e);
@@ -95,7 +95,7 @@ export async function getDefaultContractAbi(contract: string) {
 	// console.log("process.env.ENV: ", process.env.ENV);
 	// console.log("process.env.NODE_ENV: ", process.env.NODE_ENV);
 
-	if (process.env.NODE_ENV === "development") {
+	if (process.env.ENV === "local") {
 		console.log("In local");
 		const file = await getAbi(contract);
 
@@ -129,7 +129,7 @@ export async function getDefaultContractAbi(contract: string) {
 			console.log("No abi data found.");
 			return "No data found";
 		}
-		console.log("source_name: ", data.source_name);
+		// console.log("source_name: ", data.source_name);
 		return [data?.abi, data?.bytecode, data?.contract_name, data?.source_name];
 	}
 }

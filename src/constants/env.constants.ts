@@ -1,24 +1,52 @@
 import { ethers } from "ethers";
 import dotenv from "dotenv";
+import { Network } from "alchemy-sdk";
 
 dotenv.config();
 
 export const ASSETS_PATH = "./constants/";
-export const DATABASE_URL = process.env.DATABASE_URL;
+// export const DATABASE_URL = process.env.DATABASE_URL;
 
-export const ENV = process.env.ENV;
-export const VERSION = process.env.VERSION;
-export const TIMEZONE = process.env.TIMEZONE;
-export const PROVIDER_URL = process.env.PROVIDER_URL;
-export const PROVIDER_API_KEY = process.env.PROVIDER_API_KEY;
-export const SIGNER_ADDRESS = process.env.SIGNER_ADDRESS;
-export const PRIVATE_KEY = process.env.PRIVATE_KEY;
-export const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
-export const POLYGON_BASE_URL = process.env.POLYGON_BASE_URL;
-export const POLYGON_API_KEY = process.env.POLYGON_API_KEY;
-export const CHAINXP_API_BASE_URL = process.env.CHAINXP_API_BASE_URL;
-export const OPENSEA_BASE_URL = process.env.OPENSEA_BASE_URL;
-export const BASE_URL = process.env.BASE_URL;
+// export const ENV = process.env.ENV;
+// export const VERSION = process.env.VERSION;
+// export const TIMEZONE = process.env.TIMEZONE;
+// export const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
+// export const POLYGONSCAN_URL = process.env.POLYGONSCAN_URL;
+// export const POLYGON_API_KEY = process.env.POLYGON_API_KEY;
+// export const CHAINXP_API_BASE_URL = process.env.CHAINXP_API_BASE_URL;
+// export const OPENSEA_BASE_URL = process.env.OPENSEA_BASE_URL;
+// export const BASE_URL = process.env.BASE_URL;
 
-export const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL);
-export const signer = provider.getSigner(process.env.SIGNER_ADDRESS);
+// export const localProvider = new ethers.providers.JsonRpcProvider(process.env.LOCAL_PROVIDER_URL);
+// export const localSigner = localProvider.getSigner(process.env.LOCAL_SIGNER_ADDRESS);
+
+// export const mumbaiProvider = new ethers.providers.AlchemyProvider(
+// 	process.env.MUMBAI_PROVIDER_URL,
+// 	process.env.MUMBAI_API_KEY
+// );
+// export const mumbaiSigner = mumbaiProvider.getSigner(process.env.MUMBAI_SIGNER_ADDRESS);
+
+
+
+// let provider;
+// let signer;
+// let apiKey;
+// let privateKey;
+
+// if (process.env.ENV = "production") {
+	export const POLYGON_PROVIDER = new ethers.providers.AlchemyProvider(process.env.POLYGON_NETWORK, process.env.POLYGON_API_KEY);
+	export const POLYGON_PRIVATE_KEY= process.env.POLYGON_PRIVATE_KEY;
+	export const POLYGON_NETWORK = Network.MATIC_MUMBAI;
+	export const POLYGON_API_KEY = process.env.POLYGON_API_KEY;
+	export const POLYGON_SIGNER = new ethers.Wallet(POLYGON_PRIVATE_KEY as string, POLYGON_PROVIDER);
+// } else {
+	export const LOCAL_PROVIDER = new ethers.providers.JsonRpcProvider(process.env.LOCAL_PROVIDER_URL);
+	export const LOCAL_API_KEY = process.env.LOCAL_API_KEY;
+	export const LOCAL_SIGNER = LOCAL_PROVIDER.getSigner(process.env.LOCAL_SIGNER_ADDRESS);
+	export const LOCAL_PRIVATE_KEY = process.env.LOCAL_PRIVATE_KEY;
+// }
+
+// export const PROVIDER_URL = provider;
+// export const SIGNER_ADDRESS = signer;
+// export const PROVIDER_API_KEY = apiKey;
+// export const PRIVATE_KEY = privateKey;

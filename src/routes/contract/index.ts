@@ -17,12 +17,12 @@ import {
 } from "../../schema/contract";
 
 export default async function contractController(fastify: FastifyInstance) {
-	fastify.get("/", async (request, reply) => {
+	fastify.get("/", async () => {
 		var message = await fastify.service.contract.version();
 		return { result: message };
 	});
 
-	fastify.get("/network", async (request, reply) => {
+	fastify.get("/network", async () => {
 		var message = await fastify.service.contract.network();
 		return { result: message };
 	});
@@ -69,18 +69,18 @@ export default async function contractController(fastify: FastifyInstance) {
 			version,
 			isDefault
 		);
-
-		return "done";
+		resp
+			.code(200)
+			.header("Content-Type", "application/json; charset=utf-8")
+			.send({ result: '"Contracts created."' });
 	});
 
 	fastify.post("/deploy", deployContractSchema(fastify), async (request: any, resp: any) => {
 		const { name, baseUri } = request.body;
 
-		const contract = await fastify.service.contract.deployAll(name, baseUri);
+		const contract = (await fastify.service.contract.deployAll(name, baseUri)) as any;
 
-		return {
-			contract_id: contract,
-		};
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: JSON.stringify(contract) });
 	});
 
 	fastify.post("/clone", async (request: any, resp: any) => {
@@ -88,9 +88,7 @@ export default async function contractController(fastify: FastifyInstance) {
 
 		const contract = await fastify.service.contract.cloneProxy(request.body);
 
-		return {
-			contract_id: contract,
-		};
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
 	});
 
 	fastify.post("/deployFactory", deployContractSchema(fastify), async (request: any, resp: any) => {
@@ -98,9 +96,7 @@ export default async function contractController(fastify: FastifyInstance) {
 
 		const contract = await fastify.service.contract.deployFactory(request.body);
 
-		return {
-			contract_id: contract,
-		};
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
 	});
 
 	// fastify.post(
@@ -174,9 +170,7 @@ export default async function contractController(fastify: FastifyInstance) {
 		console.log("In addClass route");
 		const contractClass = await fastify.service.contract.addClass(contract_id, request.body);
 
-		return {
-			class_id: contractClass,
-		};
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contractClass });
 	});
 
 	// fastify.put(
@@ -201,7 +195,7 @@ export default async function contractController(fastify: FastifyInstance) {
 		const txn = response[0];
 		console.log("fastify.put txn: ", txn);
 		// resp.header("Content-Type", "application/json");
-		return txn;
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txn });
 	});
 
 	// fastify.post(

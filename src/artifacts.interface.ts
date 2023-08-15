@@ -1,18 +1,18 @@
 
 export default interface Artifacts {
-	tokenAbi: string;
+	tokenAbi: any;
 	tokenBytecode: string;
 	tokenContractName: string;
 	tokenSourceName: string;
-	factoryAbi: string;
+	factoryAbi: any;
 	factoryBytecode: string;
 	factoryContractName: string;
 	factorySourceName: string;
-	delegateAbi: string;
+	delegateAbi: any;
 	delegateBytecode: string;
 	delegateContractName: string;
 	delegateSourceName: string;
-	templateAbi: string;
+	templateAbi: any;
 	templateBytecode: string;
 	templateContractName: string;
 	templateSourceName: string;

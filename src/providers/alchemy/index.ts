@@ -1,49 +1,36 @@
 import { Alchemy } from "alchemy-sdk";
 // import { ethers } from 'ethers';
-import * as Constants from "@constants/env.constants";
 // import { FastifyInstance } from "fastify";
+import { TransactionResponse, TransactionReceipt } from "@ethersproject/providers";
 import {
-  TransactionResponse,
-  TransactionReceipt
-} from "@ethersproject/providers";
+  GetOwnersForContractWithTokenBalancesResponse,
+  GetOwnersForNftResponse
+} from "alchemy-sdk/dist/src/types/types";
 
+import { POLYGON_API_KEY, POLYGON_NETWORK, POLYGON_SIGNER } from "../../constants/env.constants";
 
 export default class AlchemyClient {
   private readonly alchemy: Alchemy;
   deployerAddress: string = "";
 
   constructor(
-    private readonly apiKey: string,
-    private readonly network: any,
+    // private readonly apiKey: string,
+    // private readonly network: string,
   ) {
     this.alchemy = new Alchemy({
-      apiKey: this.apiKey,
-      network: this.network,
+      apiKey: POLYGON_API_KEY,
+      network: POLYGON_NETWORK,
     });
   }
 
   async initDeployerAddress(): Promise<string> {
     if (!this.deployerAddress) {
-      // const [deployer] = await ethers.providers.getSigners();
-      const deployer = Constants.signer
-      this.deployerAddress = await deployer.getAddress();
+      // const [deployer] = await ethers.getSigners();
+      this.deployerAddress = await POLYGON_SIGNER.getAddress();
     }
     return this.deployerAddress;
   }
 
-  // async listen(fastify: FastifyInstance) {
-  //   this.alchemy.ws.on({
-  //     method: AlchemySubscription.PENDING_TRANSACTIONS,
-  //     fromAddress: this.deployerAddress,
-  //   }, async (transaction) => {
-  //     // push to queue to wait confirm transaction
-  //     try {
-  //       await fastify.client.schedule.newContractTransaction(transaction.hash);
-  //     } catch (e) {
-  //       fastify.log.error(`schedule new transaction failed`, transaction.hash, e.message);
-  //     }
-  //   });
-  // }
 
   async getTransaction(hash: string): Promise<TransactionResponse | null> {
     return await this.alchemy.core.getTransaction(hash);
@@ -65,6 +52,16 @@ export default class AlchemyClient {
 
   // async simulateAssetChangesError(hash: string): Promise<string> {
   //   const { error } = await this.alchemy.transact.simulateAssetChanges(hash);
-  //   return error ? error.message: "";
+  //   return error ? error.message : "";
   // }
+
+  async getOwnersForContract(contractId: string): Promise<GetOwnersForContractWithTokenBalancesResponse> {
+    const result = await this.alchemy.nft.getOwnersForContract(contractId, { withTokenBalances: true });
+    return result;
+  }
+
+  async getOwnersForNFT(contractId: string, tokenID: string): Promise<GetOwnersForNftResponse> {
+    const result = await this.alchemy.nft.getOwnersForNft(contractId, tokenID);
+    return result;
+  }
 }

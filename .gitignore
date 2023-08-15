@@ -9,3 +9,4 @@ src/lib
 .env
 *.json
 type*
+.vercel

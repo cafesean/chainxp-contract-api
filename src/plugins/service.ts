@@ -1,26 +1,32 @@
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { PrismaClient } from "@prisma/client";
+// import { ScheduleClient } from "../clients/index";
+import { BaseService, ContractService } from "../service/index";
 
-import { ContractService } from "../service/index";
-
-interface BaseService {
-	config?: any;
-	log?: any;
-	prisma?: PrismaClient;
-	redis?: any;
-	mailgun?: any;
-	web3?: any;
-	// ... add other common properties
-}
+// interface BaseService {
+// 	config?: any;
+// 	log?: any;
+// 	prisma?: PrismaClient;
+// 	// redis?: any;
+// 	// mailgun?: any;
+// 	// web3?: any;
+// 	// ... add other common properties
+// }
 
 export default fp(
 	async (fastify, opts) => {
+		// fastify.decorate("client", new ClientHolder(fastify));
 		fastify.decorate("service", new ServiceHolder(fastify));
 	},
 	{
 		fastify: "4.x",
-		name: "member-nft-service",
+		name: "chainxp-service",
+		dependencies: [
+			"chainxp-config",
+			"fastify-prisma-client",
+			"fastify-alchemy-client",
+		],
 	}
 );
 
@@ -30,6 +36,13 @@ declare module "fastify" {
 		prisma: PrismaClient;
 	}
 }
+// class ClientHolder {
+// 	schedule: ScheduleClient;
+
+// 	constructor(fastify: FastifyInstance) {
+// 		this.schedule = new ScheduleClient(fastify.config.scheduleServer.host, fastify.config.scheduleServer.apiKey);
+// 	}
+// }
 
 class ServiceHolder {
 	contract: ContractService;
@@ -38,23 +51,29 @@ class ServiceHolder {
 		this.contract = ServiceHolder.init(fastify, ContractService);
 	}
 
-	static init (fastify: FastifyInstance, serviceType: { new (): any }): any {
+
+//  static init<T extends BaseService>(
+//     fastify: FastifyInstance,
+//     serviceType: { new(): T; }
+//   ): T {
+//     const svc = new serviceType();
+//     svc.config = fastify.config;
+//     svc.log = fastify.log;
+//     svc.prisma = fastify.prisma;
+//     // svc.redis = fastify.redis;
+//     // svc.polygon = fastify.polygon;
+//     svc.alchemy = fastify.alchemy;
+//     return svc;
+  // }
+	static init(fastify: FastifyInstance, serviceType: { new (): any }): any {
 		const svc = new serviceType();
-		// svc.config = fastify.config;
-		// svc.log = fastify.log;
-		// this.svc.prisma = fastify.prisma;
 		this.assignProperties(svc, fastify);
-		// svc.redis = fastify.redis;
-		// svc.mailgun = fastify.mailgun;
-		// svc.web3 = fastify.web3;
 		return svc;
 	}
 
 	static assignProperties(service: BaseService, fastify: FastifyInstance) {
 		service.config = fastify.config;
-		service.log = fastify.log;
+		// service.log = fastify.log;
 		service.prisma = fastify.prisma;
-		// service.redis = fastify.redis;
-		// ... and so on for other properties
 	}
 }

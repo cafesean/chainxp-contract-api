@@ -3,7 +3,8 @@ import * as errors from "../errors";
 import { attachContract } from "../utils";
 // import { PrismaClient } from "@prisma/client";
 import { ethers, ContractFactory } from "ethers";
-import { signer } from "../constants/env.constants";
+import { POLYGON_SIGNER, POLYGON_PROVIDER } from "../constants/env.constants";
+
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -134,10 +135,11 @@ export class ContractService extends BaseService {
 
 		try {
 			// console.log("uri:", await contractProxy.uri(1));
+			const overrides = await this.getGasPriceOverrides();
 
 			const response = await contractProxy
-				.connect(signer)
-				._setClass(Number(class_id), reqBody.name, reqBody.desc, "", reqBody.template);
+				.connect(POLYGON_SIGNER)
+				._setClass(Number(class_id), reqBody.name, reqBody.desc, "", reqBody.template, overrides);
 			const receipt = await response.wait();
 			console.log("Receipt: ", receipt);
 			for (const event of receipt.events) {
@@ -210,7 +212,7 @@ export class ContractService extends BaseService {
 		// const contractFactory = await attachContract(this.config.artifacts.factoryAbi, owner, factory_address, FactorySol);
 
 		// salt MUST be unique for eip-1167 cloning to work
-		const response = await contractFactory.connect(signer).cloneProxy(contract_address, salt);
+		const response = await contractFactory.connect(POLYGON_SIGNER).cloneProxy(contract_address, salt);
 
 		let addressClone;
 		const receipt = await response.wait(); // response is empty if using hardhat network
@@ -229,17 +231,9 @@ export class ContractService extends BaseService {
 			addressClone,
 			this.config.artifacts.tokenContractName
 		);
-		const initResponse = await clonedContract.connect(signer).initialize(name, baseUri);
+		const initResponse = await clonedContract.connect(POLYGON_SIGNER).initialize(name, baseUri);
 
-		console.log("initResponse: ", initResponse);
-
-		// grant access to delegate
-		// const delegateContract = await attachContract(owner, delegate_address, DelegateSol);
-		// const delegateResponse = await delegateContract.grantAccess(addressClone, "OPS_ROLE");
-
-		// console.log("delegateResponse: ", delegateResponse);
-
-		// const prisma = new PrismaClient();
+		initResponse.wait();
 
 		try {
 			await this.prisma.contract.create({
@@ -249,7 +243,7 @@ export class ContractService extends BaseService {
 					contract_address: addressClone,
 					factory_address: factory_address,
 					cloned_from: contract_address,
-					owner_address: await signer.getAddress(),
+					owner_address: await POLYGON_SIGNER.getAddress(),
 				},
 			});
 		} catch (error) {
@@ -257,13 +251,14 @@ export class ContractService extends BaseService {
 		}
 
 		let seriesData;
+
 		try {
 			seriesData = await this.prisma.series.create({
 				data: {
 					org_id: org_id,
 					contract_address: addressClone,
 					delegate_address: delegate_address,
-					owner: await signer.getAddress(),
+					owner: await POLYGON_SIGNER.getAddress(),
 					title: name,
 					description: description,
 					requirements: requirements,
@@ -278,24 +273,21 @@ export class ContractService extends BaseService {
 		} catch (error) {
 			console.log("seriesData Error: ", error);
 		}
-		// return new id of series created
 
-		console.log("seriesData: ", seriesData);
-		return addressClone;
+		const series_id = seriesData?.id;
+
+		// return new clone (series)
+		response.success({ addressClone, series_id });
 	}
 
 	async deploySingle(abi: any, bytecode: string, contractName: string, sourceName: string) {
-		// const factory = await ethers.getContractFactory(sol);
-
-		// const signer = new Wallet(signerAddress, provider);
-
-		console.log("signer: ", await signer.getAddress());
+		console.log("signer: ", await POLYGON_SIGNER.getAddress());
 		console.log("contractName: ", contractName);
 
 		const newContractFactory = new ContractFactory(abi, bytecode);
 
 		const newContract = await newContractFactory
-			.connect(signer)
+			.connect(POLYGON_SIGNER)
 			.deploy()
 			.then((contract: any) => contract.deployed());
 
@@ -307,7 +299,7 @@ export class ContractService extends BaseService {
 					contract_address: newContract.address,
 					name: contractName,
 					source_name: sourceName,
-					owner_address: await signer.getAddress(),
+					owner_address: await POLYGON_SIGNER.getAddress(),
 					abi: JSON.stringify(abi),
 					bytecode: bytecode,
 				},
@@ -335,7 +327,7 @@ export class ContractService extends BaseService {
 			console.log("	contractFactory owner: ", await contractFactory.owner());
 			console.log("	ProxyFactory address: ", contractFactory.address);
 			addressFactory = contractFactory.address;
-			await contractFactory.connect(signer).initialize();
+			await contractFactory.connect(POLYGON_SIGNER).initialize();
 
 			// attach initial token proxy contract and register newly deployed factory
 			const proxyContract = await attachContract(
@@ -345,15 +337,14 @@ export class ContractService extends BaseService {
 				this.config.artifacts.tokenContractName
 			);
 
-			console.log("Before registerFactory: ", proxyContract.address);
 			//register factory
-			await proxyContract.connect(signer).registerFactory(contractFactory.address);
+			await proxyContract.connect(POLYGON_SIGNER).registerFactory(contractFactory.address);
 		} catch (error) {
 			console.log("Deploy Error: ", error);
 			return error;
 		}
 
-		return { addressFactory };
+		return addressFactory;
 	}
 
 	async deployAll(name: string, baseUri: string) {
@@ -361,7 +352,6 @@ export class ContractService extends BaseService {
 		var contractDelegate, contractProxy, contractTemplate;
 		var addressProxy, addressTemplate, addressDelegate;
 
-		console.log("this.config.baseUrl: ", this.config.baseUrl);
 		try {
 			contractDelegate = await this.deploySingle(
 				this.config.artifacts.delegateAbi as any,
@@ -394,42 +384,20 @@ export class ContractService extends BaseService {
 		}
 
 		try {
-			await contractProxy.connect(signer).setDelegateAddress(addressDelegate);
+			await contractProxy.connect(POLYGON_SIGNER).setDelegateAddress(addressDelegate);
 			const setDefaultTemplate = await contractProxy.setDefaultTemplate(addressTemplate);
 
 			console.log("setDefaultTemplate - chainId: ", setDefaultTemplate.chainId);
 
 			await contractProxy.grantAccess(addressTemplate, "ADMIN_ROLE");
-			await contractProxy.connect(signer).setTemplateContract(1, addressTemplate);
+			await contractProxy.connect(POLYGON_SIGNER).setTemplateContract(1, addressTemplate);
 			console.log("Config done");
 		} catch (error) {
 			console.log("Config Error: ", error);
 			return error;
 		}
 
-		return { addressProxy };
-	}
-
-	async register(
-		contract_address: string,
-		class_id: string,
-		organizerId: string,
-		eventId: string,
-		ticketId: string,
-		ticketTypeId: string
-	) {
-		await this.findContract(contract_address);
-
-		// await this.prisma.xp.create({
-		//   data: {
-		//     contract_address,
-		//     class_id,
-		//     organizerId,
-		//     eventId,
-		//     ticketId,
-		//     ticketTypeId,
-		//   }
-		// });
+		return { proxy_address: addressProxy, template_address: addressTemplate, delegate_address: addressDelegate };
 	}
 
 	async addAdminUser(contract_address: string, userAddress: string) {
@@ -498,7 +466,7 @@ export class ContractService extends BaseService {
 
 		let response;
 		try {
-			response = await tokenContract.connect(signer).mint(Number(class_id), user_address);
+			response = await tokenContract.connect(POLYGON_SIGNER).mint(Number(class_id), user_address);
 		} catch (e) {
 			console.log(e);
 			throw e;
@@ -524,7 +492,7 @@ export class ContractService extends BaseService {
 				contract_address, // required
 				class_id, // must be string
 				token_id: token_id + "", // must be string
-				from: await signer.getAddress(), // required
+				from: await POLYGON_SIGNER.getAddress(), // required
 				to: user_address, // required
 				status: -1,
 			},
@@ -569,7 +537,7 @@ export class ContractService extends BaseService {
 
 		// const [deployer] = await ethers.getSigners();
 
-		const factory = new ContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
+		const factory = new ContractFactory(this.config.artifacts.tokenAbi as any, POLYGON_SIGNER as any);
 		const factoryContract = factory.attach(contract_address);
 
 		const response = await factoryContract.safeTransferFrom(from, to, class_id, amount, 6);
@@ -601,7 +569,7 @@ export class ContractService extends BaseService {
 		await this.findContractClass(contract_address, class_id);
 
 		// const [deployer] = await ethers.getSigners();r);
-		const factory = new ContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
+		const factory = new ContractFactory(this.config.artifacts.tokenAbi as any, POLYGON_SIGNER as any);
 		const factoryContract = factory.attach(contract_address);
 
 		const response = await factoryContract.burn(userAddress, class_id, amount);
@@ -675,5 +643,44 @@ export class ContractService extends BaseService {
 			throw errors.create(errors.StatusCodes.NOT_FOUND);
 		}
 		return contract_classes;
+	}
+
+	async speedupTransactionOverrides(txnHash: string) {
+		const txn = await POLYGON_PROVIDER.getTransaction(txnHash);
+		const gasPrice = await this.getSpeedGasPrice(txn.gasPrice!);
+		const overrides = {
+			nonce: txn.nonce,
+			gasPrice: gasPrice,
+		};
+
+		return overrides;
+	}
+
+	async getSpeedGasPrice(oldGasPrice: ethers.BigNumber) {
+		let gasPrice = await POLYGON_PROVIDER.getGasPrice();
+
+		const fastGasPrice = await this.polygon.scanGasTrackerPrice(2);
+		if (fastGasPrice > 0) {
+			gasPrice = ethers.BigNumber.from(fastGasPrice * 1e9);
+		}
+
+		if (Number(gasPrice) < Number(oldGasPrice)) {
+			gasPrice = oldGasPrice.add(oldGasPrice.div(9));
+		}
+		return gasPrice;
+	}
+
+	async getGasPriceOverrides(level: number = 1) {
+		// get gas price from polygon scan
+		const scanGasPrice = await this.polygon.scanGasTrackerPrice(level);
+		if (scanGasPrice > 0) {
+			const gasPrice = ethers.BigNumber.from(scanGasPrice * 1e9);
+			return { gasPrice };
+		}
+
+		// get gas price from rpc network
+		const defaultGasPrice = await POLYGON_PROVIDER.getGasPrice();
+		const gasPrice = defaultGasPrice.add(defaultGasPrice.div(2).mul(level));
+		return { gasPrice };
 	}
 }

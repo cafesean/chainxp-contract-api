@@ -3,7 +3,7 @@ import FastifyBaseLogger from 'fastify';
 // import Redis from 'ioredis';
 
 import Polygon from '@providers/polygon';
-import Alchemy from '@providers/alchemy';
+// import Alchemy from '@providers/alchemy';
 import Config from '../config.interface';
 import Artifacts from '@root/artifacts.interface';
 
@@ -13,6 +13,6 @@ export class BaseService {
   prisma!: PrismaClient;
   // redis!: Redis;
   polygon!: Polygon;
-  alchemy!: Alchemy;
+  // alchemy!: Alchemy;
   artifacts!: Artifacts
 }

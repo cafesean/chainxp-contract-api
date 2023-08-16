@@ -1,5 +1,5 @@
 import { Alchemy } from "alchemy-sdk";
-// import { ethers } from 'ethers';
+import { ethers } from 'hardhat';
 // import { FastifyInstance } from "fastify";
 import { TransactionResponse, TransactionReceipt } from "@ethersproject/providers";
 import {
@@ -7,7 +7,7 @@ import {
   GetOwnersForNftResponse
 } from "alchemy-sdk/dist/src/types/types";
 
-import { POLYGON_API_KEY, POLYGON_NETWORK, POLYGON_SIGNER } from "../../constants/env.constants";
+import { PROVIDER_API_KEY, ETH_NETWORK } from "../../constants/env.constants";
 
 export default class AlchemyClient {
   private readonly alchemy: Alchemy;
@@ -18,15 +18,15 @@ export default class AlchemyClient {
     // private readonly network: string,
   ) {
     this.alchemy = new Alchemy({
-      apiKey: POLYGON_API_KEY,
-      network: POLYGON_NETWORK,
+      apiKey: PROVIDER_API_KEY,
+      network: ETH_NETWORK,
     });
   }
 
   async initDeployerAddress(): Promise<string> {
     if (!this.deployerAddress) {
       // const [deployer] = await ethers.getSigners();
-      this.deployerAddress = await POLYGON_SIGNER.getAddress();
+      this.deployerAddress = await ethers.getSigners().then((signers) => signers[0].getAddress());
     }
     return this.deployerAddress;
   }

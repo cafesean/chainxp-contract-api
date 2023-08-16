@@ -1,4 +1,4 @@
-import { ethers } from "ethers";
+import { ethers } from "hardhat";
 import dotenv from "dotenv";
 import { Network } from "alchemy-sdk";
 
@@ -18,7 +18,7 @@ export const ASSETS_PATH = "./constants/";
 // export const BASE_URL = process.env.BASE_URL;
 
 // export const localProvider = new ethers.providers.JsonRpcProvider(process.env.LOCAL_PROVIDER_URL);
-// export const localSigner = localProvider.getSigner(process.env.LOCAL_SIGNER_ADDRESS);
+// export const localSigner = ethers.getSigner(process.env.SIGNER_ADDRESS);
 
 // export const mumbaiProvider = new ethers.providers.AlchemyProvider(
 // 	process.env.MUMBAI_PROVIDER_URL,
@@ -26,27 +26,41 @@ export const ASSETS_PATH = "./constants/";
 // );
 // export const mumbaiSigner = mumbaiProvider.getSigner(process.env.MUMBAI_SIGNER_ADDRESS);
 
+let provider;
+// const signer = ethers.getSigners();
+let apiKey;
+let network;
 
+if ((process.env.ENV = "production")) {
+	// export const POLYGON_PROVIDER = new ethers.providers.AlchemyProvider(
+	// 	process.env.POLYGON_NETWORK,
+	// 	process.env.POLYGON_API_KEY
+	// );
+	// export const SIGNER_ADDRESS = ethers.getSigners();
 
-// let provider;
-// let signer;
-// let apiKey;
-// let privateKey;
+	// privateKey = process.env.POLYGON_PRIVATE_KEY;
+	network = Network.MATIC_MUMBAI;
+	apiKey = process.env.POLYGON_API_KEY;
+	// export const POLYGON_SIGNER = new ethers.Wallet(POLYGON_PRIVATE_KEY as string, POLYGON_PROVIDER);
+} else {
+	provider = new ethers.providers.JsonRpcProvider(process.env.LOCAL_PROVIDER_URL);
+	apiKey = process.env.LOCAL_API_KEY;
+	// export const LOCAL_SIGNER = LOCAL_PROVIDER.getSigner(process.env.LOCAL_SIGNER_ADDRESS);
+	// privateKey = process.env.LOCAL_PRIVATE_KEY;
+}
 
-// if (process.env.ENV = "production") {
-	export const POLYGON_PROVIDER = new ethers.providers.AlchemyProvider(process.env.POLYGON_NETWORK, process.env.POLYGON_API_KEY);
-	export const POLYGON_PRIVATE_KEY= process.env.POLYGON_PRIVATE_KEY;
-	export const POLYGON_NETWORK = Network.MATIC_MUMBAI;
-	export const POLYGON_API_KEY = process.env.POLYGON_API_KEY;
-	export const POLYGON_SIGNER = new ethers.Wallet(POLYGON_PRIVATE_KEY as string, POLYGON_PROVIDER);
-// } else {
-	export const LOCAL_PROVIDER = new ethers.providers.JsonRpcProvider(process.env.LOCAL_PROVIDER_URL);
-	export const LOCAL_API_KEY = process.env.LOCAL_API_KEY;
-	export const LOCAL_SIGNER = LOCAL_PROVIDER.getSigner(process.env.LOCAL_SIGNER_ADDRESS);
-	export const LOCAL_PRIVATE_KEY = process.env.LOCAL_PRIVATE_KEY;
-// }
+// used by hardhat config
+export const TESTNET_PROVIDER_URL = process.env.MUMBAI_PROVIDER_URL;
+export const TESTNET_PRIVATE_KEY = process.env.MUMBAI_PRIVATE_KEY;
 
-// export const PROVIDER_URL = provider;
+export const MAINNET_PROVIDER_URL = process.env.MAINNET_PROVIDER_URL;
+export const MAINNET_PRIVATE_KEY = process.env.MAINNET_PRIVATE_KEY;
+
+export const LOCAL_PROVIDER_URL = process.env.LOCAL_PROVIDER_URL;
+export const LOCAL_PRIVATE_KEY = process.env.LOCAL_PRIVATE_KEY;
+
+// used in config
+export const PROVIDER_URL = provider;
 // export const SIGNER_ADDRESS = signer;
-// export const PROVIDER_API_KEY = apiKey;
-// export const PRIVATE_KEY = privateKey;
+export const PROVIDER_API_KEY = apiKey;
+export const ETH_NETWORK = network;

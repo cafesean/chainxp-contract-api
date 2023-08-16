@@ -15,18 +15,14 @@ import { BaseService, ContractService } from "../service/index";
 // }
 
 export default fp(
-	async (fastify, opts) => {
+	async (fastify: any, opts: any) => {
 		// fastify.decorate("client", new ClientHolder(fastify));
 		fastify.decorate("service", new ServiceHolder(fastify));
 	},
 	{
 		fastify: "4.x",
 		name: "chainxp-service",
-		dependencies: [
-			"chainxp-config",
-			"fastify-prisma-client",
-			"fastify-alchemy-client",
-		],
+		dependencies: ["chainxp-config", "fastify-prisma-client", "fastify-polygon-client", "fastify-alchemy-client"],
 	}
 );
 
@@ -51,20 +47,19 @@ class ServiceHolder {
 		this.contract = ServiceHolder.init(fastify, ContractService);
 	}
 
-
-//  static init<T extends BaseService>(
-//     fastify: FastifyInstance,
-//     serviceType: { new(): T; }
-//   ): T {
-//     const svc = new serviceType();
-//     svc.config = fastify.config;
-//     svc.log = fastify.log;
-//     svc.prisma = fastify.prisma;
-//     // svc.redis = fastify.redis;
-//     // svc.polygon = fastify.polygon;
-//     svc.alchemy = fastify.alchemy;
-//     return svc;
-  // }
+	//  static init<T extends BaseService>(
+	//     fastify: FastifyInstance,
+	//     serviceType: { new(): T; }
+	//   ): T {
+	//     const svc = new serviceType();
+	//     svc.config = fastify.config;
+	//     svc.log = fastify.log;
+	//     svc.prisma = fastify.prisma;
+	//     // svc.redis = fastify.redis;
+	//     // svc.polygon = fastify.polygon;
+	//     svc.alchemy = fastify.alchemy;
+	//     return svc;
+	// }
 	static init(fastify: FastifyInstance, serviceType: { new (): any }): any {
 		const svc = new serviceType();
 		this.assignProperties(svc, fastify);

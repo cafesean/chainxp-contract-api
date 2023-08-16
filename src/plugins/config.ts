@@ -10,7 +10,7 @@ import { templateArtifacts, delegateArtifacts, factoryArtifacts, tokenArtifacts 
  * @see https://github.com/fastify/fastify-env
  */
 export default fp(
-	async (fastify) => {
+	async (fastify: any) => {
 		// console.log("in plugins/config.ts");
 
 		try {
@@ -65,11 +65,11 @@ export default fp(
 				// },
 				polygon: {
 					baseUrl: process.env.POLYGONSCAN_URL || "",
-					apiKey: constants.POLYGON_API_KEY || "",
+					apiKey: process.env.POLYGONSCAN_API_KEY || "",
 				},
 				alchemy: {
-					apiKey: constants.POLYGON_API_KEY || "",
-					network: constants.POLYGON_NETWORK || "",
+					apiKey: constants.PROVIDER_API_KEY || "",
+					network: constants.ETH_NETWORK || "",
 				},
 				// scheduleServer: {
 				// 	host: getStringEnv("schedule_server_host"),

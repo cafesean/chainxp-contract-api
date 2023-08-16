@@ -10,3 +10,6 @@ src/lib
 *.json
 type*
 .vercel
+build
+dist
+.vercel

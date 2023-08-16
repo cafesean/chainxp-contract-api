@@ -2,13 +2,19 @@ import { BaseService } from "./base";
 import * as errors from "../errors";
 import { attachContract } from "../utils";
 // import { PrismaClient } from "@prisma/client";
-import { ethers, ContractFactory } from "ethers";
-import { POLYGON_SIGNER, POLYGON_PROVIDER } from "../constants/env.constants";
+// import { ethers, ContractFactory } from "ethers";
+import { ethers } from "hardhat";
+import crypto from "node:crypto";
+
+// import { signer, POLYGON_PROVIDER } from "../constants/env.constants";
 
 import dotenv from "dotenv";
+// import { signer} from "@root/constants/env.constants";
 dotenv.config();
 
 // const prisma = new PrismaClient();
+
+const zeroAddress = '0x0000000000000000000000000000000000000000';
 
 export class ContractService extends BaseService {
 	async version() {
@@ -105,7 +111,11 @@ export class ContractService extends BaseService {
 		// const contractDelegate = new ethers.Contract(DelegateSol, abi, owner);
 		// const proxyFactory = await ethers.getContractFactory("Proxy");
 
-		let class_id = "0";
+		
+		let class_id = reqBody.class_id || '0';
+		const template_id = reqBody.template_id || zeroAddress;
+
+		// const [signer] = await ethers.getSigners();
 
 		// get series_id
 		const series = await this.prisma.series.findFirst({
@@ -113,7 +123,7 @@ export class ContractService extends BaseService {
 				id: true,
 			},
 			where: {
-				contract_address: reqBody.contract_address,
+				contract_address: contract_address,
 			},
 		});
 
@@ -132,61 +142,75 @@ export class ContractService extends BaseService {
 
 		// increment lastClassId by 1
 		// const nextClassId = (Number(lastXp._max) + 1).toString();
+		return new Promise(async (resolve, reject) => {
+			try {
+				// console.log("uri:", await contractProxy.uri(1));
+				// const overrides = await this.getGasPriceOverrides();
 
-		try {
-			// console.log("uri:", await contractProxy.uri(1));
-			const overrides = await this.getGasPriceOverrides();
+				const response = await contractProxy._setClass(
+					Number(class_id),
+					reqBody.name,
+					reqBody.desc,
+					"",
+					template_id
+				);
+				const receipt = await response.wait();
+				console.log("Receipt: ", receipt);
 
-			const response = await contractProxy
-				.connect(POLYGON_SIGNER)
-				._setClass(Number(class_id), reqBody.name, reqBody.desc, "", reqBody.template, overrides);
-			const receipt = await response.wait();
-			console.log("Receipt: ", receipt);
-			for (const event of receipt.events) {
-				if (event.eventSignature === "ClassCreated(string,uint256)") {
-					const arg = event.args[1]; // uint256 value is 2nd arg in array as hex value
-					class_id = arg.toString();
+				for (const event of receipt.events) {
+					if (event.eventSignature === "ClassCreated(string,uint256)") {
+						const arg = event.args[1]; // uint256 value is 2nd arg in array as hex value
+						class_id = arg.toString();
+					}
 				}
+
+const newXp = await this.prisma.xp.upsert({
+    where: {
+        contract_address_class_id: {
+            contract_address: contract_address,
+            class_id: class_id
+        }
+    },
+    create: {
+        class_id: class_id,
+				series_id: series?.id,
+        contract_address: contract_address,
+        title: reqBody.name,
+        description: reqBody.desc,
+        requirements: reqBody.requirements,
+        image_url: reqBody.image_url,
+        slug: reqBody.slug,
+        status: 1
+    },
+    update: {
+        title: reqBody.name,
+        description: reqBody.desc,
+        requirements: reqBody.requirements,
+        image_url: reqBody.image_url,
+        slug: reqBody.slug,
+        status: 1
+    },
+    include: {
+        series: {
+            select: {
+                id: true
+            }
+        }
+    }
+});
+
+
+				const newXpID = newXp.id;
+				resolve({ "New xp.id": newXpID, class_id: class_id });
+			} catch (e) {
+				console.log(e);
+				reject(new Error("Error in _setClass"));
 			}
-		} catch (e) {
-			console.log(e);
-			throw new Error("Error in _setClass");
-		}
-
-		const newXp = await this.prisma.series.update({
-			where: {
-				id: Number(series?.id),
-			},
-			data: {
-				xp: {
-					create: {
-						// contract: contract_address,
-						class_id: class_id,
-						contract_address,
-						title: reqBody.name,
-						description: reqBody.desc,
-						requirements: reqBody.requirements,
-						image_url: reqBody.image_url,
-						slug: reqBody.slug,
-						status: 1,
-					},
-				},
-			},
-			include: {
-				xp: {
-					select: {
-						id: true,
-					},
-				},
-			},
 		});
-
-		return newXp.xp;
 	}
 
 	async cloneProxy(reqBody: any) {
 		const {
-			uuid,
 			factory_address,
 			contract_address,
 			delegate_address,
@@ -199,9 +223,12 @@ export class ContractService extends BaseService {
 			image_url,
 			template_id,
 		} = reqBody;
+
+		const [signer] = await ethers.getSigners();
 		// const utils = ethers.utils;
-		const salt = ethers.utils.formatBytes32String(uuid);
-		// const [owner] = reqBody.owner_address;
+		const random = crypto.randomBytes(8).toString("hex");
+
+		const salt = ethers.utils.formatBytes32String(random.toString());
 
 		const contractFactory = await attachContract(
 			this.config.artifacts.factoryAbi as any,
@@ -212,7 +239,8 @@ export class ContractService extends BaseService {
 		// const contractFactory = await attachContract(this.config.artifacts.factoryAbi, owner, factory_address, FactorySol);
 
 		// salt MUST be unique for eip-1167 cloning to work
-		const response = await contractFactory.connect(POLYGON_SIGNER).cloneProxy(contract_address, salt);
+
+		const response = await contractFactory.cloneProxy(contract_address, salt);
 
 		let addressClone;
 		const receipt = await response.wait(); // response is empty if using hardhat network
@@ -231,7 +259,8 @@ export class ContractService extends BaseService {
 			addressClone,
 			this.config.artifacts.tokenContractName
 		);
-		const initResponse = await clonedContract.connect(POLYGON_SIGNER).initialize(name, baseUri);
+
+		const initResponse = await clonedContract.initialize(name, baseUri);
 
 		initResponse.wait();
 
@@ -243,7 +272,7 @@ export class ContractService extends BaseService {
 					contract_address: addressClone,
 					factory_address: factory_address,
 					cloned_from: contract_address,
-					owner_address: await POLYGON_SIGNER.getAddress(),
+					owner_address: await signer.getAddress(),
 				},
 			});
 		} catch (error) {
@@ -258,7 +287,7 @@ export class ContractService extends BaseService {
 					org_id: org_id,
 					contract_address: addressClone,
 					delegate_address: delegate_address,
-					owner: await POLYGON_SIGNER.getAddress(),
+					owner: await signer.getAddress(),
 					title: name,
 					description: description,
 					requirements: requirements,
@@ -277,21 +306,28 @@ export class ContractService extends BaseService {
 		const series_id = seriesData?.id;
 
 		// return new clone (series)
-		response.success({ addressClone, series_id });
+		return { addressClone, series_id };
 	}
 
 	async deploySingle(abi: any, bytecode: string, contractName: string, sourceName: string) {
-		console.log("signer: ", await POLYGON_SIGNER.getAddress());
-		console.log("contractName: ", contractName);
+		// console.log("signer: ", await signer.getAddress());
+		const contractFullName = sourceName + ":" + contractName;
+		console.log("contractFullName: ", contractFullName);
 
-		const newContractFactory = new ContractFactory(abi, bytecode);
+		const [signer] = await ethers.getSigners();
+		// const newContractFactory = new ContractFactory(abi, bytecode);
 
-		const newContract = await newContractFactory
-			.connect(POLYGON_SIGNER)
-			.deploy()
-			.then((contract: any) => contract.deployed());
+		const factory = await ethers.getContractFactory(contractFullName);
+		// const overrides = await this.getGasPriceOverrides(2);
+		const newContract = await factory.deploy();
+		await newContract.deployed();
 
-		console.log("Deployed %s: %s", contractName, newContract.address);
+		// const newContract = await newContractFactory
+		// 	.connect(signer)
+		// 	.deploy()
+		// 	.then((contract: any) => contract.deployed());
+
+		console.log("Deployed %s: %s", contractFullName, newContract.address);
 
 		try {
 			await this.prisma.contract.create({
@@ -299,7 +335,7 @@ export class ContractService extends BaseService {
 					contract_address: newContract.address,
 					name: contractName,
 					source_name: sourceName,
-					owner_address: await POLYGON_SIGNER.getAddress(),
+					owner_address: await signer.getAddress(),
 					abi: JSON.stringify(abi),
 					bytecode: bytecode,
 				},
@@ -327,7 +363,7 @@ export class ContractService extends BaseService {
 			console.log("	contractFactory owner: ", await contractFactory.owner());
 			console.log("	ProxyFactory address: ", contractFactory.address);
 			addressFactory = contractFactory.address;
-			await contractFactory.connect(POLYGON_SIGNER).initialize();
+			await contractFactory.initialize();
 
 			// attach initial token proxy contract and register newly deployed factory
 			const proxyContract = await attachContract(
@@ -338,7 +374,7 @@ export class ContractService extends BaseService {
 			);
 
 			//register factory
-			await proxyContract.connect(POLYGON_SIGNER).registerFactory(contractFactory.address);
+			await proxyContract.registerFactory(contractFactory.address);
 		} catch (error) {
 			console.log("Deploy Error: ", error);
 			return error;
@@ -384,13 +420,13 @@ export class ContractService extends BaseService {
 		}
 
 		try {
-			await contractProxy.connect(POLYGON_SIGNER).setDelegateAddress(addressDelegate);
+			await contractProxy.setDelegateAddress(addressDelegate);
 			const setDefaultTemplate = await contractProxy.setDefaultTemplate(addressTemplate);
 
 			console.log("setDefaultTemplate - chainId: ", setDefaultTemplate.chainId);
 
 			await contractProxy.grantAccess(addressTemplate, "ADMIN_ROLE");
-			await contractProxy.connect(POLYGON_SIGNER).setTemplateContract(1, addressTemplate);
+			await contractProxy.setTemplateContract(1, addressTemplate);
 			console.log("Config done");
 		} catch (error) {
 			console.log("Config Error: ", error);
@@ -464,9 +500,10 @@ export class ContractService extends BaseService {
 		// const factory = await ethers.getContractFactory(ProxySol);
 		// const factoryContract = factory.attach(contract_address);
 
+		const [signer] = await ethers.getSigners();
 		let response;
 		try {
-			response = await tokenContract.connect(POLYGON_SIGNER).mint(Number(class_id), user_address);
+			response = await tokenContract.mint(Number(class_id), user_address);
 		} catch (e) {
 			console.log(e);
 			throw e;
@@ -492,7 +529,7 @@ export class ContractService extends BaseService {
 				contract_address, // required
 				class_id, // must be string
 				token_id: token_id + "", // must be string
-				from: await POLYGON_SIGNER.getAddress(), // required
+				from: await signer.getAddress(), // required
 				to: user_address, // required
 				status: -1,
 			},
@@ -537,9 +574,17 @@ export class ContractService extends BaseService {
 
 		// const [deployer] = await ethers.getSigners();
 
-		const factory = new ContractFactory(this.config.artifacts.tokenAbi as any, POLYGON_SIGNER as any);
-		const factoryContract = factory.attach(contract_address);
+		// const [signer] = await ethers.getSigners();
+		// const factory = await ethers.getContractFactory(this.config.artifacts.factoryContractName);
 
+		// const factory = ethers.getContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
+		// const factoryContract = factory.attachContract(this.config.artifacts.tokenAbi, contract_address, this.config.artifacts.factoryContractName
+		const factoryContract = await attachContract(
+			this.config.artifacts.tokenAbi as any,
+			this.config.artifacts.tokenBytecode,
+			contract_address,
+			this.config.artifacts.tokenContractName
+		);
 		const response = await factoryContract.safeTransferFrom(from, to, class_id, amount, 6);
 		console.log(`transfer NFT from '${from}' to '${to}' Txn: ${response.hash}`);
 		// await response.wait(2);
@@ -568,9 +613,15 @@ export class ContractService extends BaseService {
 	) {
 		await this.findContractClass(contract_address, class_id);
 
+		// const [signer] = await ethers.getSigners();
 		// const [deployer] = await ethers.getSigners();r);
-		const factory = new ContractFactory(this.config.artifacts.tokenAbi as any, POLYGON_SIGNER as any);
-		const factoryContract = factory.attach(contract_address);
+		// const factory = ethers.getContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
+		const factoryContract = await attachContract(
+			this.artifacts.factoryAbi,
+			this.artifacts.factoryBytecode,
+			contract_address,
+			this.artifacts.factoryContractName
+		);
 
 		const response = await factoryContract.burn(userAddress, class_id, amount);
 		console.log(`burn NFT from '${userAddress}' Txn: ${response.hash}`);
@@ -645,42 +696,46 @@ export class ContractService extends BaseService {
 		return contract_classes;
 	}
 
-	async speedupTransactionOverrides(txnHash: string) {
-		const txn = await POLYGON_PROVIDER.getTransaction(txnHash);
-		const gasPrice = await this.getSpeedGasPrice(txn.gasPrice!);
-		const overrides = {
-			nonce: txn.nonce,
-			gasPrice: gasPrice,
-		};
+	// async speedupTransactionOverrides(txnHash: string) {
+	// 	const txn = await ethers.provider.getTransaction(txnHash);
 
-		return overrides;
-	}
+	// 	if (txn === null) {
+	// 		throw new Error(`Transaction not found: ${txnHash}`);
+	// 	}
+	// 	const gasPrice = await this.getSpeedGasPrice(txn.gasPrice);
+	// 	const overrides = {
+	// 		nonce: txn.nonce,
+	// 		gasPrice: gasPrice,
+	// 	};
 
-	async getSpeedGasPrice(oldGasPrice: ethers.BigNumber) {
-		let gasPrice = await POLYGON_PROVIDER.getGasPrice();
+	// 	return overrides;
+	// }
 
-		const fastGasPrice = await this.polygon.scanGasTrackerPrice(2);
-		if (fastGasPrice > 0) {
-			gasPrice = ethers.BigNumber.from(fastGasPrice * 1e9);
-		}
+	// async getSpeedGasPrice(oldGasPrice: any) {
+	// 	let gasPrice = await ethers.provider.getGasPrice();
 
-		if (Number(gasPrice) < Number(oldGasPrice)) {
-			gasPrice = oldGasPrice.add(oldGasPrice.div(9));
-		}
-		return gasPrice;
-	}
+	// 	const fastGasPrice = await this.polygon.scanGasTrackerPrice(2);
+	// 	if (fastGasPrice > 0) {
+	// 		gasPrice = ethers.BigNumber.from(fastGasPrice * 1e9);
+	// 	}
 
-	async getGasPriceOverrides(level: number = 1) {
-		// get gas price from polygon scan
-		const scanGasPrice = await this.polygon.scanGasTrackerPrice(level);
-		if (scanGasPrice > 0) {
-			const gasPrice = ethers.BigNumber.from(scanGasPrice * 1e9);
-			return { gasPrice };
-		}
+	// 	if (Number(gasPrice) < Number(oldGasPrice)) {
+	// 		gasPrice = oldGasPrice.add(oldGasPrice.div(9));
+	// 	}
+	// 	return gasPrice;
+	// }
 
-		// get gas price from rpc network
-		const defaultGasPrice = await POLYGON_PROVIDER.getGasPrice();
-		const gasPrice = defaultGasPrice.add(defaultGasPrice.div(2).mul(level));
-		return { gasPrice };
-	}
+	// async getGasPriceOverrides(level: number = 1) {
+	// 	// get gas price from polygon scan
+	// 	const scanGasPrice = await this.polygon.scanGasTrackerPrice(level);
+	// 	if (scanGasPrice > 0) {
+	// 		const gasPrice = ethers.BigNumber.from(scanGasPrice * 1e9);
+	// 		return { gasPrice };
+	// 	}
+
+	// 	// get gas price from rpc network
+	// 	const defaultGasPrice = await ethers.provider.getGasPrice();
+	// 	const gasPrice = defaultGasPrice.add(defaultGasPrice.div(2).mul(level));
+	// 	return { gasPrice };
+	// }
 }

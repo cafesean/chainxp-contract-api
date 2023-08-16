@@ -1,14 +1,16 @@
 import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
-require("dotenv").config();
+import "@nomicfoundation/hardhat-toolbox";;
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 // MAINNET
-const NETWORK_MAINNET_RPC_URL = process.env.PROVIDER_URL;
-const MAINNET_PRIVATE_KEY = process.env.PRIVATE_KEY;
+const MAINNET_PROVIDER_URL = process.env.MAINNET_PROVIDER_URL;
+const MAINNET_PRIVATE_KEY = process.env.MAINNET_PRIVATE_KEY;
 
 // MUMBAI
-const NETWORK_TESTNET_RPC_URL = process.env.PROVIDER_URL;
-const TESTNET_PRIVATE_KEY = process.env.PRIVATE_KEY;
+const TESTNET_PROVIDER_URL = process.env.TESTNET_PROVIDER_URL;
+const TESTNET_PRIVATE_KEY = process.env.TESTNET_PRIVATE_KEY;
 
 const config: HardhatUserConfig = {
 	solidity: {
@@ -23,22 +25,21 @@ const config: HardhatUserConfig = {
 	defaultNetwork: process.env.DEFAULT_NETWORK || "hardhat",
 	networks: {
 		PolygonMumbai: {
-			url: NETWORK_TESTNET_RPC_URL,
+			url: TESTNET_PROVIDER_URL,
 			accounts: [TESTNET_PRIVATE_KEY!],
 			chainId: 80001,
 		},
 		PolygonMainnet: {
-			url: NETWORK_MAINNET_RPC_URL,
+			url: MAINNET_PROVIDER_URL,
 			accounts: [MAINNET_PRIVATE_KEY!],
 			chainId: 137,
 		},
 		hardhat: {
-			allowUnlimitedContractSize: true,
+			allowUnlimitedContractSize: false,
 		},
 	},
 	paths: {
 		sources: "./contracts",
-		tests: "./ethers/test",
 		cache: "./cache",
 		artifacts: "./contracts/artifacts",
 	},

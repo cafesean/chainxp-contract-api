@@ -9,7 +9,7 @@ import "./interface/IProxy.sol";
 
 import "hardhat/console.sol";
 
-contract ProxyFactory is OwnableUpgradeable, Access {
+contract FactoryContract is OwnableUpgradeable, Access {
     bool public initialized;
     address public _owner;
 

@@ -440,8 +440,8 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/amplify/backend/function/contract/contracts/Token.sol": {
-      "lastModificationDate": 1692171381917,
-      "contentHash": "6fdd162ae0d1c98ce5c4daa30bf7aea3",
+      "lastModificationDate": 1692275849007,
+      "contentHash": "996722d2f1d911d59a6177e76f3ecee9",
       "sourceName": "contracts/Token.sol",
       "solcConfig": {
         "version": "0.8.17",

@@ -7,9 +7,14 @@ README.*
 layer
 src/lib
 .env
-*.json
 type*
 .vercel
 build
 dist
 .vercel
+contract-cloudformation-template.json
+custom-policies.json
+function-parameters.json
+parameters.json
+contracts/artifacts
+.npmrc

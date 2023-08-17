@@ -198,6 +198,14 @@ export default async function contractController(fastify: FastifyInstance) {
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txn });
 	});
 
+	fastify.post("/:contract_id/updateBaseUri", async (request: any, resp: any) => {
+		const { contract_id } = request.params;
+		const { base_uri } = request.body;
+		console.log("In update clone meta data route");
+		const contractClass = await fastify.service.contract.updateBaseUri(contract_id, base_uri);
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contractClass });
+	});
 	// fastify.post(
 	//   '/:contract_id/transfer/:class_id',
 	//   transferContractNFTSchema(fastify),

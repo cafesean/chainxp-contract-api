@@ -30,8 +30,6 @@ specifiers:
   alchemy-sdk: ^2.9.2
   axios: ^1.2.1
   chai: ^4.3.6
-  client^5: link:@prisma/client^5
-  client^5.0.0: link:@prisma/client^5.0.0
   dotenv: ^16.3.1
   error-stack-parser: ^2.1.4
   ethers: ^5.7.2
@@ -59,8 +57,6 @@ dependencies:
   '@typechain/ethers-v6': registry.npmmirror.com/@typechain/ethers-v6/0.4.3_nubkskegg26bdeadm5g4qml6im_nubkskegg26bdeadm5g4qml6im
   alchemy-sdk: registry.npmmirror.com/alchemy-sdk/2.9.2
   axios: registry.npmmirror.com/axios/1.4.0
-  client^5: link:@prisma/client^5
-  client^5.0.0: link:@prisma/client^5.0.0
   error-stack-parser: registry.npmmirror.com/error-stack-parser/2.1.4
   http-status-codes: 2.2.0
   ioredis: registry.npmmirror.com/ioredis/5.3.2

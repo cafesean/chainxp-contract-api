@@ -142,7 +142,7 @@ export class ContractService extends BaseService {
 		// increment lastClassId by 1
 		// const nextClassId = (Number(lastXp._max) + 1).toString();
 		return new Promise(async (resolve, reject) => {
-			const lowercaseAddress = contract_address.toLowerCase();
+			// const lowercaseAddress = contract_address.toLowerCase();
 
 			try {
 				// console.log("uri:", await contractProxy.uri(1));
@@ -162,7 +162,7 @@ export class ContractService extends BaseService {
 				const newXp = await this.prisma.xp.upsert({
 					where: {
 						contract_address_class_id: {
-							contract_address: lowercaseAddress,
+							contract_address: contract_address,
 							class_id: class_id,
 						},
 					},
@@ -690,6 +690,25 @@ export class ContractService extends BaseService {
 		return contract_classes;
 	}
 
+	async updateBaseUri(contract_address: string, base_uri: string) {
+		const tokenContract = await attachContract(
+			this.config.artifacts.tokenAbi as any,
+			this.config.artifacts.tokenBytecode,
+			contract_address,
+			this.config.artifacts.tokenContractName
+		);
+
+		let response;
+		try {
+			response = await tokenContract.setBaseURI(base_uri);
+			await response.wait();
+
+			return response;
+		} catch (e) {
+			console.log(e);
+			throw e;
+		}
+	}
 	// async speedupTransactionOverrides(txnHash: string) {
 	// 	const txn = await ethers.provider.getTransaction(txnHash);
 

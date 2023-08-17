@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node build/local.js",
     "dev": "tsx watch src/local.ts",
-    "build": "rm -rf build && pnpm gen && tsc --build tsconfig.json && pnpm hh && cp -r contracts/artifacts/contracts src/lib &&  cp -r src/lib build/src && cp -r contracts build && cp -r typechain-types build && cp -r prisma build && cp vercel.json build/src",
+    "build": "rm -rf build && pnpm gen && pnpm hh && tsc --build tsconfig.json && cp -r contracts/artifacts/contracts src/lib &&  cp -r src/lib build/src && cp -r contracts build && cp -r typechain-types build && cp -r prisma build && cp vercel.json build/src",
     "hh": "rm -rf src/lib && npx hardhat compile",
     "gen": "prisma generate",
     "local:start": "fastify start -l info app.js",

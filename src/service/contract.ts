@@ -14,7 +14,7 @@ dotenv.config();
 
 // const prisma = new PrismaClient();
 
-const zeroAddress = '0x0000000000000000000000000000000000000000';
+const zeroAddress = "0x0000000000000000000000000000000000000000";
 
 export class ContractService extends BaseService {
 	async version() {
@@ -111,8 +111,7 @@ export class ContractService extends BaseService {
 		// const contractDelegate = new ethers.Contract(DelegateSol, abi, owner);
 		// const proxyFactory = await ethers.getContractFactory("Proxy");
 
-		
-		let class_id = reqBody.class_id || '0';
+		let class_id = reqBody.class_id || "0";
 		const template_id = reqBody.template_id || zeroAddress;
 
 		// const [signer] = await ethers.getSigners();
@@ -143,17 +142,13 @@ export class ContractService extends BaseService {
 		// increment lastClassId by 1
 		// const nextClassId = (Number(lastXp._max) + 1).toString();
 		return new Promise(async (resolve, reject) => {
+			const lowercaseAddress = contract_address.toLowerCase();
+
 			try {
 				// console.log("uri:", await contractProxy.uri(1));
 				// const overrides = await this.getGasPriceOverrides();
 
-				const response = await contractProxy._setClass(
-					Number(class_id),
-					reqBody.name,
-					reqBody.desc,
-					"",
-					template_id
-				);
+				const response = await contractProxy._setClass(Number(class_id), reqBody.name, reqBody.desc, "", template_id);
 				const receipt = await response.wait();
 				console.log("Receipt: ", receipt);
 
@@ -164,41 +159,40 @@ export class ContractService extends BaseService {
 					}
 				}
 
-const newXp = await this.prisma.xp.upsert({
-    where: {
-        contract_address_class_id: {
-            contract_address: contract_address,
-            class_id: class_id
-        }
-    },
-    create: {
-        class_id: class_id,
-				series_id: series?.id,
-        contract_address: contract_address,
-        title: reqBody.name,
-        description: reqBody.desc,
-        requirements: reqBody.requirements,
-        image_url: reqBody.image_url,
-        slug: reqBody.slug,
-        status: 1
-    },
-    update: {
-        title: reqBody.name,
-        description: reqBody.desc,
-        requirements: reqBody.requirements,
-        image_url: reqBody.image_url,
-        slug: reqBody.slug,
-        status: 1
-    },
-    include: {
-        series: {
-            select: {
-                id: true
-            }
-        }
-    }
-});
-
+				const newXp = await this.prisma.xp.upsert({
+					where: {
+						contract_address_class_id: {
+							contract_address: lowercaseAddress,
+							class_id: class_id,
+						},
+					},
+					create: {
+						class_id: class_id,
+						series_id: series?.id,
+						contract_address: contract_address,
+						title: reqBody.name,
+						description: reqBody.desc,
+						requirements: reqBody.requirements,
+						image_url: reqBody.image_url,
+						slug: reqBody.slug,
+						status: 1,
+					},
+					update: {
+						title: reqBody.name,
+						description: reqBody.desc,
+						requirements: reqBody.requirements,
+						image_url: reqBody.image_url,
+						slug: reqBody.slug,
+						status: 1,
+					},
+					include: {
+						series: {
+							select: {
+								id: true,
+							},
+						},
+					},
+				});
 
 				const newXpID = newXp.id;
 				resolve({ "New xp.id": newXpID, class_id: class_id });

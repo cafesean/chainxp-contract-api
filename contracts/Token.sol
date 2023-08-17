@@ -16,7 +16,10 @@ contract TokenContract is Access, Base {
     Counters.Counter attributeCount;
     bool initialized = false;
 
-    function initialize(string memory _name, string memory _baseUri) public initializer {
+    function initialize(
+        string memory _name,
+        string memory _baseUri
+    ) public initializer {
         Base.initializeBase();
 
         name = _name;
@@ -38,22 +41,27 @@ contract TokenContract is Access, Base {
         string calldata _baseUri,
         address _templateAddress
     ) public onlyOps returns (uint256 id) {
+        uint256 increment = 0;
         if (_classId == 0) {
-            classesCount.increment();
-            _classId = classesCount.current();
-            emit ClassCreated(_name, _classId);
+            increment = 1;
         }
         (bool success, ) = DelegateAddress.delegatecall(
             abi.encodeWithSelector(
                 IDelegate.setClass.selector,
-                _classId,
+                _classId + increment,
                 _name,
                 _description,
                 _baseUri,
                 _templateAddress
             )
         );
-        return _classId;
+        require(success, "setClass failed"); 
+
+        if (increment == 1) {
+            classesCount.increment();
+            emit ClassCreated(_name, classesCount.current());
+        }
+        return classesCount.current();
     }
 
     function _setAttribute(
@@ -61,10 +69,9 @@ contract TokenContract is Access, Base {
         string memory _name,
         string memory _code
     ) public onlyOps returns (uint256 id) {
-        if (_attributeId == 0) {
-            attributeCount.increment();
-            _attributeId = attributeCount.current();
-            emit AttributeCreated(_name, _attributeId);
+        uint256 increment = 0;
+        if (_attributeId == 0){
+            increment = 1;
         }
         (bool success, ) = DelegateAddress.delegatecall(
             abi.encodeWithSelector(
@@ -74,7 +81,12 @@ contract TokenContract is Access, Base {
                 _code
             )
         );
-        return _attributeId;
+        require(success, "setAttr failed");
+        if (increment == 1) {
+            attributeCount.increment();
+            emit AttributeCreated(_name, attributeCount.current());
+        }
+        return attributeCount.current();
     }
 
     function setAttributes(
@@ -113,6 +125,7 @@ contract TokenContract is Access, Base {
         uint256 _classId,
         address _to
     ) public onlyOps returns (uint256 id) {
+        require(classes[_classId].id != 0, "No xp");
         uint256 _tokenId;
         tokenCount.increment();
         _tokenId = mintSingle(_to, tokenCount.current(), _classId);
@@ -185,7 +198,10 @@ contract TokenContract is Access, Base {
         _setupRole(ADMIN_ROLE, _address);
     }
 
-    function registerClone(string memory uuid, address _clone) public onlyAdmin {
+    function registerClone(
+        string memory uuid,
+        address _clone
+    ) public onlyAdmin {
         clones[uuid] = _clone;
         _setupRole(OPS_ROLE, _clone);
     }
@@ -206,7 +222,13 @@ contract TokenContract is Access, Base {
     //need to override to avoid conflicting instances of supportsInterface
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(AccessControlUpgradeable, Base) returns (bool) {
+    )
+        public
+        view
+        virtual
+        override(AccessControlUpgradeable, Base)
+        returns (bool)
+    {
         return super.supportsInterface(interfaceId);
     }
 }

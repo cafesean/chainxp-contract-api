@@ -69,10 +69,7 @@ export default async function contractController(fastify: FastifyInstance) {
 			version,
 			isDefault
 		);
-		resp
-			.code(200)
-			.header("Content-Type", "application/json; charset=utf-8")
-			.send({ result: '"Contracts created."' });
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: '"Contracts created."' });
 	});
 
 	fastify.post("/deploy", deployContractSchema(fastify), async (request: any, resp: any) => {
@@ -80,7 +77,10 @@ export default async function contractController(fastify: FastifyInstance) {
 
 		const contract = (await fastify.service.contract.deployAll(name, baseUri)) as any;
 
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: JSON.stringify(contract) });
+		resp
+			.code(200)
+			.header("Content-Type", "application/json; charset=utf-8")
+			.send({ result: JSON.stringify(contract) });
 	});
 
 	fastify.post("/clone", async (request: any, resp: any) => {
@@ -206,6 +206,21 @@ export default async function contractController(fastify: FastifyInstance) {
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contractClass });
 	});
+
+	fastify.get("/:contract_id/getUris/:id1/:id2", async (request: any, resp: any) => {
+		//const { count } = request.query;
+		const { contract_id, id1, id2 } = request.params;
+		// const { abi } = request.body;
+
+		try {
+			const uriString = await fastify.service.contract.getUris(contract_id, id1, id2);
+
+			return { result: uriString };
+		} catch (err) {
+			resp.send(err);
+		}
+	});
+
 	// fastify.post(
 	//   '/:contract_id/transfer/:class_id',
 	//   transferContractNFTSchema(fastify),

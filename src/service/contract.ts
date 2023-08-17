@@ -11,7 +11,9 @@ import crypto from "node:crypto";
 import dotenv from "dotenv";
 // import { signer} from "@root/constants/env.constants";
 dotenv.config();
-
+interface JSONObject {
+	[key: string]: any;
+}
 // const prisma = new PrismaClient();
 
 const zeroAddress = "0x0000000000000000000000000000000000000000";
@@ -707,6 +709,26 @@ export class ContractService extends BaseService {
 		} catch (e) {
 			console.log(e);
 			throw e;
+		}
+	}
+
+	async getUris(contract_address: any, from: number, to: number) {
+		var i;
+		var data: JSONObject = {};
+		const tokenContract = await attachContract(
+			this.config.artifacts.tokenAbi as any,
+			this.config.artifacts.tokenBytecode,
+			contract_address,
+			this.config.artifacts.tokenContractName
+		);
+
+		try {
+			for (i = from; i <= to; i++) {
+				data["uri" + i] = await tokenContract.uri(i);
+			}
+			return JSON.stringify(data);
+		} catch (err) {
+			return err;
 		}
 	}
 	// async speedupTransactionOverrides(txnHash: string) {

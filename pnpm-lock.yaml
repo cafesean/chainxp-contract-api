@@ -1466,6 +1466,7 @@ packages:
 
   /ts-node/10.9.1_tzpvnmjmd22fz5lupgottxhkjy:
     resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
+    hasBin: true
     peerDependencies:
       '@swc/core': '>=1.2.50'
       '@swc/wasm': '>=1.2.50'
@@ -5450,6 +5451,7 @@ packages:
     id: registry.npmmirror.com/hardhat/2.17.1_2dtigtkb225m7ii7q45utxqwgi
     name: hardhat
     version: 2.17.1
+    hasBin: true
     peerDependencies:
       ts-node: '*'
       typescript: '*'
@@ -7430,6 +7432,7 @@ packages:
     id: registry.npmmirror.com/solidity-coverage/0.8.4_hardhat@2.17.1_hardhat@2.17.1_hardhat@2.17.1
     name: solidity-coverage
     version: 0.8.4
+    hasBin: true
     peerDependencies:
       hardhat: ^2.11.0
     dependencies:
@@ -7940,6 +7943,7 @@ packages:
     id: registry.npmmirror.com/typechain/8.3.1_typescript@4.9.3_typescript@4.9.3_typescript@4.9.3
     name: typechain
     version: 8.3.1
+    hasBin: true
     peerDependencies:
       typescript: '>=4.3.0'
     dependencies:

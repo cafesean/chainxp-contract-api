@@ -29,13 +29,14 @@ contract FactoryContract is OwnableUpgradeable, Access {
         _setupRole(SYS_ROLE, _owner);
     }
 
-    function cloneProxy(address _impl, string memory _uuid) public onlyAdmin returns (address) {
+    function cloneProxy(
+        address _impl,
+        string memory _uuid
+    ) public onlyAdmin returns (address) {
         bytes32 salt = keccak256(abi.encodePacked(_uuid));
         address cloneAddress = Clones.cloneDeterministic(_impl, salt);
 
-        IProxy(_impl)
-            .registerClone(_uuid, cloneAddress);    
-
+        IProxy(_impl).registerClone(_uuid, cloneAddress);
         emit ProxyCloned(cloneAddress);
 
         console.log("cloneAddress: %s", cloneAddress);

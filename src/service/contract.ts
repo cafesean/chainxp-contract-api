@@ -200,7 +200,7 @@ export class ContractService extends BaseService {
 				resolve({ "New xp.id": newXpID, class_id: class_id });
 			} catch (e) {
 				console.log(e);
-				reject(new Error("Error in _setClass"));
+				reject(new Error("Error creating class:" + e));
 			}
 		});
 	}
@@ -222,9 +222,10 @@ export class ContractService extends BaseService {
 
 		const [signer] = await ethers.getSigners();
 		// const utils = ethers.utils;
-		const random = crypto.randomBytes(8).toString("hex");
+		// const random = crypto.randomBytes(8).toString("hex");
+		const uuid = crypto.randomUUID();
 
-		const salt = ethers.utils.formatBytes32String(random.toString());
+		// const salt = ethers.utils.formatBytes32String(random.toString());
 
 		const contractFactory = await attachContract(
 			this.config.artifacts.factoryAbi as any,
@@ -236,7 +237,10 @@ export class ContractService extends BaseService {
 
 		// salt MUST be unique for eip-1167 cloning to work
 
-		const response = await contractFactory.cloneProxy(contract_address, salt);
+		const response = await contractFactory.cloneProxy(
+			contract_address, 
+			uuid)
+			;
 
 		let addressClone;
 		const receipt = await response.wait(); // response is empty if using hardhat network
@@ -256,9 +260,26 @@ export class ContractService extends BaseService {
 			this.config.artifacts.tokenContractName
 		);
 
-		const initResponse = await clonedContract.initialize(name, baseUri);
+		const initResponse = await clonedContract.initialize(name, baseUri, name, baseUri, description);
 
 		initResponse.wait();
+
+
+		// try registering delegate and template directly to clone
+		// try {
+		// 	await clonedContract.setDelegateAddress(delegate_address);
+		// 	const setDefaultTemplate = await clonedContract.setDefaultTemplate(template_address);
+
+		// 	console.log("setDefaultTemplate - chainId: ", setDefaultTemplate.chainId);
+
+		// 	await clonedContract.grantAccess(template_address, "ADMIN_ROLE");
+		// 	await clonedContract.setTemplateContract(1, template_address);
+		// 	console.log("Config done");
+		// } catch (error) {
+		// 	console.log("Config Error: ", error);
+		// 	return error;
+		// }
+
 
 		try {
 			await this.prisma.contract.create({
@@ -274,6 +295,9 @@ export class ContractService extends BaseService {
 		} catch (error) {
 			console.log("contractData Error: ", error);
 		}
+
+
+
 
 		let seriesData;
 
@@ -379,7 +403,7 @@ export class ContractService extends BaseService {
 		return addressFactory;
 	}
 
-	async deployAll(name: string, baseUri: string) {
+	async deployAll(name: string, baseUri: string, description: string, symbol: string) {
 		var addressTemplate, addressDelegate;
 		var contractDelegate, contractProxy, contractTemplate;
 		var addressProxy, addressTemplate, addressDelegate;
@@ -399,7 +423,7 @@ export class ContractService extends BaseService {
 				this.config.artifacts.tokenContractName,
 				this.config.artifacts.tokenSourceName
 			); // #2 Proxy
-			await contractProxy.initialize(name, baseUri);
+			await contractProxy.initialize(name, baseUri, description, symbol);
 
 			// ?await contractProxy.;
 			addressProxy = contractProxy.address;
@@ -731,6 +755,77 @@ export class ContractService extends BaseService {
 			return err;
 		}
 	}
+
+	async setAttributes(contract_address: any, count: number) {
+		const tokenContract = await attachContract(
+			this.config.artifacts.tokenAbi as any,
+			this.config.artifacts.tokenBytecode,
+			contract_address,
+			this.config.artifacts.tokenContractName
+		);
+		var i;
+		try {
+			for (i = 1; i <= count; i++) {
+				await tokenContract.setAttributes(i, [i], [1], [], []);
+				// await contractNFT.setAttributes(i, [1,2],[23,35],[1,2,3,4,5,6],["2020","Shanghai","Member","12","Jr. Backend Developer","No"]);
+			}
+			return "success";
+		} catch (err) {
+			return err;
+		}
+	}
+
+	async getUsers(contract: any, from: number, to: number) {
+		var i;
+		var data: JSONObject = {};
+		try {
+			for (i = from; i <= to; i++) {
+				data["user" + i] = await contract.users(i);
+			}
+			return JSON.stringify(data);
+		} catch (err) {
+			return err;
+		}
+	}
+
+	async getClasses(contract_address: any, from: number, to: number) {
+		const tokenContract = await attachContract(
+			this.config.artifacts.tokenAbi as any,
+			this.config.artifacts.tokenBytecode,
+			contract_address,
+			this.config.artifacts.tokenContractName
+		);
+		var i;
+		var data: JSONObject = {};
+		// const [owner] = await ethers.getSigners();
+		try {
+			for (i = from; i <= to; i++) {
+				data["class" + i] = await tokenContract.classes(i);
+			}
+			return JSON.stringify(data);
+		} catch (err) {
+			return err;
+		}
+	}
+	async getAttributes(contract_address: any, from: number, to: number) {
+		const tokenContract = await attachContract(
+			this.config.artifacts.tokenAbi as any,
+			this.config.artifacts.tokenBytecode,
+			contract_address,
+			this.config.artifacts.tokenContractName
+		);
+		var i;
+		var data: JSONObject = {};
+		try {
+			for (i = from; i <= to; i++) {
+				data["attribute" + i] = await tokenContract._attributes(i);
+			}
+			return JSON.stringify(data);
+		} catch (err) {
+			return err;
+		}
+	}
+
 	// async speedupTransactionOverrides(txnHash: string) {
 	// 	const txn = await ethers.provider.getTransaction(txnHash);
 

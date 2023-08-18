@@ -9,6 +9,7 @@ import "./interface/IDelegate.sol";
 
 import "hardhat/console.sol";
 
+
 contract TokenContract is Access, Base {
     using Counters for Counters.Counter;
     Counters.Counter classesCount;
@@ -18,12 +19,16 @@ contract TokenContract is Access, Base {
 
     function initialize(
         string memory _name,
-        string memory _baseUri
+        string memory _baseUri,
+        string memory _description,
+        string memory _symbol
     ) public initializer {
         Base.initializeBase();
 
         name = _name;
         baseURI = _baseUri;
+        description = _description;
+        symbol = _symbol;
         __ERC1155_init(baseURI);
         __Ownable_init();
         _owner = _msgSender();

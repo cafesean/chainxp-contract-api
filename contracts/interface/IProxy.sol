@@ -48,4 +48,10 @@ interface IProxy {
     function transferOwnership(address _address) external;
     function registerClone(string memory _uuid, address _clone) external;
     function deregisterClone(string memory _uuid) external;
+    function initialize(
+        string memory _name,
+        string memory _baseUri,
+        string memory _description,
+        string memory _symbol
+    ) external;
 }

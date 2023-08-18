@@ -26,75 +26,63 @@ contract DelegateContract is Initializable, Access, Base {
         string memory _description,
         string memory _baseUri,
         address _templateAddress
-    ) public onlyOps {
-        console.log("*** In setClass");
-        // if (classes[_classId].id == 0) {
-        classes[_classId].id = _classId;
-        // }
-        if (
-            keccak256(abi.encodePacked(_name)) ==
-            keccak256(abi.encodePacked("delete"))
-        ) {
-            delete classes[_classId];
-            return;
+    ) public onlyOps returns (uint256 id) {
+        if (_classId == 0) {
+            classesCount.increment();
+            _classId = classesCount.current();
         }
-        classes[_classId].name = _name;
-        classes[_classId].description = _description;
-        classes[_classId].classUri = bytes(_baseUri).length != 0
+        class memory newClass = class({
+            id: _classId,
+            tokenCount: classes[_classId].tokenCount,
+            name: _name,
+            description: _description,
+            classUri: bytes(_baseUri).length != 0
             ? _baseUri
-            : "";
-        classes[_classId].templateAddress = _templateAddress != address(0x0)
-            ? _templateAddress
-            : DefaultTemplate;
+            : classes[_classId].classUri,
+            templateAddress: _templateAddress != address(0x0)
+                ? _templateAddress
+                : DefaultTemplate
+        });
+        classes[_classId] = newClass;
+        return _classId;
     }
 
     function setAttribute(
         uint256 _id,
+        uint256 _classId,
         string memory _name,
         string memory _code
-    ) public onlyOps {
-        if (attributes[_id].id == 0) {
-            attributes[_id].id = _id;
-        }
-        if (
-            keccak256(abi.encodePacked(_code)) ==
-            keccak256(abi.encodePacked("delete"))
-        ) {
-            delete attributes[_id];
-        } else if (
-            keccak256(abi.encodePacked(_code)) ==
-            keccak256(abi.encodePacked("false"))
-        ) {
-            attributes[_id].visible = false; //must pre-set bools
-        } else {
-            attributes[_id].name = _name;
-            attributes[_id].code = _code;
-            attributes[_id].visible = true; //must pre-set bools
-            attributes[_id].active = true; //must pre-set bools
-        }
+    ) public onlyOps returns (uint256) {
+        // require(_classId > 0, "No class ID");
+        // bytes32 code = keccak256(abi.encodePacked(_code));
+        // if (code == keccak256(abi.encodePacked("delete"))) {
+        //     delete attributes[_classId];
+        //     return "deleted";
+        // }
+        // attributes[_classId].visible = code ==
+        //     keccak256(abi.encodePacked("false"))
+        //     ? false : true;
+
+        // if (attributes[_classId].id == 0) {
+        //     attributes[_classId].id = _id;
+        // }
+        // attributes[_classId].name = _name;
+        // attributes[_classId].code = _code;
+
+        return _id;
     }
 
-    function setUserAttributes(
-        uint256 _tokenId,
-        uint256[] calldata _attributeIds,
-        string[] calldata _attributeValues
-    ) public onlyOps {
-        //attribs
-        for (uint256 _a = 0; _a < _attributeIds.length; _a++) {
-            userAttributes[_tokenId][_attributeIds[_a]] = _attributeValues[_a];
-        }
-    }
 
-    function burnBatchByClass(uint256 _classId) public onlyAdmin {
-        for (uint256 _userId = 1; _userId <= tokenCount.current(); _userId++) {
-            require(users[_userId].classId == _classId);
-            require(
-                balanceOf(users[_userId].wallet, users[_userId].id) > 0,
-                "Nothing to burn"
-            );
-            _burn(users[_userId].wallet, users[_userId].id, 1);
-        }
-    }
+    // function burnBatchByClass(uint256 _classId) public onlyAdmin {
+    //     for (uint256 _userId = 1; _userId <= tokenCount.current(); _userId++) {
+    //         require(users[_classId][users[_userId].wallet][] <> 0);
+    //         require(
+    //             balanceOf(users[_userId].wallet, users[_userId].id) > 0,
+    //             "Nothing to burn"
+    //         );
+    //         _burn(users[_userId].wallet, users[_userId].id, 1);
+    //     }
+    // }
 
     function destroy() public onlyAdmin {
         selfdestruct(payable(_owner));

@@ -71,6 +71,7 @@ export class DeployService extends BaseService {
 			factory_address,
 			contract_address,
 			delegate_address,
+			template_address,
 			org_id,
 			title,
 			baseUri,
@@ -99,7 +100,7 @@ export class DeployService extends BaseService {
 
 		// salt MUST be unique for eip-1167 cloning to work
 
-		const response = await contractFactory.createClone(contract_address, title, baseUri, description, symbol);
+		const response = await contractFactory.createClone(contract_address);
 
 		let addressClone;
 		const receipt = await response.wait(); // response is empty if using hardhat network
@@ -110,18 +111,40 @@ export class DeployService extends BaseService {
 			}
 		}
 
-		// set permissions with delegate
+		// initialize clone
+		const contractClone = await attachContract(
+			this.config.artifacts.tokenAbi as any,
+			this.config.artifacts.tokenBytecode,
+			addressClone,
+			this.config.artifacts.tokenContractName
+		);
 
+		await contractClone.initialize(signer.address, title, baseUri, description, symbol);
+
+		// configure with delegate
 		const delegateContract = await attachContract(
 			this.config.artifacts.delegateAbi as any,
 			this.config.artifacts.delegateBytecode,
 			delegate_address,
 			this.config.artifacts.delegateContractName
 		);
+		1;
+		await contractClone.setDelegateAddress(delegate_address);
+		await delegateContract.grantAccess(addressClone, "ADMIN_ROLE");
 
-		const initResponse = await delegateContract.grantAccess(addressClone, "OPS_ROLE");
+		const contractTemplate = await attachContract(
+			this.config.artifacts.templateAbi as any,
+			this.config.artifacts.templateBytecode,
+			template_address,
+			this.config.artifacts.templateContractName
+		);
 
-		initResponse.wait();
+		// configure with template
+		await contractClone.setDefaultTemplate(template_address);
+		await contractClone.grantAccess(template_address, "ADMIN_ROLE");
+		await contractClone.setTemplateContract(1, template_address);
+		await contractTemplate.authorizeCallingContract(signer.address, addressClone);
+		console.log("Clone config done");
 
 		try {
 			await this.prisma.contract.create({
@@ -282,7 +305,7 @@ export class DeployService extends BaseService {
 
 		try {
 			await contractProxy.setDelegateAddress(addressDelegate);
-			await contractDelegate.grantAccess(deployer.address, "ADMIN_ROLE")
+			await contractDelegate.grantAccess(deployer.address, "ADMIN_ROLE");
 			const setDefaultTemplate = await contractProxy.setDefaultTemplate(addressTemplate);
 
 			console.log("setDefaultTemplate - chainId: ", setDefaultTemplate.chainId);

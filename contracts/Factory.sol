@@ -31,11 +31,7 @@ contract FactoryContract is OwnableUpgradeable, Access {
     }
 
     function createClone(
-        address target,
-        string memory _title,
-        string memory _baseUri,
-        string memory _description,
-        string memory _symbol
+        address target
     ) public onlyAdmin returns (address) {
         bytes20 targetBytes = bytes20(target);
         address proxy;
@@ -53,13 +49,7 @@ contract FactoryContract is OwnableUpgradeable, Access {
             )
             proxy := create(0, clone, 0x37)
         }
-        IProxy(proxy).initialize(
-            _owner,
-            _title,
-            _baseUri,
-            _description,
-            _symbol
-        );
+
         proxies.push(proxy);
         emit ProxyCloned(proxy);
         return proxy;

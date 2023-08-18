@@ -18,4 +18,4 @@ function-parameters.json
 parameters.json
 contracts/artifacts
 .npmrc
-ignore
+_ignore

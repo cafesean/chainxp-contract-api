@@ -1,7 +1,7 @@
 import { BaseService } from "./base";
 import { attachContract } from "../utils";
 import { ethers } from "hardhat";
-import crypto from "node:crypto";
+// import crypto from "node:crypto";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -66,14 +66,13 @@ export class DeployService extends BaseService {
 		}
 	}
 
-
 	async cloneProxy(reqBody: any) {
 		const {
 			factory_address,
 			contract_address,
 			delegate_address,
 			org_id,
-			name,
+			title,
 			baseUri,
 			description,
 			symbol,
@@ -86,7 +85,7 @@ export class DeployService extends BaseService {
 		const [signer] = await ethers.getSigners();
 		// const utils = ethers.utils;
 		// const random = crypto.randomBytes(8).toString("hex");
-		const uuid = crypto.randomUUID();
+		// const uuid = crypto.randomUUID();
 
 		// const salt = ethers.utils.formatBytes32String(random.toString());
 
@@ -100,9 +99,7 @@ export class DeployService extends BaseService {
 
 		// salt MUST be unique for eip-1167 cloning to work
 
-		const response = await contractFactory.cloneProxy(
-			contract_address, 
-			uuid);
+		const response = await contractFactory.createClone(contract_address, title, baseUri, description, symbol);
 
 		let addressClone;
 		const receipt = await response.wait(); // response is empty if using hardhat network
@@ -113,26 +110,23 @@ export class DeployService extends BaseService {
 			}
 		}
 
-		// initialize clone
+		// set permissions with delegate
 
-		const clonedContract = await attachContract(
-			this.config.artifacts.tokenAbi as any,
-			this.config.artifacts.tokenBytecode,
-			addressClone,
-			this.config.artifacts.tokenContractName
+		const delegateContract = await attachContract(
+			this.config.artifacts.delegateAbi as any,
+			this.config.artifacts.delegateBytecode,
+			delegate_address,
+			this.config.artifacts.delegateContractName
 		);
 
-		const initResponse = await clonedContract.initialize(name, baseUri, description, symbol);
+		const initResponse = await delegateContract.grantAccess(addressClone, "OPS_ROLE");
 
 		initResponse.wait();
-
-
-
 
 		try {
 			await this.prisma.contract.create({
 				data: {
-					name: name,
+					name: title,
 					type: "clone",
 					contract_address: addressClone,
 					factory_address: factory_address,
@@ -144,9 +138,6 @@ export class DeployService extends BaseService {
 			console.log("contractData Error: ", error);
 		}
 
-
-
-
 		let seriesData;
 
 		try {
@@ -156,7 +147,7 @@ export class DeployService extends BaseService {
 					contract_address: addressClone,
 					delegate_address: delegate_address,
 					owner: await signer.getAddress(),
-					title: name,
+					title: title,
 					description: description,
 					requirements: requirements,
 					image_url: image_url,
@@ -255,6 +246,7 @@ export class DeployService extends BaseService {
 		var addressTemplate, addressDelegate;
 		var contractDelegate, contractProxy, contractTemplate;
 		var addressProxy, addressTemplate, addressDelegate;
+		const [deployer] = await ethers.getSigners();
 
 		try {
 			contractDelegate = await this.deploySingle(
@@ -264,6 +256,7 @@ export class DeployService extends BaseService {
 				this.config.artifacts.delegateSourceName
 			); // #1 Delegate
 			addressDelegate = contractDelegate.address;
+			await contractDelegate.initialize();
 
 			contractProxy = await this.deploySingle(
 				this.config.artifacts.tokenAbi as any,
@@ -271,7 +264,7 @@ export class DeployService extends BaseService {
 				this.config.artifacts.tokenContractName,
 				this.config.artifacts.tokenSourceName
 			); // #2 Proxy
-			await contractProxy.initialize(name, baseUri, description, symbol);
+			await contractProxy.initialize(deployer.address, name, baseUri, description, symbol);
 
 			// ?await contractProxy.;
 			addressProxy = contractProxy.address;
@@ -289,6 +282,7 @@ export class DeployService extends BaseService {
 
 		try {
 			await contractProxy.setDelegateAddress(addressDelegate);
+			await contractDelegate.grantAccess(deployer.address, "ADMIN_ROLE")
 			const setDefaultTemplate = await contractProxy.setDefaultTemplate(addressTemplate);
 
 			console.log("setDefaultTemplate - chainId: ", setDefaultTemplate.chainId);
@@ -303,5 +297,4 @@ export class DeployService extends BaseService {
 
 		return { proxy_address: addressProxy, template_address: addressTemplate, delegate_address: addressDelegate };
 	}
-
 }

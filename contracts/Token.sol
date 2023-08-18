@@ -1,66 +1,60 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
-
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./Access.sol";
 import "./Base.sol";
 import "./interface/ITemplate.sol";
 import "./interface/IDelegate.sol";
+// import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "hardhat/console.sol";
 
-
-contract TokenContract is Access, Base {
+contract TokenContract is Initializable, Access, Base {
     using Counters for Counters.Counter;
     Counters.Counter classesCount;
     Counters.Counter tokenCount;
     Counters.Counter attributeCount;
-    bool initialized = false;
 
     function initialize(
-        string memory _name,
+        address ownerAddress,
+        string memory _title,
         string memory _baseUri,
         string memory _description,
         string memory _symbol
     ) public initializer {
-        Base.initializeBase();
-
-        name = _name;
+        _owner = ownerAddress;
+        name = _title;
         baseURI = _baseUri;
         description = _description;
         symbol = _symbol;
         __ERC1155_init(baseURI);
         __Ownable_init();
-        _owner = _msgSender();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(ADMIN_ROLE, _owner);
         _setupRole(OPS_ROLE, _owner);
+        initialized = true;
     }
 
     //see if this forces refresh on all classesURI
     function _setClass(
         uint256 _classId,
-        string calldata _name,
-        string calldata _description,
-        string calldata _baseUri,
+        string memory _name,
+        string memory _description,
+        string memory _baseUri,
         address _templateAddress
     ) public onlyOps returns (uint256 id) {
-        uint256 increment = 0;
-        if (_classId == 0) {
-            increment = 1;
-        }
-        (bool success, ) = DelegateAddress.delegatecall(
-            abi.encodeWithSelector(
-                IDelegate.setClass.selector,
-                _classId + increment,
-                _name,
-                _description,
-                _baseUri,
-                _templateAddress
-            )
-        );
-        require(success, "setClass failed"); 
+        uint256 increment = classes[_classId].id == 0 ? 1 : 0;
+
+        class memory newClass = class({
+            id: _classId + increment,
+            name: _name,
+            description: _description,
+            classUri: _baseUri,
+            templateAddress: _templateAddress != address(0x0)
+                ? _templateAddress
+                : DefaultTemplate
+        });
+        classes[_classId] = newClass;
 
         if (increment == 1) {
             classesCount.increment();
@@ -69,13 +63,43 @@ contract TokenContract is Access, Base {
         return classesCount.current();
     }
 
+    // function _setClass(
+    //     uint256 _classId,
+    //     string calldata _name,
+    //     string calldata _description,
+    //     string calldata _baseUri,
+    //     address _templateAddress
+    // ) public onlyOps returns (uint256 id) {
+    //     uint256 increment = 0;
+    //     if (_classId == 0) {
+    //         increment = 1;
+    //     }
+    //     (bool success, ) = DelegateAddress.delegatecall(
+    //         abi.encodeWithSelector(
+    //             IDelegate.setClass.selector,
+    //             _classId + increment,
+    //             _name,
+    //             _description,
+    //             _baseUri,
+    //             _templateAddress
+    //         )
+    //     );
+    //     require(success, "setClass failed");
+
+    //     if (increment == 1) {
+    //         classesCount.increment();
+    //         emit ClassCreated(_name, classesCount.current());
+    //     }
+    //     return classesCount.current();
+    // }
+
     function _setAttribute(
         uint256 _attributeId,
         string memory _name,
         string memory _code
     ) public onlyOps returns (uint256 id) {
         uint256 increment = 0;
-        if (_attributeId == 0){
+        if (_attributeId == 0) {
             increment = 1;
         }
         (bool success, ) = DelegateAddress.delegatecall(
@@ -176,11 +200,15 @@ contract TokenContract is Access, Base {
         DelegateAddress = _address;
     }
 
+    function getDelegateAddress() public view onlyOps returns (address) {
+        return DelegateAddress;
+    }
+
     function setDefaultTemplate(address _address) public onlyAdmin {
         DefaultTemplate = _address;
     }
 
-    function getDefaultTemplate() public view returns (address) {
+    function getDefaultTemplate() public view onlyOps returns (address) {
         return DefaultTemplate;
     }
 
@@ -201,27 +229,6 @@ contract TokenContract is Access, Base {
 
     function registerFactory(address _address) public onlyAdmin {
         _setupRole(ADMIN_ROLE, _address);
-    }
-
-    function registerClone(
-        string memory uuid,
-        address _clone
-    ) public onlyAdmin {
-        clones[uuid] = _clone;
-        _setupRole(OPS_ROLE, _clone);
-    }
-
-    function deregisterClone(string memory uuid) public onlyAdmin {
-        _revokeRole(OPS_ROLE, clones[uuid]);
-        delete clones[uuid];
-    }
-
-    function _setStyles(
-        uint256 _classId,
-        string[] memory _styles
-    ) public onlyOps {
-        //Request template contract to add this contract
-        ITemplateContract(classes[_classId].templateAddress).setStyles(_styles);
     }
 
     //need to override to avoid conflicting instances of supportsInterface

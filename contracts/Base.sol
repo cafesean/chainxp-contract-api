@@ -20,10 +20,29 @@ contract Base is Initializable,
 {
     using Strings for uint256;
     address public _owner;
+    string public name;
+    string public description;
+    string public symbol;
+    string public baseURI;
+    address public DelegateAddress; 
+    address public DefaultTemplate;
+
+    mapping(uint256 => string) public tokenURI;
+    mapping(uint256 => string) public classURI;
+    mapping(uint256 => user) public users;
+    mapping(uint256 => class) public classes;
+    mapping(uint256 => attribute) public attributes;
+    mapping(uint256 => mapping(uint256 => string)) public userAttributes; //user => (attributeID => value)
+    
+    //event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event ClassURI(string classUri, uint256 indexed classId);
+    event TokenCreated(address userAddress, uint256 indexed tokenId);
+    event ClassCreated(string name, uint256 indexed classId);
+    event AttributeCreated(string name, uint256 indexed attributeId);
+    event CloneCreated(address indexed cloneAddress);
 
     struct class {
         uint256 id;
-        uint256 minted;
         string name;
         string description;
         string classUri;
@@ -41,36 +60,14 @@ contract Base is Initializable,
         uint256 id;
         uint256 classId;
         uint256 previousId;
-        address account;
+        address wallet;
         string url;
     }
+    bool initialized = false;
 
 
-    //event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-    event ClassURI(string classUri, uint256 indexed classId);
-    event TokenCreated(address userAddress, uint256 indexed tokenId);
-    event ClassCreated(string name, uint256 indexed classId);
-    event AttributeCreated(string name, uint256 indexed attributeId);
-
-    string public name;
-    string public description;
-    string public symbol;
-    string public baseURI;
-    address public DelegateAddress; 
-    address public DefaultTemplate;
-
-    mapping(string => address) public clones; // org_uuid => clone address
-    mapping(uint256 => string) public tokenURI;
-    mapping(uint256 => string) public classURI;
-    mapping(uint256 => user) public users;
-    mapping(uint256 => class) public classes;
-    mapping(uint256 => attribute) public attributes;
-    mapping(uint256 => mapping(uint256 => string)) public userAttributes; //user => (attributeID => value)
-    
-    // constructor(string memory _name) ERC1155 ("https://gateway.pinata.cloud/ipfs/QmSir1V4yC9wE3XDspjw1jPdRSx6FLGLfcsKuZxj11XsEZ/default.json") {
-    // }
-
-    function initializeBase() public onlyInitializing {
+    function initializeBase() public initializer {
+        initialized = true;
     }
 
     // function owner() public view returns (address) {
@@ -107,7 +104,7 @@ contract Base is Initializable,
     function mintSingle (address _to, uint256 _newTokenId, uint256 _classId) public onlyOps returns (uint256) {        
             _mint(_to, _classId, 1, "");
             users[_newTokenId].id = _newTokenId;
-            users[_newTokenId].account = _to;
+            users[_newTokenId].wallet = _to;
             users[_newTokenId].classId = _classId;
             return _newTokenId;
             
@@ -124,8 +121,8 @@ contract Base is Initializable,
     function burnBatchById(uint256[] memory _ids) public onlyOps {
         updateUsersClass(_ids, 0);
         for (uint256 i = 0; i < _ids.length; i++) {
-            if (balanceOf(users[_ids[i]].account, _ids[i]) != 0) {
-                _burn(users[_ids[i]].account, _ids[i], 1);
+            if (balanceOf(users[_ids[i]].wallet, _ids[i]) != 0) {
+                _burn(users[_ids[i]].wallet, _ids[i], 1);
             }
         }
     }
@@ -187,4 +184,5 @@ contract Base is Initializable,
     {
         return super.supportsInterface(interfaceId);
     }
+    
 }

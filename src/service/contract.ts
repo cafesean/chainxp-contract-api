@@ -78,30 +78,6 @@ export class ContractService extends BaseService {
 			console.log("contractData Error: ", error);
 		}
 	}
-
-	// async getDefaultContractAbi(contractName: string) {
-	// 	const data = await this.prisma.contract_version.findFirst({
-	// 		where: {
-	// 			AND: [
-	// 				{
-	// 					default: {
-	// 						equals: true,
-	// 					},
-	// 					contract_name: {
-	// 						equals: contractName,
-	// 					},
-	// 				},
-	// 			],
-	// 		},
-	// 		select: {
-	// 			abi: true,
-	// 			bytecode: true,
-	// 			contract_name: true,
-	// 			source_name: true,
-	// 		},
-	// 	});
-	// };
-
 	async addClass(contract_address: string, reqBody: any) {
 		const contractProxy = await attachContract(
 			this.config.artifacts.tokenAbi as any,
@@ -109,14 +85,11 @@ export class ContractService extends BaseService {
 			contract_address,
 			this.config.artifacts.tokenContractName
 		);
-		// const contractProxy = await attachContract(owner, contract_address, ProxySol);
-		// const contractDelegate = new ethers.Contract(DelegateSol, abi, owner);
-		// const proxyFactory = await ethers.getContractFactory("Proxy");
 
 		let class_id = reqBody.class_id || "0";
 		const template_id = reqBody.template_id || zeroAddress;
-
-		// const [signer] = await ethers.getSigners();
+		const lcaseContractAddress = contract_address.toLowerCase();
+	
 
 		// get series_id
 		const series = await this.prisma.series.findFirst({
@@ -129,26 +102,10 @@ export class ContractService extends BaseService {
 		});
 
 		console.log("series?.id: ", series?.id);
-		// get next class_id automatically
-		// let lastXp = await this.prisma.xp.aggregate({
-		// 	where: {
-		// 		series: {
-		// 			contract_address: reqBody.contract_address,
-		// 		},
-		// 	},
-		// 	_max: {
-		// 		class_id: true,
-		// 	},
-		// });
-
-		// increment lastClassId by 1
-		// const nextClassId = (Number(lastXp._max) + 1).toString();
+		
 		return new Promise(async (resolve, reject) => {
-			// const lowercaseAddress = contract_address.toLowerCase();
 
 			try {
-				// console.log("uri:", await contractProxy.uri(1));
-				// const overrides = await this.getGasPriceOverrides();
 
 				const response = await contractProxy._setClass(Number(class_id), reqBody.name, reqBody.desc, "", template_id);
 				const receipt = await response.wait();
@@ -164,14 +121,14 @@ export class ContractService extends BaseService {
 				const newXp = await this.prisma.xp.upsert({
 					where: {
 						contract_address_class_id: {
-							contract_address: contract_address,
+							contract_address: lcaseContractAddress,
 							class_id: class_id,
 						},
 					},
 					create: {
 						class_id: class_id,
 						series_id: series?.id,
-						contract_address: contract_address,
+						contract_address: lcaseContractAddress,
 						title: reqBody.name,
 						description: reqBody.desc,
 						requirements: reqBody.requirements,
@@ -277,7 +234,7 @@ export class ContractService extends BaseService {
 			console.log(e);
 			throw e;
 		}
-		
+
 		let _returnedClassId;
 		let _returnedClassTokenId;
 
@@ -363,11 +320,12 @@ export class ContractService extends BaseService {
 		console.log(`transfer NFT from '${from}' to '${to}' Txn: ${response.hash}`);
 		// await response.wait(2);
 
+		const lcaseContractAddress = contract_address.toLowerCase();
 		// note: add token_id
 		const transaction = await this.prisma.transaction.create({
 			data: {
 				txn_hash: response.hash,
-				contract_address: contract_address,
+				contract_address: lcaseContractAddress,
 				class_id: class_id,
 				from: from,
 				to: to,
@@ -387,13 +345,14 @@ export class ContractService extends BaseService {
 	) {
 		await this.findContractClass(contract_address, class_id);
 
+		const lcaseContractAddress = contract_address.toLowerCase();
 		// const [signer] = await ethers.getSigners();
 		// const [deployer] = await ethers.getSigners();r);
 		// const factory = ethers.getContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
 		const factoryContract = await attachContract(
 			this.artifacts.factoryAbi,
 			this.artifacts.factoryBytecode,
-			contract_address,
+			lcaseContractAddress,
 			this.artifacts.factoryContractName
 		);
 
@@ -404,7 +363,7 @@ export class ContractService extends BaseService {
 		const transaction = await this.prisma.transaction.create({
 			data: {
 				txn_hash: response.hash,
-				contract_address: contract_address,
+				contract_address: lcaseContractAddress,
 				class_id: class_id,
 				from: signerAddress,
 				to: userAddress,
@@ -441,10 +400,12 @@ export class ContractService extends BaseService {
 	}
 
 	async findContract(contract_address: string) {
+
+		const lcaseContractAddress = contract_address.toLowerCase();
 		const data = await this.prisma.series.findFirst({
 			where: {
 				contract_address: {
-					equals: contract_address,
+					equals: lcaseContractAddress,
 				},
 			},
 		});
@@ -455,9 +416,11 @@ export class ContractService extends BaseService {
 	}
 
 	async findContractClass(contract_address: string, class_id: string) {
+		
+		const lcaseContractAddress = contract_address.toLowerCase();
 		const contract_classes = await this.prisma.xp.findFirst({
 			where: {
-				contract_address: contract_address,
+				contract_address: lcaseContractAddress,
 				class_id: class_id,
 			},
 			select: {

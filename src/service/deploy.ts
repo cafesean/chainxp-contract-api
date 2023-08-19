@@ -107,7 +107,7 @@ export class DeployService extends BaseService {
 		// console.log("response=", await receipt.events);
 		for (const event of receipt.events) {
 			if (event.event === "ProxyCloned") {
-				addressClone = event.args.cloneAddress;
+				addressClone = event.args.cloneAddress.toLowerCase();
 			}
 		}
 

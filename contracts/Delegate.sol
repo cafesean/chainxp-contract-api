@@ -8,7 +8,6 @@ import "./Access.sol";
 contract DelegateContract is Initializable, Access, Base {
     using Counters for Counters.Counter;
     Counters.Counter classesCount;
-    Counters.Counter tokenCount;
     Counters.Counter attributeCount;
 
     //use format: https://somedomain.com/{id}.json
@@ -27,10 +26,16 @@ contract DelegateContract is Initializable, Access, Base {
         string memory _baseUri,
         address _templateAddress
     ) public onlyOps returns (uint256 id) {
+        console.log("In delegatecall setClass");
         if (_classId == 0) {
+            console.log("in _classId == 0");
+            console.log("classesCount.current() = ", classesCount.current());
             classesCount.increment();
             _classId = classesCount.current();
+        console.log("_classId = ", _classId);
         }
+        console.log("In delegatecall before newClass");
+        console.log("classes[_classId].tokenCount = ", classes[_classId].tokenCount);
         class memory newClass = class({
             id: _classId,
             tokenCount: classes[_classId].tokenCount,
@@ -43,7 +48,12 @@ contract DelegateContract is Initializable, Access, Base {
                 ? _templateAddress
                 : DefaultTemplate
         });
+
+        console.log("In delegatecall after newClass");
         classes[_classId] = newClass;
+
+        console.log("In delegatecall after set classes[_classId]");
+        console.log("_classId = ", _classId);
         return _classId;
     }
 

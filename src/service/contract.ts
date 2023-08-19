@@ -155,7 +155,7 @@ export class ContractService extends BaseService {
 				console.log("Receipt: ", receipt);
 
 				for (const event of receipt.events) {
-					if (event.eventSignature === "ClassCreated(string,uint256)") {
+					if (event.eventSignature === "ClassUpdated(string,uint256)") {
 						const arg = event.args[1]; // uint256 value is 2nd arg in array as hex value
 						class_id = arg.toString();
 					}
@@ -277,18 +277,23 @@ export class ContractService extends BaseService {
 			console.log(e);
 			throw e;
 		}
-		let token_id;
+		
+		let _returnedClassId;
+		let _returnedClassTokenId;
 
 		const receipt = await response.wait();
 		console.log("Receipt: ", receipt);
 		for (const event of receipt.events) {
-			if (event.eventSignature === "TokenCreated(address,uint256)") {
-				const arg = event.args[1]; // uint256 value is 2nd arg in array as hex value
-				token_id = arg.toString();
+			if (event.eventSignature === "TokenCreated(address,uint256,uint256)") {
+				const argClassId = event.args[1]; // uint256 value is 2nd arg in array as hex value
+				const argClassTokenId = event.args[2]; // uint256 value is 2nd arg in array as hex value
+				_returnedClassId = argClassId.toString();
+				_returnedClassTokenId = argClassTokenId.toString();
 			}
 		}
 
-		console.log("token_id = ", token_id);
+		console.log("_returnedClassId = ", _returnedClassTokenId);
+		console.log("_returnedClassTokenId = ", _returnedClassTokenId);
 
 		// const prisma = new PrismaClient();
 
@@ -296,8 +301,8 @@ export class ContractService extends BaseService {
 			{
 				txn_hash: response.hash, // must be unique
 				contract_address, // required
-				class_id, // must be string
-				token_id: token_id + "", // must be string
+				class_id: _returnedClassId, // must be string
+				token_id: _returnedClassTokenId + "", // must be string
 				from: await signer.getAddress(), // required
 				to: user_address, // required
 				status: -1,

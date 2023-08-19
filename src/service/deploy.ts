@@ -194,7 +194,7 @@ export class DeployService extends BaseService {
 	async deploySingle(abi: any, bytecode: string, contractName: string, sourceName: string) {
 		// console.log("signer: ", await signer.getAddress());
 		const contractFullName = sourceName + ":" + contractName;
-		console.log("contractFullName: ", contractFullName);
+		// console.log("contractFullName: ", contractFullName);
 
 		const [signer] = await ethers.getSigners();
 		// const newContractFactory = new ContractFactory(abi, bytecode);

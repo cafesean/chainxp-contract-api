@@ -71,6 +71,7 @@ contract TokenContract is Initializable, Access, Base {
         string calldata _baseUri,
         address _templateAddress
     ) public onlyOps returns (string memory) {
+        console.log("In _setClass: _classID = %s", _classId);
         if (
             keccak256(abi.encodePacked(_name)) ==
             keccak256(abi.encodePacked("delete"))
@@ -78,12 +79,16 @@ contract TokenContract is Initializable, Access, Base {
             delete classes[_classId];
             return "Deleted";
         }
+        console.log("_setClass: Before delegatecall: counter = %s", classesCount.current());
+        // uint256 updateClassId = _classId == 0 ? classesCount.current()+1 : _classId;
+        
+        // console.log("updateClassId = %s", updateClassId);
         (bool success, bytes memory returnedData) = DelegateAddress
             .delegatecall(
                 abi.encodeWithSelector(
                     IDelegate.setClass.selector,
-                    _name,
                     _classId,
+                    _name,
                     _description,
                     _baseUri,
                     _templateAddress
@@ -91,7 +96,11 @@ contract TokenContract is Initializable, Access, Base {
             );
         require(success, "setClass failed");
         uint256 returnedClassID = abi.decode(returnedData, (uint256));
-
+console.log("returnedClassID = %s", returnedClassID);
+        // if (_classId == 0) {
+        //     classesCount.increment();
+        // }
+        console.log("classesCount = %s", classesCount.current());
         emit ClassUpdated(_name, returnedClassID);
         return string.concat("Updated ", Strings.toString(returnedClassID));
     }

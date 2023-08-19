@@ -26,34 +26,23 @@ contract DelegateContract is Initializable, Access, Base {
         string memory _baseUri,
         address _templateAddress
     ) public onlyOps returns (uint256 id) {
-        console.log("In delegatecall setClass");
         if (_classId == 0) {
-            console.log("in _classId == 0");
-            console.log("classesCount.current() = ", classesCount.current());
             classesCount.increment();
             _classId = classesCount.current();
-        console.log("_classId = ", _classId);
         }
-        console.log("In delegatecall before newClass");
-        console.log("classes[_classId].tokenCount = ", classes[_classId].tokenCount);
         class memory newClass = class({
             id: _classId,
             tokenCount: classes[_classId].tokenCount,
             name: _name,
             description: _description,
             classUri: bytes(_baseUri).length != 0
-            ? _baseUri
-            : classes[_classId].classUri,
+                ? _baseUri
+                : classes[_classId].classUri,
             templateAddress: _templateAddress != address(0x0)
                 ? _templateAddress
                 : DefaultTemplate
         });
-
-        console.log("In delegatecall after newClass");
         classes[_classId] = newClass;
-
-        console.log("In delegatecall after set classes[_classId]");
-        console.log("_classId = ", _classId);
         return _classId;
     }
 
@@ -62,26 +51,29 @@ contract DelegateContract is Initializable, Access, Base {
         uint256 _classId,
         string memory _name,
         string memory _code
-    ) public onlyOps returns (uint256) {
-        // require(_classId > 0, "No class ID");
-        // bytes32 code = keccak256(abi.encodePacked(_code));
-        // if (code == keccak256(abi.encodePacked("delete"))) {
-        //     delete attributes[_classId];
-        //     return "deleted";
-        // }
-        // attributes[_classId].visible = code ==
-        //     keccak256(abi.encodePacked("false"))
-        //     ? false : true;
+    ) public onlyOps returns (string memory) {
+        if (_id == 0) {
+            attributeCount.increment();
+            _id = attributeCount.current();
+        }
+        require(_classId > 0, "No class ID");
 
-        // if (attributes[_classId].id == 0) {
-        //     attributes[_classId].id = _id;
-        // }
-        // attributes[_classId].name = _name;
-        // attributes[_classId].code = _code;
+        bytes32 code = keccak256(abi.encodePacked(_code));
+        if (code == keccak256(abi.encodePacked("delete"))) {
+            delete attributes[_classId];
+            return "Deleted";
+        }
+        attributes[_classId].visible = code ==
+            keccak256(abi.encodePacked("false"))
+            ? false : true;
 
-        return _id;
+        if (attributes[_classId].id == 0) {
+            attributes[_classId].id = _id;
+        }
+        attributes[_classId].name = _name;
+
+        return "Done";
     }
-
 
     // function burnBatchByClass(uint256 _classId) public onlyAdmin {
     //     for (uint256 _userId = 1; _userId <= tokenCount.current(); _userId++) {

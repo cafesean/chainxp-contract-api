@@ -32,13 +32,13 @@ contract Base is
     // mapping(uint256 => string) public classURI;
     mapping(uint256 => class) public classes;
     mapping(uint256 => attribute) public attributes; // classId => attributeId
-    mapping(uint256 => mapping(address => mapping(uint256 => uint256))) public users; // classId => user address => classTokeId = count
+    mapping(uint256 => mapping(uint256 => address)) public users; // classId => user address => classTokeId = count
    
     //event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     // event ClassURI(string classUri, uint256 indexed classId);
     event TokenCreated(address userAddress, uint256 indexed classId, uint256 indexed tokenId);
     event ClassUpdated(string name, uint256 indexed classId);
-    event AttributeCreated(string name, uint256 indexed attributeId);
+    event AttributeUpdated(string status, uint256 indexed attributeId);
 
     struct class {
         uint256 id;
@@ -57,10 +57,6 @@ contract Base is
         bool active;
     }
     
-    struct user {
-        uint256 classTokenId;
-        uint256 count;
-    }
 
     bool initialized = false;
 
@@ -109,7 +105,7 @@ contract Base is
     ) public onlyOps returns (uint256) {
         _mint(_to, _classId, 1, "");
         uint256 classTokenCount = classes[_classId].tokenCount++;
-        users[_classId][_to][classTokenCount]++;
+        users[_classId][classTokenCount] = _to;
         return classTokenCount;
     }
 
@@ -121,7 +117,7 @@ contract Base is
     ) public onlyOps {
         require(balanceOf(_account, _classId) > 0, "No token");
         _burn(_account, _classId, _amount);
-        users[_classId][_account][_classTokenId]-=_amount;
+        delete users[_classId][_classTokenId];
         // tokenURI[_id] = uri(_id);
         // emit URI(uri(_classId, _amount));
     }

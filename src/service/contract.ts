@@ -272,7 +272,7 @@ export class ContractService extends BaseService {
 		const [signer] = await ethers.getSigners();
 		let response;
 		try {
-			response = await tokenContract.mint(Number(class_id), user_address);
+			response = await tokenContract.mint(user_address, Number(class_id));
 		} catch (e) {
 			console.log(e);
 			throw e;

@@ -6,7 +6,6 @@ import "./interface/ITemplate.sol";
 import "./interface/IDelegate.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-// import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "hardhat/console.sol";
 
@@ -36,34 +35,6 @@ contract TokenContract is Initializable, Access, Base {
         initialized = true;
     }
 
-    //see if this forces refresh on all classesURI
-    // function _setClass(
-    //     uint256 _classId,
-    //     string memory _name,
-    //     string memory _description,
-    //     string memory _baseUri,
-    //     address _templateAddress
-    // ) public onlyOps returns (uint256 id) {
-    //     uint256 increment = classes[_classId].id == 0 ? 1 : 0;
-
-    //     class memory newClass = class({
-    //         id: _classId + increment,
-    //         name: _name,
-    //         description: _description,
-    //         classUri: _baseUri,
-    //         templateAddress: _templateAddress != address(0x0)
-    //             ? _templateAddress
-    //             : DefaultTemplate
-    //     });
-    //     classes[_classId] = newClass;
-
-    //     if (increment == 1) {
-    //         classesCount.increment();
-    //         emit ClassCreated(_name, classesCount.current());
-    //     }
-    //     return classesCount.current();
-    // }
-
     function _setClass(
         uint256 _classId,
         string calldata _name,
@@ -71,7 +42,6 @@ contract TokenContract is Initializable, Access, Base {
         string calldata _baseUri,
         address _templateAddress
     ) public onlyOps returns (string memory) {
-        console.log("In _setClass: _classID = %s", _classId);
         if (
             keccak256(abi.encodePacked(_name)) ==
             keccak256(abi.encodePacked("delete"))
@@ -79,10 +49,7 @@ contract TokenContract is Initializable, Access, Base {
             delete classes[_classId];
             return "Deleted";
         }
-        console.log("_setClass: Before delegatecall: counter = %s", classesCount.current());
-        // uint256 updateClassId = _classId == 0 ? classesCount.current()+1 : _classId;
         
-        // console.log("updateClassId = %s", updateClassId);
         (bool success, bytes memory returnedData) = DelegateAddress
             .delegatecall(
                 abi.encodeWithSelector(
@@ -129,10 +96,10 @@ console.log("returnedClassID = %s", returnedClassID);
                 )
             );
         require(success, "setAttribute failed");
-        uint256 returnedAttributeID = abi.decode(returnedData, (uint256));
+        (string memory status, uint256 attributeId) = abi.decode(returnedData, (string, uint256));
 
-        emit ClassUpdated(_name, returnedAttributeID);
-        return string.concat("Updated ", Strings.toString(returnedAttributeID));
+        emit AttributeUpdated(_name, attributeId);
+        return string.concat("Updated ", status);
     }
 
     // function setAttributes(
@@ -160,7 +127,7 @@ console.log("returnedClassID = %s", returnedClassID);
         // address _templateAddress = classes[users[_tokenId].classId]
 
         bytes memory dataURI;
-        string memory proxyAddress = Strings.toHexString(uint160(_msgSender()));
+        string memory proxyAddress = Strings.toHexString(uint160(address(this)));
         dataURI = abi.encodePacked(
             string.concat(
                 baseURI,
@@ -180,12 +147,11 @@ console.log("returnedClassID = %s", returnedClassID);
 
     // Operator mint NFT function
     function mint(
-        uint256 _classId,
-        address _to
+        address _to,
+        uint256 _classId
     ) public onlyOps returns (uint256 id) {
         require(classes[_classId].id != 0, "No xp");
         uint256 _classTokenId;
-        // classes[_classId].tokenCount.increment();
         _classTokenId = mintSingle(_to, _classId);
         emit TokenCreated(_to, _classId, _classTokenId);
         return _classTokenId;
@@ -210,23 +176,17 @@ console.log("returnedClassID = %s", returnedClassID);
         return attributes[_id];
     }
 
-    function _users(uint256 _classId, address _wallet, uint256 _classTokenId) public view onlyOps returns (uint256) {
-        return users[_classId][_wallet][_classTokenId];
+    function _users(uint256 _classId, uint256 _classTokenId) public view onlyOps returns (address) {
+        return users[_classId][_classTokenId];
     }
 
     function _classes(uint256 _id) public view returns (class memory) {
         return classes[_id];
     }
 
-    // function _userAttributes(
-    //     uint256 _tokenId,
-    //     uint256 _attributeId
-    // ) public view onlyOps returns (string memory) {
-    //     return userAttributes[_tokenId][_attributeId];
-    // }
-
     function setDelegateAddress(address _address) public onlyAdmin {
         DelegateAddress = _address;
+        _setupRole(OPS_ROLE, _address);
     }
 
     function getDelegateAddress() public view onlyOps returns (address) {
@@ -235,6 +195,7 @@ console.log("returnedClassID = %s", returnedClassID);
 
     function setDefaultTemplate(address _address) public onlyAdmin {
         DefaultTemplate = _address;
+        _setupRole(OPS_ROLE, _address);
     }
 
     function getDefaultTemplate() public view onlyOps returns (address) {

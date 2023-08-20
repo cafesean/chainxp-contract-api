@@ -28,6 +28,9 @@ export class ContractService extends BaseService {
 
 	async createContracts(version: string, isDefault: boolean) {
 		console.log("Adding delegate contract");
+
+
+		
 		await addContractAbi(
 			this.prisma,
 			JSON.stringify(this.config.artifacts.delegateAbi),

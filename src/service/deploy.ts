@@ -72,6 +72,7 @@ export class DeployService extends BaseService {
 			contract_address,
 			delegate_address,
 			template_address,
+			external_link,
 			org_id,
 			title,
 			baseUri,
@@ -140,10 +141,10 @@ export class DeployService extends BaseService {
 		);
 
 		// configure with template
-		await contractClone.setDefaultTemplate(template_address);
-		await contractClone.grantAccess(template_address, "ADMIN_ROLE");
-		await contractClone.setTemplateContract(1, template_address);
-		await contractTemplate.authorizeCallingContract(signer.address, addressClone);
+		await contractClone.setDefaultTemplate(template_address).then((tx: any) => tx.wait());
+		await contractClone.grantAccess(template_address, "ADMIN_ROLE").then((tx: any) => tx.wait());
+		await contractClone.setTemplateContract(1, template_address).then((tx: any) => tx.wait());
+		await contractTemplate.authorizeCallingContract(signer.address, addressClone).then((tx: any) => tx.wait());
 		console.log("Clone config done");
 
 		try {
@@ -172,6 +173,7 @@ export class DeployService extends BaseService {
 					owner: await signer.getAddress(),
 					title: title,
 					description: description,
+					external_link: external_link,
 					requirements: requirements,
 					image_url: image_url,
 					slug: slug,

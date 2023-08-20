@@ -63,12 +63,8 @@ contract TokenContract is Initializable, Access, Base {
             );
         require(success, "setClass failed");
         uint256 returnedClassID = abi.decode(returnedData, (uint256));
-console.log("returnedClassID = %s", returnedClassID);
-        // if (_classId == 0) {
-        //     classesCount.increment();
-        // }
-        console.log("classesCount = %s", classesCount.current());
         emit ClassUpdated(_name, returnedClassID);
+        emit URI(uri(returnedClassID), returnedClassID);
         return string.concat("Updated ", Strings.toString(returnedClassID));
     }
 

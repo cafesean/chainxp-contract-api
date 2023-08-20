@@ -79,7 +79,10 @@ contract Base is
 
     // Initial address for contract metadata
     function contractURI() external view returns (string memory) {
-        return string(abi.encodePacked(baseURI, "contract.json"));
+        string memory contractAddress = Strings.toHexString(
+            uint160(address(this)));
+
+        return string(abi.encodePacked(baseURI, contractAddress, "/contract.json"));
     }
 
     function setBaseURI(string memory _baseURI) public onlyOps {

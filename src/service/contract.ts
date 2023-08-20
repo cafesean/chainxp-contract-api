@@ -4,7 +4,7 @@ import { attachContract } from "../utils";
 // import { PrismaClient } from "@prisma/client";
 // import { ethers, ContractFactory } from "ethers";
 import { ethers } from "hardhat";
-import crypto from "node:crypto";
+// import crypto from "node:crypto";
 
 // import { signer, POLYGON_PROVIDER } from "../constants/env.constants";
 
@@ -78,30 +78,6 @@ export class ContractService extends BaseService {
 			console.log("contractData Error: ", error);
 		}
 	}
-
-	// async getDefaultContractAbi(contractName: string) {
-	// 	const data = await this.prisma.contract_version.findFirst({
-	// 		where: {
-	// 			AND: [
-	// 				{
-	// 					default: {
-	// 						equals: true,
-	// 					},
-	// 					contract_name: {
-	// 						equals: contractName,
-	// 					},
-	// 				},
-	// 			],
-	// 		},
-	// 		select: {
-	// 			abi: true,
-	// 			bytecode: true,
-	// 			contract_name: true,
-	// 			source_name: true,
-	// 		},
-	// 	});
-	// };
-
 	async addClass(contract_address: string, reqBody: any) {
 		const contractProxy = await attachContract(
 			this.config.artifacts.tokenAbi as any,
@@ -109,14 +85,11 @@ export class ContractService extends BaseService {
 			contract_address,
 			this.config.artifacts.tokenContractName
 		);
-		// const contractProxy = await attachContract(owner, contract_address, ProxySol);
-		// const contractDelegate = new ethers.Contract(DelegateSol, abi, owner);
-		// const proxyFactory = await ethers.getContractFactory("Proxy");
 
 		let class_id = reqBody.class_id || "0";
 		const template_id = reqBody.template_id || zeroAddress;
-
-		// const [signer] = await ethers.getSigners();
+		const lcaseContractAddress = contract_address.toLowerCase();
+	
 
 		// get series_id
 		const series = await this.prisma.series.findFirst({
@@ -129,33 +102,17 @@ export class ContractService extends BaseService {
 		});
 
 		console.log("series?.id: ", series?.id);
-		// get next class_id automatically
-		// let lastXp = await this.prisma.xp.aggregate({
-		// 	where: {
-		// 		series: {
-		// 			contract_address: reqBody.contract_address,
-		// 		},
-		// 	},
-		// 	_max: {
-		// 		class_id: true,
-		// 	},
-		// });
-
-		// increment lastClassId by 1
-		// const nextClassId = (Number(lastXp._max) + 1).toString();
+		
 		return new Promise(async (resolve, reject) => {
-			// const lowercaseAddress = contract_address.toLowerCase();
 
 			try {
-				// console.log("uri:", await contractProxy.uri(1));
-				// const overrides = await this.getGasPriceOverrides();
 
 				const response = await contractProxy._setClass(Number(class_id), reqBody.name, reqBody.desc, "", template_id);
 				const receipt = await response.wait();
 				console.log("Receipt: ", receipt);
 
 				for (const event of receipt.events) {
-					if (event.eventSignature === "ClassCreated(string,uint256)") {
+					if (event.eventSignature === "ClassUpdated(string,uint256)") {
 						const arg = event.args[1]; // uint256 value is 2nd arg in array as hex value
 						class_id = arg.toString();
 					}
@@ -164,14 +121,14 @@ export class ContractService extends BaseService {
 				const newXp = await this.prisma.xp.upsert({
 					where: {
 						contract_address_class_id: {
-							contract_address: contract_address,
+							contract_address: lcaseContractAddress,
 							class_id: class_id,
 						},
 					},
 					create: {
 						class_id: class_id,
 						series_id: series?.id,
-						contract_address: contract_address,
+						contract_address: lcaseContractAddress,
 						title: reqBody.name,
 						description: reqBody.desc,
 						requirements: reqBody.requirements,
@@ -200,236 +157,9 @@ export class ContractService extends BaseService {
 				resolve({ "New xp.id": newXpID, class_id: class_id });
 			} catch (e) {
 				console.log(e);
-				reject(new Error("Error in _setClass"));
+				reject(new Error("Error creating class:" + e));
 			}
 		});
-	}
-
-	async cloneProxy(reqBody: any) {
-		const {
-			factory_address,
-			contract_address,
-			delegate_address,
-			org_id,
-			name,
-			baseUri,
-			description,
-			requirements,
-			slug,
-			image_url,
-			template_id,
-		} = reqBody;
-
-		const [signer] = await ethers.getSigners();
-		// const utils = ethers.utils;
-		const random = crypto.randomBytes(8).toString("hex");
-
-		const salt = ethers.utils.formatBytes32String(random.toString());
-
-		const contractFactory = await attachContract(
-			this.config.artifacts.factoryAbi as any,
-			this.config.artifacts.factoryBytecode,
-			factory_address,
-			this.config.artifacts.factoryContractName
-		);
-		// const contractFactory = await attachContract(this.config.artifacts.factoryAbi, owner, factory_address, FactorySol);
-
-		// salt MUST be unique for eip-1167 cloning to work
-
-		const response = await contractFactory.cloneProxy(contract_address, salt);
-
-		let addressClone;
-		const receipt = await response.wait(); // response is empty if using hardhat network
-		// console.log("response=", await receipt.events);
-		for (const event of receipt.events) {
-			if (event.event === "ProxyCloned") {
-				addressClone = event.args.cloneAddress;
-			}
-		}
-
-		// initialize clone
-
-		const clonedContract = await attachContract(
-			this.config.artifacts.tokenAbi as any,
-			this.config.artifacts.tokenBytecode,
-			addressClone,
-			this.config.artifacts.tokenContractName
-		);
-
-		const initResponse = await clonedContract.initialize(name, baseUri);
-
-		initResponse.wait();
-
-		try {
-			await this.prisma.contract.create({
-				data: {
-					name: name,
-					type: "clone",
-					contract_address: addressClone,
-					factory_address: factory_address,
-					cloned_from: contract_address,
-					owner_address: await signer.getAddress(),
-				},
-			});
-		} catch (error) {
-			console.log("contractData Error: ", error);
-		}
-
-		let seriesData;
-
-		try {
-			seriesData = await this.prisma.series.create({
-				data: {
-					org_id: org_id,
-					contract_address: addressClone,
-					delegate_address: delegate_address,
-					owner: await signer.getAddress(),
-					title: name,
-					description: description,
-					requirements: requirements,
-					image_url: image_url,
-					slug: slug,
-					template_id: template_id as number,
-				},
-				select: {
-					id: true, // Include the new series id in the returned data
-				},
-			});
-		} catch (error) {
-			console.log("seriesData Error: ", error);
-		}
-
-		const series_id = seriesData?.id;
-
-		// return new clone (series)
-		return { addressClone, series_id };
-	}
-
-	async deploySingle(abi: any, bytecode: string, contractName: string, sourceName: string) {
-		// console.log("signer: ", await signer.getAddress());
-		const contractFullName = sourceName + ":" + contractName;
-		console.log("contractFullName: ", contractFullName);
-
-		const [signer] = await ethers.getSigners();
-		// const newContractFactory = new ContractFactory(abi, bytecode);
-
-		const factory = await ethers.getContractFactory(contractFullName);
-		// const overrides = await this.getGasPriceOverrides(2);
-		const newContract = await factory.deploy();
-		await newContract.deployed();
-
-		// const newContract = await newContractFactory
-		// 	.connect(signer)
-		// 	.deploy()
-		// 	.then((contract: any) => contract.deployed());
-
-		console.log("Deployed %s: %s", contractFullName, newContract.address);
-
-		try {
-			await this.prisma.contract.create({
-				data: {
-					contract_address: newContract.address,
-					name: contractName,
-					source_name: sourceName,
-					owner_address: await signer.getAddress(),
-					abi: JSON.stringify(abi),
-					bytecode: bytecode,
-				},
-			});
-		} catch (error) {
-			console.log("contractData Error: ", error);
-		}
-		return newContract;
-	}
-
-	async deployFactory(reqBody: any) {
-		var contractFactory;
-		var addressFactory;
-
-		const { proxy_address } = reqBody;
-
-		try {
-			contractFactory = await this.deploySingle(
-				this.config.artifacts.factoryAbi as any,
-				this.config.artifacts.factoryBytecode,
-				this.config.artifacts.factoryContractName,
-				this.config.artifacts.factorySourceName
-			);
-
-			console.log("	contractFactory owner: ", await contractFactory.owner());
-			console.log("	ProxyFactory address: ", contractFactory.address);
-			addressFactory = contractFactory.address;
-			await contractFactory.initialize();
-
-			// attach initial token proxy contract and register newly deployed factory
-			const proxyContract = await attachContract(
-				this.config.artifacts.tokenAbi as any,
-				this.config.artifacts.tokenBytecode,
-				proxy_address,
-				this.config.artifacts.tokenContractName
-			);
-
-			//register factory
-			await proxyContract.registerFactory(contractFactory.address);
-		} catch (error) {
-			console.log("Deploy Error: ", error);
-			return error;
-		}
-
-		return addressFactory;
-	}
-
-	async deployAll(name: string, baseUri: string) {
-		var addressTemplate, addressDelegate;
-		var contractDelegate, contractProxy, contractTemplate;
-		var addressProxy, addressTemplate, addressDelegate;
-
-		try {
-			contractDelegate = await this.deploySingle(
-				this.config.artifacts.delegateAbi as any,
-				this.config.artifacts.delegateBytecode,
-				this.config.artifacts.delegateContractName,
-				this.config.artifacts.delegateSourceName
-			); // #1 Delegate
-			addressDelegate = contractDelegate.address;
-
-			contractProxy = await this.deploySingle(
-				this.config.artifacts.tokenAbi as any,
-				this.config.artifacts.tokenBytecode,
-				this.config.artifacts.tokenContractName,
-				this.config.artifacts.tokenSourceName
-			); // #2 Proxy
-			await contractProxy.initialize(name, baseUri);
-
-			// ?await contractProxy.;
-			addressProxy = contractProxy.address;
-			contractTemplate = await this.deploySingle(
-				this.config.artifacts.templateAbi as any,
-				this.config.artifacts.templateBytecode,
-				this.config.artifacts.templateContractName,
-				this.config.artifacts.templateSourceName
-			); // #3 Template
-			addressTemplate = contractTemplate.address;
-		} catch (error) {
-			console.log("Deploy Error: ", error);
-			return error;
-		}
-
-		try {
-			await contractProxy.setDelegateAddress(addressDelegate);
-			const setDefaultTemplate = await contractProxy.setDefaultTemplate(addressTemplate);
-
-			console.log("setDefaultTemplate - chainId: ", setDefaultTemplate.chainId);
-
-			await contractProxy.grantAccess(addressTemplate, "ADMIN_ROLE");
-			await contractProxy.setTemplateContract(1, addressTemplate);
-			console.log("Config done");
-		} catch (error) {
-			console.log("Config Error: ", error);
-			return error;
-		}
-
-		return { proxy_address: addressProxy, template_address: addressTemplate, delegate_address: addressDelegate };
 	}
 
 	async addAdminUser(contract_address: string, userAddress: string) {
@@ -499,23 +229,28 @@ export class ContractService extends BaseService {
 		const [signer] = await ethers.getSigners();
 		let response;
 		try {
-			response = await tokenContract.mint(Number(class_id), user_address);
+			response = await tokenContract.mint(user_address, Number(class_id));
 		} catch (e) {
 			console.log(e);
 			throw e;
 		}
-		let token_id;
+
+		let _returnedClassId;
+		let _returnedClassTokenId;
 
 		const receipt = await response.wait();
 		console.log("Receipt: ", receipt);
 		for (const event of receipt.events) {
-			if (event.eventSignature === "TokenCreated(address,uint256)") {
-				const arg = event.args[1]; // uint256 value is 2nd arg in array as hex value
-				token_id = arg.toString();
+			if (event.eventSignature === "TokenCreated(address,uint256,uint256)") {
+				const argClassId = event.args[1]; // uint256 value is 2nd arg in array as hex value
+				const argClassTokenId = event.args[2]; // uint256 value is 2nd arg in array as hex value
+				_returnedClassId = argClassId.toString();
+				_returnedClassTokenId = argClassTokenId.toString();
 			}
 		}
 
-		console.log("token_id = ", token_id);
+		console.log("_returnedClassId = ", _returnedClassTokenId);
+		console.log("_returnedClassTokenId = ", _returnedClassTokenId);
 
 		// const prisma = new PrismaClient();
 
@@ -523,8 +258,8 @@ export class ContractService extends BaseService {
 			{
 				txn_hash: response.hash, // must be unique
 				contract_address, // required
-				class_id, // must be string
-				token_id: token_id + "", // must be string
+				class_id: _returnedClassId, // must be string
+				token_id: _returnedClassTokenId + "", // must be string
 				from: await signer.getAddress(), // required
 				to: user_address, // required
 				status: -1,
@@ -585,11 +320,12 @@ export class ContractService extends BaseService {
 		console.log(`transfer NFT from '${from}' to '${to}' Txn: ${response.hash}`);
 		// await response.wait(2);
 
+		const lcaseContractAddress = contract_address.toLowerCase();
 		// note: add token_id
 		const transaction = await this.prisma.transaction.create({
 			data: {
 				txn_hash: response.hash,
-				contract_address: contract_address,
+				contract_address: lcaseContractAddress,
 				class_id: class_id,
 				from: from,
 				to: to,
@@ -609,13 +345,14 @@ export class ContractService extends BaseService {
 	) {
 		await this.findContractClass(contract_address, class_id);
 
+		const lcaseContractAddress = contract_address.toLowerCase();
 		// const [signer] = await ethers.getSigners();
 		// const [deployer] = await ethers.getSigners();r);
 		// const factory = ethers.getContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
 		const factoryContract = await attachContract(
 			this.artifacts.factoryAbi,
 			this.artifacts.factoryBytecode,
-			contract_address,
+			lcaseContractAddress,
 			this.artifacts.factoryContractName
 		);
 
@@ -626,7 +363,7 @@ export class ContractService extends BaseService {
 		const transaction = await this.prisma.transaction.create({
 			data: {
 				txn_hash: response.hash,
-				contract_address: contract_address,
+				contract_address: lcaseContractAddress,
 				class_id: class_id,
 				from: signerAddress,
 				to: userAddress,
@@ -663,10 +400,12 @@ export class ContractService extends BaseService {
 	}
 
 	async findContract(contract_address: string) {
+
+		const lcaseContractAddress = contract_address.toLowerCase();
 		const data = await this.prisma.series.findFirst({
 			where: {
 				contract_address: {
-					equals: contract_address,
+					equals: lcaseContractAddress,
 				},
 			},
 		});
@@ -677,9 +416,11 @@ export class ContractService extends BaseService {
 	}
 
 	async findContractClass(contract_address: string, class_id: string) {
+		
+		const lcaseContractAddress = contract_address.toLowerCase();
 		const contract_classes = await this.prisma.xp.findFirst({
 			where: {
-				contract_address: contract_address,
+				contract_address: lcaseContractAddress,
 				class_id: class_id,
 			},
 			select: {
@@ -731,6 +472,77 @@ export class ContractService extends BaseService {
 			return err;
 		}
 	}
+
+	async setAttributes(contract_address: any, count: number) {
+		const tokenContract = await attachContract(
+			this.config.artifacts.tokenAbi as any,
+			this.config.artifacts.tokenBytecode,
+			contract_address,
+			this.config.artifacts.tokenContractName
+		);
+		var i;
+		try {
+			for (i = 1; i <= count; i++) {
+				await tokenContract.setAttributes(i, [i], [1], [], []);
+				// await contractNFT.setAttributes(i, [1,2],[23,35],[1,2,3,4,5,6],["2020","Shanghai","Member","12","Jr. Backend Developer","No"]);
+			}
+			return "success";
+		} catch (err) {
+			return err;
+		}
+	}
+
+	async getUsers(contract: any, from: number, to: number) {
+		var i;
+		var data: JSONObject = {};
+		try {
+			for (i = from; i <= to; i++) {
+				data["user" + i] = await contract.users(i);
+			}
+			return JSON.stringify(data);
+		} catch (err) {
+			return err;
+		}
+	}
+
+	async getClasses(contract_address: any, from: number, to: number) {
+		const tokenContract = await attachContract(
+			this.config.artifacts.tokenAbi as any,
+			this.config.artifacts.tokenBytecode,
+			contract_address,
+			this.config.artifacts.tokenContractName
+		);
+		var i;
+		var data: JSONObject = {};
+		// const [owner] = await ethers.getSigners();
+		try {
+			for (i = from; i <= to; i++) {
+				data["class" + i] = await tokenContract.classes(i);
+			}
+			return JSON.stringify(data);
+		} catch (err) {
+			return err;
+		}
+	}
+	async getAttributes(contract_address: any, from: number, to: number) {
+		const tokenContract = await attachContract(
+			this.config.artifacts.tokenAbi as any,
+			this.config.artifacts.tokenBytecode,
+			contract_address,
+			this.config.artifacts.tokenContractName
+		);
+		var i;
+		var data: JSONObject = {};
+		try {
+			for (i = from; i <= to; i++) {
+				data["attribute" + i] = await tokenContract._attributes(i);
+			}
+			return JSON.stringify(data);
+		} catch (err) {
+			return err;
+		}
+	}
+
 	// async speedupTransactionOverrides(txnHash: string) {
 	// 	const txn = await ethers.provider.getTransaction(txnHash);
 

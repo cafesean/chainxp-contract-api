@@ -73,9 +73,9 @@ export default async function contractController(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/deploy", deployContractSchema(fastify), async (request: any, resp: any) => {
-		const { name, baseUri } = request.body;
+		const { name, baseUri, description, symbol } = request.body;
 
-		const contract = (await fastify.service.contract.deployAll(name, baseUri)) as any;
+		const contract = (await fastify.service.deploy.deployAll(name, baseUri, description, symbol)) as any;
 
 		resp
 			.code(200)
@@ -86,7 +86,7 @@ export default async function contractController(fastify: FastifyInstance) {
 	fastify.post("/clone", async (request: any, resp: any) => {
 		// const { name,  } = request.body;
 
-		const contract = await fastify.service.contract.cloneProxy(request.body);
+		const contract = await fastify.service.deploy.cloneProxy(request.body);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
 	});
@@ -94,7 +94,7 @@ export default async function contractController(fastify: FastifyInstance) {
 	fastify.post("/deployFactory", deployContractSchema(fastify), async (request: any, resp: any) => {
 		// const { name,  } = request.body;
 
-		const contract = await fastify.service.contract.deployFactory(request.body);
+		const contract = await fastify.service.deploy.deployFactory(request.body);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
 	});
@@ -221,6 +221,29 @@ export default async function contractController(fastify: FastifyInstance) {
 		}
 	});
 
+	fastify.get("/:contract/users/:id1/:id2", async (request: any, resp: any) => {
+		const { contract, id1, id2 } = request.params;
+
+		try {
+			const response = await fastify.service.contract.getUsers(contract, id1, id2);
+			return { result: response };
+		} catch (err) {
+			resp.send(err);
+		}
+	});
+
+	fastify.get("/:contract/classes/:id1/:id2", async (request: any, resp: any) => {
+		const { contract, id1, id2 } = request.params;
+
+		try {
+			// const contractNFT = new ethers.Contract(contract, abi, env.wallet);
+			// const response = await fastify.service.collection.getClasses(contractNFT, id1, id2);
+			const response = await fastify.service.contract.getClasses(contract, id1, id2);
+			return { result: response };
+		} catch (err) {
+			resp.send(err);
+		}
+	});
 	// fastify.post(
 	//   '/:contract_id/transfer/:class_id',
 	//   transferContractNFTSchema(fastify),

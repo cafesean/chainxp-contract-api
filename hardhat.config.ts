@@ -24,6 +24,10 @@ const config: HardhatUserConfig = {
 	},
 	defaultNetwork: process.env.DEFAULT_NETWORK || "hardhat",
 	networks: {
+		local: {
+			url: 'http://127.0.0.1:8545/',
+			accounts:[process.env.LOCAL_PRIVATE_KEY!]
+		},
 		PolygonMumbai: {
 			url: TESTNET_PROVIDER_URL,
 			accounts: [TESTNET_PRIVATE_KEY!],

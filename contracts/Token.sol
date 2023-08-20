@@ -1,136 +1,160 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
-
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./Access.sol";
 import "./Base.sol";
 import "./interface/ITemplate.sol";
 import "./interface/IDelegate.sol";
+import "@openzeppelin/contracts/utils/Base64.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "hardhat/console.sol";
 
-contract TokenContract is Access, Base {
+contract TokenContract is Initializable, Access, Base {
     using Counters for Counters.Counter;
     Counters.Counter classesCount;
-    Counters.Counter tokenCount;
     Counters.Counter attributeCount;
-    bool initialized = false;
 
     function initialize(
-        string memory _name,
-        string memory _baseUri
+        address ownerAddress,
+        string memory _title,
+        string memory _baseUri,
+        string memory _description,
+        string memory _symbol
     ) public initializer {
-        Base.initializeBase();
-
-        name = _name;
+        _owner = ownerAddress;
+        name = _title;
         baseURI = _baseUri;
+        description = _description;
+        symbol = _symbol;
         __ERC1155_init(baseURI);
         __Ownable_init();
-        _owner = _msgSender();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(ADMIN_ROLE, _owner);
         _setupRole(OPS_ROLE, _owner);
+        initialized = true;
     }
 
-    //see if this forces refresh on all classesURI
     function _setClass(
         uint256 _classId,
         string calldata _name,
         string calldata _description,
         string calldata _baseUri,
         address _templateAddress
-    ) public onlyOps returns (uint256 id) {
-        uint256 increment = 0;
-        if (_classId == 0) {
-            increment = 1;
+    ) public onlyOps returns (string memory) {
+        if (
+            keccak256(abi.encodePacked(_name)) ==
+            keccak256(abi.encodePacked("delete"))
+        ) {
+            delete classes[_classId];
+            return "Deleted";
         }
-        (bool success, ) = DelegateAddress.delegatecall(
-            abi.encodeWithSelector(
-                IDelegate.setClass.selector,
-                _classId + increment,
-                _name,
-                _description,
-                _baseUri,
-                _templateAddress
-            )
-        );
-        require(success, "setClass failed"); 
-
-        if (increment == 1) {
-            classesCount.increment();
-            emit ClassCreated(_name, classesCount.current());
-        }
-        return classesCount.current();
+        
+        (bool success, bytes memory returnedData) = DelegateAddress
+            .delegatecall(
+                abi.encodeWithSelector(
+                    IDelegate.setClass.selector,
+                    _classId,
+                    _name,
+                    _description,
+                    _baseUri,
+                    _templateAddress
+                )
+            );
+        require(success, "setClass failed");
+        uint256 returnedClassID = abi.decode(returnedData, (uint256));
+console.log("returnedClassID = %s", returnedClassID);
+        // if (_classId == 0) {
+        //     classesCount.increment();
+        // }
+        console.log("classesCount = %s", classesCount.current());
+        emit ClassUpdated(_name, returnedClassID);
+        return string.concat("Updated ", Strings.toString(returnedClassID));
     }
 
     function _setAttribute(
+        uint256 _classId,
         uint256 _attributeId,
         string memory _name,
         string memory _code
-    ) public onlyOps returns (uint256 id) {
-        uint256 increment = 0;
-        if (_attributeId == 0){
-            increment = 1;
+    ) public onlyOps returns (string memory) {
+        if (
+            keccak256(abi.encodePacked(_name)) ==
+            keccak256(abi.encodePacked("delete"))
+        ) {
+            delete classes[_attributeId];
+            return "Deleted";
         }
-        (bool success, ) = DelegateAddress.delegatecall(
-            abi.encodeWithSelector(
-                IDelegate.setAttribute.selector,
-                _attributeId,
-                _name,
-                _code
-            )
-        );
-        require(success, "setAttr failed");
-        if (increment == 1) {
-            attributeCount.increment();
-            emit AttributeCreated(_name, attributeCount.current());
-        }
-        return attributeCount.current();
+        (bool success, bytes memory returnedData) = DelegateAddress
+            .delegatecall(
+                abi.encodeWithSelector(
+                    IDelegate.setAttribute.selector,
+                    _attributeId,
+                    _classId,
+                    _name,
+                    _code
+                )
+            );
+        require(success, "setAttribute failed");
+        (string memory status, uint256 attributeId) = abi.decode(returnedData, (string, uint256));
+
+        emit AttributeUpdated(_name, attributeId);
+        return string.concat("Updated ", status);
     }
 
-    function setAttributes(
-        uint256 _tokenId,
-        uint256[] memory _attributeIds,
-        string[] memory _attributeValues
-    ) public onlyOps {
-        (bool success, ) = DelegateAddress.delegatecall(
-            abi.encodeWithSelector(
-                IDelegate.setUserAttributes.selector,
-                _tokenId,
-                _attributeIds,
-                _attributeValues
-            )
-        );
-        tokenURI[_tokenId] = uri(_tokenId);
-        emit URI(tokenURI[_tokenId], _tokenId);
-    }
+    // function setAttributes(
+    //     uint256 _classId,
+    //     uint256[] memory _attributeIds,
+    //     string[] memory _attributeValues
+    // ) public onlyOps {
+    //     (bool success, ) = DelegateAddress.delegatecall(
+    //         abi.encodeWithSelector(
+    //             IDelegate.setUserAttributes.selector,
+    //             _classId,
+    //             _attributeIds,
+    //             _attributeValues
+    //         )
+    //     );
+    //     // tokenURI[_tokenId] = uri(_tokenId);
+    //     // emit URI([_tokenId], _tokenId);
+    //     emit URI(uri(_tokenId), _tokenId);
+    // }
 
-    //required by opensea
+    //required by opensea - using classId as tokenId
     function uri(
-        uint256 _tokenId
+        uint256 _classId
     ) public view virtual override returns (string memory) {
-        address _templateAddress = classes[users[_tokenId].classId]
-            .templateAddress;
+        // address _templateAddress = classes[users[_tokenId].classId]
+
+        bytes memory dataURI;
+        string memory proxyAddress = Strings.toHexString(uint160(address(this)));
+        dataURI = abi.encodePacked(
+            string.concat(
+                baseURI,
+                proxyAddress,
+                "/",
+                Strings.toString(_classId)
+            )
+        );
         return
-            ITemplateContract(
-                _templateAddress == address(0x0)
-                    ? DefaultTemplate
-                    : _templateAddress
-            ).generateUri(_tokenId, baseURI); //send 0 if classId is 0
+            string(
+                abi.encodePacked(
+                    "data:application/json;base64,",
+                    Base64.encode(dataURI)
+                )
+            );
     }
 
     // Operator mint NFT function
     function mint(
-        uint256 _classId,
-        address _to
+        address _to,
+        uint256 _classId
     ) public onlyOps returns (uint256 id) {
         require(classes[_classId].id != 0, "No xp");
-        uint256 _tokenId;
-        tokenCount.increment();
-        _tokenId = mintSingle(_to, tokenCount.current(), _classId);
-        emit TokenCreated(_to, _tokenId);
-        return _tokenId;
+        uint256 _classTokenId;
+        _classTokenId = mintSingle(_to, _classId);
+        emit TokenCreated(_to, _classId, _classTokenId);
+        return _classTokenId;
     }
 
     function mintBatchForClasses(
@@ -138,8 +162,8 @@ contract TokenContract is Access, Base {
         uint256 _classId
     ) public onlyOps {
         for (uint256 i = 0; i < _to.length; i++) {
-            tokenCount.increment();
-            mintSingle(_to[i], tokenCount.current(), _classId);
+            // classes[_classId].tokenCount.increment();
+            mintSingle(_to[i], _classId);
         }
     }
 
@@ -152,30 +176,29 @@ contract TokenContract is Access, Base {
         return attributes[_id];
     }
 
-    function _users(uint256 _id) public view onlyOps returns (user memory) {
-        return users[_id];
+    function _users(uint256 _classId, uint256 _classTokenId) public view onlyOps returns (address) {
+        return users[_classId][_classTokenId];
     }
 
     function _classes(uint256 _id) public view returns (class memory) {
         return classes[_id];
     }
 
-    function _userAttributes(
-        uint256 _tokenId,
-        uint256 _attributeId
-    ) public view onlyOps returns (string memory) {
-        return userAttributes[_tokenId][_attributeId];
-    }
-
     function setDelegateAddress(address _address) public onlyAdmin {
         DelegateAddress = _address;
+        _setupRole(OPS_ROLE, _address);
+    }
+
+    function getDelegateAddress() public view onlyOps returns (address) {
+        return DelegateAddress;
     }
 
     function setDefaultTemplate(address _address) public onlyAdmin {
         DefaultTemplate = _address;
+        _setupRole(OPS_ROLE, _address);
     }
 
-    function getDefaultTemplate() public view returns (address) {
+    function getDefaultTemplate() public view onlyOps returns (address) {
         return DefaultTemplate;
     }
 
@@ -187,8 +210,10 @@ contract TokenContract is Access, Base {
         classes[_classId].templateAddress = _address;
 
         //Request template contract to add this contract
-        ITemplateContract(classes[_classId].templateAddress)
-            .authorizeCallingContract(_msgSender(), address(this));
+        ITemplate(classes[_classId].templateAddress).authorizeCallingContract(
+            _msgSender(),
+            address(this)
+        );
 
         console.log("setTemplateContract: %s", _address);
         return true;
@@ -196,27 +221,6 @@ contract TokenContract is Access, Base {
 
     function registerFactory(address _address) public onlyAdmin {
         _setupRole(ADMIN_ROLE, _address);
-    }
-
-    function registerClone(
-        string memory uuid,
-        address _clone
-    ) public onlyAdmin {
-        clones[uuid] = _clone;
-        _setupRole(OPS_ROLE, _clone);
-    }
-
-    function deregisterClone(string memory uuid) public onlyAdmin {
-        _revokeRole(OPS_ROLE, clones[uuid]);
-        delete clones[uuid];
-    }
-
-    function _setStyles(
-        uint256 _classId,
-        string[] memory _styles
-    ) public onlyOps {
-        //Request template contract to add this contract
-        ITemplateContract(classes[_classId].templateAddress).setStyles(_styles);
     }
 
     //need to override to avoid conflicting instances of supportsInterface

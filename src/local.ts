@@ -19,7 +19,7 @@ if (require.main === module) {
 	// called directly i.e. "node app"
 
 	var port = 3000;
-	init().listen({ port: port, host: '0.0.0.0'  }, (err) => {
+	init().listen({ port: port }, (err) => {
 		if (err) console.error(err);
 		console.log("server listening on " + port);
 	});

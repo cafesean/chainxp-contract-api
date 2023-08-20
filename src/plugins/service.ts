@@ -2,7 +2,7 @@ import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { PrismaClient } from "@prisma/client";
 // import { ScheduleClient } from "../clients/index";
-import { BaseService, ContractService } from "../service/index";
+import { BaseService, ContractService, DeployService } from "../service/index";
 
 // interface BaseService {
 // 	config?: any;
@@ -42,9 +42,11 @@ declare module "fastify" {
 
 class ServiceHolder {
 	contract: ContractService;
+	deploy: DeployService;
 
 	constructor(fastify: FastifyInstance) {
 		this.contract = ServiceHolder.init(fastify, ContractService);
+		this.deploy = ServiceHolder.init(fastify, DeployService);
 	}
 
 	//  static init<T extends BaseService>(
@@ -71,4 +73,5 @@ class ServiceHolder {
 		// service.log = fastify.log;
 		service.prisma = fastify.prisma;
 	}
+	
 }

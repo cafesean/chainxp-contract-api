@@ -49,7 +49,7 @@ contract TokenContract is Initializable, Access, Base {
             delete classes[_classId];
             return "Deleted";
         }
-        
+
         (bool success, bytes memory returnedData) = DelegateAddress
             .delegatecall(
                 abi.encodeWithSelector(
@@ -92,7 +92,10 @@ contract TokenContract is Initializable, Access, Base {
                 )
             );
         require(success, "setAttribute failed");
-        (string memory status, uint256 attributeId) = abi.decode(returnedData, (string, uint256));
+        (string memory status, uint256 attributeId) = abi.decode(
+            returnedData,
+            (string, uint256)
+        );
 
         emit AttributeUpdated(_name, attributeId);
         return string.concat("Updated ", status);
@@ -122,22 +125,15 @@ contract TokenContract is Initializable, Access, Base {
     ) public view virtual override returns (string memory) {
         // address _templateAddress = classes[users[_tokenId].classId]
 
-        bytes memory dataURI;
-        string memory proxyAddress = Strings.toHexString(uint160(address(this)));
-        dataURI = abi.encodePacked(
+        string memory proxyAddress = Strings.toHexString(
+            uint160(address(this))
+        );
+        return
             string.concat(
                 baseURI,
                 proxyAddress,
                 "/",
                 Strings.toString(_classId)
-            )
-        );
-        return
-            string(
-                abi.encodePacked(
-                    "data:application/json;base64,",
-                    Base64.encode(dataURI)
-                )
             );
     }
 
@@ -172,7 +168,10 @@ contract TokenContract is Initializable, Access, Base {
         return attributes[_id];
     }
 
-    function _users(uint256 _classId, uint256 _classTokenId) public view onlyOps returns (address) {
+    function _users(
+        uint256 _classId,
+        uint256 _classTokenId
+    ) public view onlyOps returns (address) {
         return users[_classId][_classTokenId];
     }
 

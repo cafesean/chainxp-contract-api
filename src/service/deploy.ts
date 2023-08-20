@@ -128,10 +128,10 @@ export class DeployService extends BaseService {
 			this.config.artifacts.delegateBytecode,
 			delegate_address,
 			this.config.artifacts.delegateContractName
-		).then((tx: any) => tx.wait());
+		);
 
-		await contractClone.setDelegateAddress(delegate_address).then((tx: any) => tx.wait());;
-		await delegateContract.grantAccess(addressClone, "ADMIN_ROLE").then((tx: any) => tx.wait());;
+		await contractClone.setDelegateAddress(delegate_address).then((tx: any) => tx.wait());
+		await delegateContract.grantAccess(addressClone, "ADMIN_ROLE").then((tx: any) => tx.wait());
 
 		const contractTemplate = await attachContract(
 			this.config.artifacts.templateAbi as any,

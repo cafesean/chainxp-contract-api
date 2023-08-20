@@ -1,14 +1,14 @@
 {
   "projectId": "prj_Z3xODYh5Y6p6qIusHlRIQ91RJjjL",
-  "orgId": "b4mbpgz0wqK2BudRsfSDBF8p",
+  "orgId": "team_1gCM2OQ2XWW7FGmbqI6evRZX",
   "settings": {
     "createdAt": 1691852524245,
     "framework": null,
     "devCommand": null,
     "installCommand": null,
     "buildCommand": null,
-    "outputDirectory": "dist",
-    "rootDirectory": null,
+    "outputDirectory": null,
+    "rootDirectory": "build/src",
     "directoryListing": false,
     "nodeVersion": "18.x"
   }

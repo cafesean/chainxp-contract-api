@@ -1,3 +1,14 @@
-test
-README.md
+.env
 .nyc*
+.vscode
+node_modules
+test
+/src
+README.md
+*.http
+layer
+amplify*
+*cloudformation*.*
+custom-policies.json
+function-parameters.json
+paramters.json

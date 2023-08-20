@@ -1,5 +1,302 @@
-export default async function(fastify: any, opts: any): Promise<void> {
-  fastify.get('/', async function(request: any, reply: any): Promise<string> {
-    return 'contract route';
-  });
+import { FastifyInstance } from "fastify";
+// import * as abi from "../../constants/abi.constants";
+
+import {
+	deployContractSchema,
+	mintContractNFTSchema,
+	addContractClassSchema,
+	// setContractClassSchema,
+	// addContractAdminSchema,
+	// transferContractNFTSchema,
+	// burnContractNFTSchema,
+	// registerContractEventSchema,
+	// queryContractSchema,
+	// speedupTransactionSchema,
+	// confirmTransactionSchema,
+	// verifyTransactionSchema,
+} from "../../schema/contract";
+
+export default async function contractController(fastify: FastifyInstance) {
+	fastify.get("/", async () => {
+		var message = await fastify.service.contract.version();
+		return { result: message };
+	});
+
+	fastify.get("/network", async () => {
+		var message = await fastify.service.contract.network();
+		return { result: message };
+	});
+
+	fastify.put("/create", async (request: any, resp: any) => {
+		const { version, isDefault } = request.body;
+
+		console.log("Adding delegate contract");
+		await fastify.service.contract.addContractAbi(
+			JSON.stringify(fastify.config.artifacts.delegateAbi),
+			fastify.config.artifacts.delegateBytecode,
+			fastify.config.artifacts.delegateContractName,
+			fastify.config.artifacts.delegateSourceName,
+			version,
+			isDefault
+		);
+
+		console.log("Adding token contract");
+		await fastify.service.contract.addContractAbi(
+			JSON.stringify(fastify.config.artifacts.tokenAbi),
+			fastify.config.artifacts.tokenBytecode,
+			fastify.config.artifacts.tokenContractName,
+			fastify.config.artifacts.tokenSourceName,
+			version,
+			isDefault
+		);
+
+		console.log("Adding factory contract");
+		await fastify.service.contract.addContractAbi(
+			JSON.stringify(fastify.config.artifacts.factoryAbi),
+			fastify.config.artifacts.factoryBytecode,
+			fastify.config.artifacts.factoryContractName,
+			fastify.config.artifacts.factorySourceName,
+			version,
+			isDefault
+		);
+
+		console.log("Adding template contract");
+		await fastify.service.contract.addContractAbi(
+			JSON.stringify(fastify.config.artifacts.templateAbi),
+			fastify.config.artifacts.templateBytecode,
+			fastify.config.artifacts.templateContractName,
+			fastify.config.artifacts.templateSourceName,
+			version,
+			isDefault
+		);
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: '"Contracts created."' });
+	});
+
+	fastify.post("/deploy", deployContractSchema(fastify), async (request: any, resp: any) => {
+		const { name, baseUri, description, symbol } = request.body;
+
+		const contract = (await fastify.service.deploy.deployAll(name, baseUri, description, symbol)) as any;
+
+		resp
+			.code(200)
+			.header("Content-Type", "application/json; charset=utf-8")
+			.send({ result: JSON.stringify(contract) });
+	});
+
+	fastify.post("/clone", async (request: any, resp: any) => {
+		// const { name,  } = request.body;
+
+		const contract = await fastify.service.deploy.cloneProxy(request.body);
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
+	});
+
+	fastify.post("/deployFactory", deployContractSchema(fastify), async (request: any, resp: any) => {
+		// const { name,  } = request.body;
+
+		const contract = await fastify.service.deploy.deployFactory(request.body);
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
+	});
+
+	// fastify.post(
+	//   '/:contract_id/register/:class_id',
+	//   registerContractEventSchema(fastify),
+	//   async (req, resp) => {
+	//     const { contract_id, class_id } = req.params;
+
+	//     const {
+	//       organizerId,
+	//       eventId,
+	//       ticketId,
+	//       ticketTypeId,
+	//     } = req.body;
+
+	//     const contract = await fastify.service.contract.register(
+	//       contract_id,
+	//       class_id,
+	//       organizerId,
+	//       eventId,
+	//       ticketId,
+	//       ticketTypeId,
+	//     );
+
+	//     resp.success(contract);
+	//   }
+	// );
+
+	// fastify.get(
+	//   '/query',
+	//   queryContractSchema(fastify),
+	//   async (req, resp) => {
+	//     const {
+	//       organizerId,
+	//       eventId,
+	//       ticketId,
+	//       ticketTypeId,
+	//     } = req.query;
+
+	//     const event = await fastify.service.contract.query(
+	//       organizerId,
+	//       eventId,
+	//       ticketId,
+	//       ticketTypeId,
+	//     );
+	//     resp.success({
+	//       contract_id: event.contract_id,
+	//       class_id: event.class_id,
+	//     });
+	//   }
+	// )
+
+	// fastify.post(
+	//   '/:contract_id/admin',
+	//   addContractAdminSchema(fastify),
+	//   async (req, resp) => {
+	//     const { contract_id } = req.params;
+	//     const { userAddress } = req.body;
+
+	//     const contractUser = await fastify.service.contract.addAdminUser(contract_id, userAddress);
+
+	//     resp.success({
+	//       userId: contractUser.userId,
+	//     });
+	//   }
+	// );
+
+	fastify.post("/:contract_id/class", addContractClassSchema(fastify), async (request: any, resp: any) => {
+		const { contract_id } = request.params;
+		// const { name, desc, image_url, slug } = request.body;
+		console.log("In addClass route");
+		const contractClass = await fastify.service.contract.addClass(contract_id, request.body);
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contractClass });
+	});
+
+	// fastify.put(
+	//   '/:contract_id/class/:class_id',
+	//   setContractClassSchema(fastify),
+	//   async (req, resp) => {
+	//     const { contract_id, class_id } = req.params;
+	//     const { metadataUrl } = req.body;
+
+	//     const txn = await fastify.service.contract.setClassMetadata(contract_id, class_id, metadataUrl);
+
+	//     resp.success(txn);
+	//   }
+	// );
+
+	fastify.put("/:contract_id/mint/:class_id", mintContractNFTSchema(fastify), async (request: any, resp: any) => {
+		const { contract_id, class_id } = request.params;
+		const { address } = request.query;
+
+		const response = await fastify.service.contract.mintNFT(contract_id, class_id, address);
+
+		const txn = response[0];
+		console.log("fastify.put txn: ", txn);
+		// resp.header("Content-Type", "application/json");
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txn });
+	});
+
+	fastify.post("/:contract_id/updateBaseUri", async (request: any, resp: any) => {
+		const { contract_id } = request.params;
+		const { base_uri } = request.body;
+		console.log("In update clone meta data route");
+		const contractClass = await fastify.service.contract.updateBaseUri(contract_id, base_uri);
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contractClass });
+	});
+
+	fastify.get("/:contract_id/getUris/:id1/:id2", async (request: any, resp: any) => {
+		//const { count } = request.query;
+		const { contract_id, id1, id2 } = request.params;
+		// const { abi } = request.body;
+
+		try {
+			const uriString = await fastify.service.contract.getUris(contract_id, id1, id2);
+
+			return { result: uriString };
+		} catch (err) {
+			resp.send(err);
+		}
+	});
+
+	fastify.get("/:contract/users/:id1/:id2", async (request: any, resp: any) => {
+		const { contract, id1, id2 } = request.params;
+
+		try {
+			const response = await fastify.service.contract.getUsers(contract, id1, id2);
+			return { result: response };
+		} catch (err) {
+			resp.send(err);
+		}
+	});
+
+	fastify.get("/:contract/classes/:id1/:id2", async (request: any, resp: any) => {
+		const { contract, id1, id2 } = request.params;
+
+		try {
+			// const contractNFT = new ethers.Contract(contract, abi, env.wallet);
+			// const response = await fastify.service.collection.getClasses(contractNFT, id1, id2);
+			const response = await fastify.service.contract.getClasses(contract, id1, id2);
+			return { result: response };
+		} catch (err) {
+			resp.send(err);
+		}
+	});
+	// fastify.post(
+	//   '/:contract_id/transfer/:class_id',
+	//   transferContractNFTSchema(fastify),
+	//   async (req, resp) => {
+	//     const { contract_id, class_id } = req.params;
+	//     const { from, to, amount } = req.body;
+
+	//     const { txnHash } = await fastify.service.contract.transferNFT(contract_id, class_id, from, to, amount);
+	//     resp.success({ txnHash });
+	//   }
+	// );
+
+	// fastify.post(
+	//   '/:contract_id/burn/:class_id',
+	//   burnContractNFTSchema(fastify),
+	//   async (req, resp) => {
+	//     const { contract_id, class_id } = req.params;
+	//     const { userAddress, amount } = req.body;
+
+	//     const { txnHash } = await fastify.service.contract.burnNFT(contract_id, class_id, userAddress, amount);
+	//     resp.success({ txnHash });
+	//   }
+	// );
+
+	//   fastify.post(
+	//     '/transaction/speedup',
+	//     speedupTransactionSchema(fastify),
+	//     async (req, resp) => {
+
+	//       const newTxn = await fastify.service.contract.speedupTransaction();
+	//       resp.success(newTxn);
+	//     }
+	//   );
+
+	//   fastify.post(
+	//     '/transaction/:txnHash/confirm',
+	//     confirmTransactionSchema(fastify),
+	//     async (req, resp) => {
+	//       const { txnHash } = req.params;
+
+	//       await fastify.service.contract.confirmTransaction(txnHash);
+	//       resp.success();
+	//     }
+	//   );
+
+	//   fastify.post(
+	//     '/transaction/:txnHash/status',
+	//     verifyTransactionSchema(fastify),
+	//     async (req, resp) => {
+	//       const { txnHash } = req.params;
+
+	//       const status = await fastify.service.contract.verify(txnHash);
+	//       resp.success({ status });
+	//     }
+	//   );
 }

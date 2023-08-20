@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { PrismaClient } from "@prisma/client";
 
 // Load the JSON from the provided path
 function loadContractJson(abiPath: string): any {
@@ -41,8 +42,11 @@ export async function addContractAbi(
 	version: string,
 	isDefault: boolean
 ) {
+
+	const prisma = new PrismaClient();
+
 	try {
-		const newContract = await ctx.prisma.contract_version.create({
+		const newContract = await prisma.contract_version.create({
 			data: {
 				abi: abi,
 				bytecode: bytecode,
@@ -58,7 +62,7 @@ export async function addContractAbi(
 
 		if (isDefault) {
 			// set all other Default to false, except the data.id
-			await ctx.prisma.contract_version.updateMany({
+			await prisma.contract_version.updateMany({
 				where: {
 					AND: [
 						{

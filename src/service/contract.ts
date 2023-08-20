@@ -1,6 +1,6 @@
 import { BaseService } from "./base";
 import * as errors from "../errors";
-import { attachContract } from "../utils";
+import { attachContract, addContractAbi } from "../utils";
 // import { PrismaClient } from "@prisma/client";
 // import { ethers, ContractFactory } from "ethers";
 import { ethers } from "hardhat";
@@ -26,58 +26,54 @@ export class ContractService extends BaseService {
 		return "Current network is " + process.env.DEFAULT_NETWORK;
 	}
 
-	async addContractAbi(
-		abi: string,
-		bytecode: string,
-		contract_name: string,
-		source_name: string,
-		version: string,
-		isDefault: boolean
-	) {
-		try {
-			const newContract = await this.prisma.contract_version.create({
-				data: {
-					abi: abi,
-					bytecode: bytecode,
-					contract_name: contract_name,
-					source_name: source_name,
-					version: version,
-					default: isDefault,
-				},
-				select: {
-					id: true,
-				},
-			});
+	async createContracts(version: string, isDefault: boolean) {
+		console.log("Adding delegate contract");
+		await addContractAbi(
+			this.prisma,
+			JSON.stringify(this.config.artifacts.delegateAbi),
+			this.config.artifacts.delegateBytecode,
+			this.config.artifacts.delegateContractName,
+			this.config.artifacts.delegateSourceName,
+			version,
+			isDefault
+		);
 
-			if (isDefault) {
-				// set all other Default to false, except the data.id
-				await this.prisma.contract_version.updateMany({
-					where: {
-						AND: [
-							{
-								default: {
-									equals: true,
-								},
-								contract_name: {
-									equals: contract_name,
-								},
-								id: {
-									not: {
-										equals: newContract.id,
-									},
-								},
-							},
-						],
-					},
-					data: {
-						default: false,
-					},
-				});
-			}
-		} catch (error) {
-			console.log("contractData Error: ", error);
-		}
+		console.log("Adding token contract");
+		await addContractAbi(
+			this.prisma,
+			JSON.stringify(this.config.artifacts.tokenAbi),
+			this.config.artifacts.tokenBytecode,
+			this.config.artifacts.tokenContractName,
+			this.config.artifacts.tokenSourceName,
+			version,
+			isDefault
+		);
+
+		console.log("Adding factory contract");
+		await addContractAbi(
+			this.prisma,
+			JSON.stringify(this.config.artifacts.factoryAbi),
+			this.config.artifacts.factoryBytecode,
+			this.config.artifacts.factoryContractName,
+			this.config.artifacts.factorySourceName,
+			version,
+			isDefault
+		);
+
+		console.log("Adding template contract");
+		await addContractAbi(
+			this.prisma,
+			JSON.stringify(this.config.artifacts.templateAbi),
+			this.config.artifacts.templateBytecode,
+			this.config.artifacts.templateContractName,
+			this.config.artifacts.templateSourceName,
+			version,
+			isDefault
+		);
+
+		return "Contract v" + version + " created successfully";
 	}
+
 	async addClass(contract_address: string, reqBody: any) {
 		const contractProxy = await attachContract(
 			this.config.artifacts.tokenAbi as any,
@@ -89,7 +85,6 @@ export class ContractService extends BaseService {
 		let class_id = reqBody.class_id || "0";
 		const template_id = reqBody.template_id || zeroAddress;
 		const lcaseContractAddress = contract_address.toLowerCase();
-	
 
 		// get series_id
 		const series = await this.prisma.series.findFirst({
@@ -102,11 +97,9 @@ export class ContractService extends BaseService {
 		});
 
 		console.log("series?.id: ", series?.id);
-		
+
 		return new Promise(async (resolve, reject) => {
-
 			try {
-
 				const response = await contractProxy._setClass(Number(class_id), reqBody.name, reqBody.desc, "", template_id);
 				const receipt = await response.wait();
 				console.log("Receipt: ", receipt);
@@ -153,8 +146,7 @@ export class ContractService extends BaseService {
 					},
 				});
 
-				const newXpID = newXp.id;
-				resolve({ "New xp.id": newXpID, class_id: class_id });
+				resolve({ xp_id: newXp.id, class_id: class_id });
 			} catch (e) {
 				console.log(e);
 				reject(new Error("Error creating class:" + e));
@@ -400,7 +392,6 @@ export class ContractService extends BaseService {
 	}
 
 	async findContract(contract_address: string) {
-
 		const lcaseContractAddress = contract_address.toLowerCase();
 		const data = await this.prisma.series.findFirst({
 			where: {
@@ -416,7 +407,6 @@ export class ContractService extends BaseService {
 	}
 
 	async findContractClass(contract_address: string, class_id: string) {
-		
 		const lcaseContractAddress = contract_address.toLowerCase();
 		const contract_classes = await this.prisma.xp.findFirst({
 			where: {
@@ -466,11 +456,41 @@ export class ContractService extends BaseService {
 		try {
 			for (i = from; i <= to; i++) {
 				data["uri" + i] = await tokenContract.uri(i);
+
+				// base64 decode the uri then encode to utf-8
+				const uriString = Buffer.from(data["uri" + i].slice(29), "base64").toString("utf-8");
+				data["uri" + i] = uriString;
+
+
 			}
-			return JSON.stringify(data);
+			return data;
 		} catch (err) {
 			return err;
 		}
+	}
+
+	async getContractDetails(contract_address: any) {
+		// var data: JSONObject = {};
+
+		// const slot1 = await ethers.provider.getStorageAt(contract_address, 0);
+		const abi = this.config.artifacts.tokenAbi;
+		const contract = new ethers.Contract(contract_address, abi, ethers.provider);
+
+		const name = await contract.name();
+		const description = await contract.description();
+		const symbol = await contract.symbol();
+		const baseUri = await contract.baseURI();
+		const contractUri = await contract.contractURI();
+
+		const contractJSON = {
+			name: name,
+			description: description,
+			symbol: symbol,
+			baseUri: baseUri,
+			contractUri: contractUri,
+		};
+
+		return contractJSON;
 	}
 
 	async setAttributes(contract_address: any, count: number) {
@@ -499,7 +519,7 @@ export class ContractService extends BaseService {
 			for (i = from; i <= to; i++) {
 				data["user" + i] = await contract.users(i);
 			}
-			return JSON.stringify(data);
+			return data;
 		} catch (err) {
 			return err;
 		}
@@ -519,7 +539,7 @@ export class ContractService extends BaseService {
 			for (i = from; i <= to; i++) {
 				data["class" + i] = await tokenContract.classes(i);
 			}
-			return JSON.stringify(data);
+			return data;
 		} catch (err) {
 			return err;
 		}
@@ -537,7 +557,7 @@ export class ContractService extends BaseService {
 			for (i = from; i <= to; i++) {
 				data["attribute" + i] = await tokenContract._attributes(i);
 			}
-			return JSON.stringify(data);
+			return data;
 		} catch (err) {
 			return err;
 		}

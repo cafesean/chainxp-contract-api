@@ -16,3 +16,4 @@ export async function attachContract(abi: string, bytecode: string, contractAddr
 
 	return attachedContract;
 }
+

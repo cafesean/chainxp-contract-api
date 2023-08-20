@@ -91,19 +91,18 @@ export class DeployService extends BaseService {
 
 		// const salt = ethers.utils.formatBytes32String(random.toString());
 
+
+		let addressClone;
+
 		const contractFactory = await attachContract(
 			this.config.artifacts.factoryAbi as any,
 			this.config.artifacts.factoryBytecode,
 			factory_address,
 			this.config.artifacts.factoryContractName
 		);
-		// const contractFactory = await attachContract(this.config.artifacts.factoryAbi, owner, factory_address, FactorySol);
-
-		// salt MUST be unique for eip-1167 cloning to work
 
 		const response = await contractFactory.createClone(contract_address);
 
-		let addressClone;
 		const receipt = await response.wait(); // response is empty if using hardhat network
 		// console.log("response=", await receipt.events);
 		for (const event of receipt.events) {
@@ -119,18 +118,19 @@ export class DeployService extends BaseService {
 			addressClone,
 			this.config.artifacts.tokenContractName
 		);
+		await contractClone.initialize(signer.address, title, baseUri, description, symbol).then((tx: any) => tx.wait());
 
-		await contractClone.initialize(signer.address, title, baseUri, description, symbol);
 
 		// configure with delegate
 		const delegateContract = await attachContract(
 			this.config.artifacts.delegateAbi as any,
 			this.config.artifacts.delegateBytecode,
 			delegate_address,
-			this.config.artifacts.delegateContractName
-		);
+			this.config.artifacts.delegateContractName);
 
-		await contractClone.setDelegateAddress(delegate_address).then((tx: any) => tx.wait());
+			
+
+		await contractClone.setDelegateAddress(delegate_address);
 		await delegateContract.grantAccess(addressClone, "ADMIN_ROLE").then((tx: any) => tx.wait());
 
 		const contractTemplate = await attachContract(
@@ -183,14 +183,15 @@ export class DeployService extends BaseService {
 					id: true, // Include the new series id in the returned data
 				},
 			});
+
 		} catch (error) {
 			console.log("seriesData Error: ", error);
 		}
 
 		const series_id = seriesData?.id;
-
+		console.log("Clone address: ", addressClone);
 		// return new clone (series)
-		return { addressClone, series_id };
+		return { "clone address": addressClone, "series_id": series_id };
 	}
 
 	async deploySingle(abi: any, bytecode: string, contractName: string, sourceName: string) {
@@ -320,6 +321,6 @@ export class DeployService extends BaseService {
 			return error;
 		}
 
-		return { proxy_address: addressProxy, template_address: addressTemplate, delegate_address: addressDelegate };
+		return { "proxy_address": addressProxy, "template_address": addressTemplate, "delegate_address": addressDelegate };
 	}
 }

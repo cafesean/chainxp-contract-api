@@ -1,10 +1,10 @@
 import { FastifyInstance } from "fastify";
 // import * as abi from "../../constants/abi.constants";
 
-import {
-	deployContractSchema,
-	mintContractNFTSchema,
-	addContractClassSchema,
+// import {
+// 	deployContractSchema,
+// 	mintContractNFTSchema,
+	// addContractClassSchema,
 	// setContractClassSchema,
 	// addContractAdminSchema,
 	// transferContractNFTSchema,
@@ -14,7 +14,7 @@ import {
 	// speedupTransactionSchema,
 	// confirmTransactionSchema,
 	// verifyTransactionSchema,
-} from "../../schema/contract";
+// } from "../../schema/contract";
 
 export default async function contractController(fastify: FastifyInstance) {
 	fastify.get("/", async () => {
@@ -29,58 +29,18 @@ export default async function contractController(fastify: FastifyInstance) {
 
 	fastify.put("/create", async (request: any, resp: any) => {
 		const { version, isDefault } = request.body;
-
-		console.log("Adding delegate contract");
-		await fastify.service.contract.addContractAbi(
-			JSON.stringify(fastify.config.artifacts.delegateAbi),
-			fastify.config.artifacts.delegateBytecode,
-			fastify.config.artifacts.delegateContractName,
-			fastify.config.artifacts.delegateSourceName,
-			version,
-			isDefault
-		);
-
-		console.log("Adding token contract");
-		await fastify.service.contract.addContractAbi(
-			JSON.stringify(fastify.config.artifacts.tokenAbi),
-			fastify.config.artifacts.tokenBytecode,
-			fastify.config.artifacts.tokenContractName,
-			fastify.config.artifacts.tokenSourceName,
-			version,
-			isDefault
-		);
-
-		console.log("Adding factory contract");
-		await fastify.service.contract.addContractAbi(
-			JSON.stringify(fastify.config.artifacts.factoryAbi),
-			fastify.config.artifacts.factoryBytecode,
-			fastify.config.artifacts.factoryContractName,
-			fastify.config.artifacts.factorySourceName,
-			version,
-			isDefault
-		);
-
-		console.log("Adding template contract");
-		await fastify.service.contract.addContractAbi(
-			JSON.stringify(fastify.config.artifacts.templateAbi),
-			fastify.config.artifacts.templateBytecode,
-			fastify.config.artifacts.templateContractName,
-			fastify.config.artifacts.templateSourceName,
-			version,
-			isDefault
-		);
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: '"Contracts created."' });
+		const response = await fastify.service.contract.createContracts(version, isDefault);
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: response });
 	});
 
-	fastify.post("/deploy", deployContractSchema(fastify), async (request: any, resp: any) => {
+	fastify.post("/deploy", async (request: any, resp: any) => {
 		const { name, baseUri, description, symbol } = request.body;
-
 		const contract = (await fastify.service.deploy.deployAll(name, baseUri, description, symbol)) as any;
 
 		resp
 			.code(200)
 			.header("Content-Type", "application/json; charset=utf-8")
-			.send({ result: JSON.stringify(contract) });
+			.send({result: contract});
 	});
 
 	fastify.post("/clone", async (request: any, resp: any) => {
@@ -91,7 +51,7 @@ export default async function contractController(fastify: FastifyInstance) {
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
 	});
 
-	fastify.post("/deployFactory", deployContractSchema(fastify), async (request: any, resp: any) => {
+	fastify.post("/deployFactory", async (request: any, resp: any) => {
 		// const { name,  } = request.body;
 
 		const contract = await fastify.service.deploy.deployFactory(request.body);
@@ -164,7 +124,7 @@ export default async function contractController(fastify: FastifyInstance) {
 	//   }
 	// );
 
-	fastify.post("/:contract_id/class", addContractClassSchema(fastify), async (request: any, resp: any) => {
+	fastify.post("/:contract_id/class", async (request: any, resp: any) => {
 		const { contract_id } = request.params;
 		// const { name, desc, image_url, slug } = request.body;
 		console.log("In addClass route");
@@ -186,7 +146,7 @@ export default async function contractController(fastify: FastifyInstance) {
 	//   }
 	// );
 
-	fastify.put("/:contract_id/mint/:class_id", mintContractNFTSchema(fastify), async (request: any, resp: any) => {
+	fastify.put("/:contract_id/mint/:class_id", async (request: any, resp: any) => {
 		const { contract_id, class_id } = request.params;
 		const { address } = request.query;
 
@@ -214,6 +174,20 @@ export default async function contractController(fastify: FastifyInstance) {
 
 		try {
 			const uriString = await fastify.service.contract.getUris(contract_id, id1, id2);
+
+			return { result: uriString };
+		} catch (err) {
+			resp.send(err);
+		}
+	});
+
+	fastify.get("/:contract_id/details", async (request: any, resp: any) => {
+		//const { count } = request.query;
+		const { contract_id } = request.params;
+		// const { abi } = request.body;
+
+		try {
+			const uriString = await fastify.service.contract.getContractDetails(contract_id);
 
 			return { result: uriString };
 		} catch (err) {

@@ -1,22 +1,9 @@
 import { FastifyInstance } from "fastify";
 // import * as abi from "../../constants/abi.constants";
 
-// import {
-// 	deployContractSchema,
-// 	mintContractNFTSchema,
-	// addContractClassSchema,
-	// setContractClassSchema,
-	// addContractAdminSchema,
-	// transferContractNFTSchema,
-	// burnContractNFTSchema,
-	// registerContractEventSchema,
-	// queryContractSchema,
-	// speedupTransactionSchema,
-	// confirmTransactionSchema,
-	// verifyTransactionSchema,
-// } from "../../schema/contract";
+// import { genericSchema } from "../../schema/index";
 
-export default async function contractController(fastify: FastifyInstance) {
+export default async function contractRoute(fastify: FastifyInstance) {
 	fastify.get("/", async () => {
 		var message = await fastify.service.contract.version();
 		return { result: message };
@@ -37,10 +24,7 @@ export default async function contractController(fastify: FastifyInstance) {
 		const { name, baseUri, description, symbol } = request.body;
 		const contract = (await fastify.service.deploy.deployAll(name, baseUri, description, symbol)) as any;
 
-		resp
-			.code(200)
-			.header("Content-Type", "application/json; charset=utf-8")
-			.send({result: contract});
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
 	});
 
 	fastify.post("/clone", async (request: any, resp: any) => {
@@ -59,71 +43,6 @@ export default async function contractController(fastify: FastifyInstance) {
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
 	});
 
-	// fastify.post(
-	//   '/:contract_id/register/:class_id',
-	//   registerContractEventSchema(fastify),
-	//   async (req, resp) => {
-	//     const { contract_id, class_id } = req.params;
-
-	//     const {
-	//       organizerId,
-	//       eventId,
-	//       ticketId,
-	//       ticketTypeId,
-	//     } = req.body;
-
-	//     const contract = await fastify.service.contract.register(
-	//       contract_id,
-	//       class_id,
-	//       organizerId,
-	//       eventId,
-	//       ticketId,
-	//       ticketTypeId,
-	//     );
-
-	//     resp.success(contract);
-	//   }
-	// );
-
-	// fastify.get(
-	//   '/query',
-	//   queryContractSchema(fastify),
-	//   async (req, resp) => {
-	//     const {
-	//       organizerId,
-	//       eventId,
-	//       ticketId,
-	//       ticketTypeId,
-	//     } = req.query;
-
-	//     const event = await fastify.service.contract.query(
-	//       organizerId,
-	//       eventId,
-	//       ticketId,
-	//       ticketTypeId,
-	//     );
-	//     resp.success({
-	//       contract_id: event.contract_id,
-	//       class_id: event.class_id,
-	//     });
-	//   }
-	// )
-
-	// fastify.post(
-	//   '/:contract_id/admin',
-	//   addContractAdminSchema(fastify),
-	//   async (req, resp) => {
-	//     const { contract_id } = req.params;
-	//     const { userAddress } = req.body;
-
-	//     const contractUser = await fastify.service.contract.addAdminUser(contract_id, userAddress);
-
-	//     resp.success({
-	//       userId: contractUser.userId,
-	//     });
-	//   }
-	// );
-
 	fastify.post("/:contract_id/class", async (request: any, resp: any) => {
 		const { contract_id } = request.params;
 		// const { name, desc, image_url, slug } = request.body;
@@ -132,19 +51,6 @@ export default async function contractController(fastify: FastifyInstance) {
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contractClass });
 	});
-
-	// fastify.put(
-	//   '/:contract_id/class/:class_id',
-	//   setContractClassSchema(fastify),
-	//   async (req, resp) => {
-	//     const { contract_id, class_id } = req.params;
-	//     const { metadataUrl } = req.body;
-
-	//     const txn = await fastify.service.contract.setClassMetadata(contract_id, class_id, metadataUrl);
-
-	//     resp.success(txn);
-	//   }
-	// );
 
 	fastify.put("/:contract_id/mint/:class_id", async (request: any, resp: any) => {
 		const { contract_id, class_id } = request.params;
@@ -218,29 +124,29 @@ export default async function contractController(fastify: FastifyInstance) {
 			resp.send(err);
 		}
 	});
-	// fastify.post(
-	//   '/:contract_id/transfer/:class_id',
-	//   transferContractNFTSchema(fastify),
-	//   async (req, resp) => {
-	//     const { contract_id, class_id } = req.params;
-	//     const { from, to, amount } = req.body;
 
-	//     const { txnHash } = await fastify.service.contract.transferNFT(contract_id, class_id, from, to, amount);
-	//     resp.success({ txnHash });
-	//   }
-	// );
+	fastify.post("/:contract_address/transfer/:id", async (request: any, resp: any) => {
+		const { contract_address, id } = request.params;
+		const { from, to, amount } = request.body;
 
-	// fastify.post(
-	//   '/:contract_id/burn/:class_id',
-	//   burnContractNFTSchema(fastify),
-	//   async (req, resp) => {
-	//     const { contract_id, class_id } = req.params;
-	//     const { userAddress, amount } = req.body;
+		const { txnHash } = await fastify.service.contract.transfer(contract_address, id, from, to, amount);
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txnHash });
+	});
 
-	//     const { txnHash } = await fastify.service.contract.burnNFT(contract_id, class_id, userAddress, amount);
-	//     resp.success({ txnHash });
-	//   }
-	// );
+	fastify.post("/:contract_address/burn/:id", async (request: any, resp: any) => {
+		const { contract_address, id } = request.params;
+		const { from, amount } = request.body;
+
+		const { txnHash } = await fastify.service.contract.burn(contract_address, id, from, amount);
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txnHash });
+	});
+
+	fastify.post("/:contract_address/god", async (request: any, resp: any) => {
+		const { contract_address } = request.params;
+		const txnHash = await fastify.service.contract.god(contract_address, request.body);
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txnHash });
+	});
 
 	//   fastify.post(
 	//     '/transaction/speedup',

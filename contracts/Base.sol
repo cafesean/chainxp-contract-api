@@ -11,14 +11,7 @@ import "./interface/ITemplate.sol";
 import "./Access.sol";
 import "hardhat/console.sol";
 
-contract Base is
-    Initializable,
-    ERC1155Upgradeable,
-    ERC1155BurnableUpgradeable,
-    ERC1155SupplyUpgradeable,
-    OwnableUpgradeable,
-    Access
-{
+contract Base is Initializable, ERC1155Upgradeable, ERC1155BurnableUpgradeable, ERC1155SupplyUpgradeable, OwnableUpgradeable, Access {
     using Strings for uint256;
     address public _owner;
     string public name;
@@ -32,13 +25,14 @@ contract Base is
     // mapping(uint256 => string) public classURI;
     mapping(uint256 => class) public classes;
     mapping(uint256 => attribute) public attributes; // classId => attributeId
-    mapping(uint256 => mapping(uint256 => address)) public users; // classId => user address => classTokeId = count
-   
+    mapping(uint256 => mapping(address => uint256)) public users; // classId => user address => balance
+
     //event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     // event ClassURI(string classUri, uint256 indexed classId);
     event TokenCreated(address userAddress, uint256 indexed classId, uint256 indexed tokenId);
     event ClassUpdated(string name, uint256 indexed classId);
     event AttributeUpdated(string status, uint256 indexed attributeId);
+    event TokenTxn(string txnType, address fromAddress, address indexed toAddress, uint256 indexed classId, uint256 amount);
 
     struct class {
         uint256 id;
@@ -56,7 +50,6 @@ contract Base is
         bool visible;
         bool active;
     }
-    
 
     bool initialized = false;
 
@@ -79,8 +72,7 @@ contract Base is
 
     // Initial address for contract metadata
     function contractURI() external view returns (string memory) {
-        string memory contractAddress = Strings.toHexString(
-            uint160(address(this)));
+        string memory contractAddress = Strings.toHexString(uint160(address(this)));
 
         return string(abi.encodePacked(baseURI, contractAddress, "/contract.json"));
     }
@@ -90,39 +82,36 @@ contract Base is
     }
 
     // function updateUsersClass(
-    //     uint256[] memory _ids,
+    //     address[] memory _ids,
     //     uint256 _newClassId
     // ) public onlyOps {
     //     for (uint256 i = 0; i < _ids.length; i++) {
-    //         users[_ids[i]].classId = _newClassId;
-    //         // tokenURI[_ids[i]] = uri(_ids[i]);
-    //         emit URI(uri[_ids[i]], _ids[i]);
+    //         users[_newClassId][_ids[i]] += 1;
     //     }
     //     _setURI("n");
     // }
+    function swap(address _userAddress, uint256 _oldClassId, uint256 _newClassId) public onlyOps returns (uint256) {
+        safeTransferFrom(_userAddress, address(0), _oldClassId, 1, bytes(""));
+        _mint(_userAddress, _newClassId, 1, "");
+        classes[_newClassId].tokenCount += 1;
+        classes[_oldClassId].tokenCount -= 1;
+        users[_newClassId][_userAddress] += 1;
+        users[_oldClassId][_userAddress] -= 1;
+        return classes[_newClassId].tokenCount;
+    }
 
-    function mintSingle(
-        address _to,
-        // uint256 _newTokenId,
-        uint256 _classId
-    ) public onlyOps returns (uint256) {
+    function mintSingle(address _to, uint256 _classId) public onlyOps returns (uint256) {
         _mint(_to, _classId, 1, "");
         uint256 classTokenCount = classes[_classId].tokenCount++;
-        users[_classId][classTokenCount] = _to;
+        users[_classId][_to] += 1;
         return classTokenCount;
     }
 
-    function burn(
-        address _account,
-        uint256 _classId,
-        uint256 _classTokenId,
-        uint256 _amount
-    ) public onlyOps {
+    function burn(address _account, uint256 _classId, uint256 _amount) public override onlyOps {
         require(balanceOf(_account, _classId) > 0, "No token");
         _burn(_account, _classId, _amount);
-        delete users[_classId][_classTokenId];
-        // tokenURI[_id] = uri(_id);
-        // emit URI(uri(_classId, _amount));
+        users[_classId][_account] -= 1;
+        emit TokenTxn("burn", _account, address(0), _classId, _amount);
     }
 
     // function burnBatchById(uint256[] memory _ids) public onlyOps {
@@ -134,46 +123,23 @@ contract Base is
     //     }
     // }
 
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id,
-        uint256 amount,
-        bytes memory data
-    ) public override onlyOps {
+    function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes memory data) public override onlyOps {
         _safeTransferFrom(from, to, id, amount, data);
+        emit TokenTxn("transfer", from, to, id, amount);
     }
 
-    function onERC1155Received(
-        address,
-        address,
-        uint256,
-        uint256,
-        bytes memory
-    ) external pure returns (bytes4) {
+    function onERC1155Received(address, address, uint256, uint256, bytes memory) external pure returns (bytes4) {
         return this.onERC1155Received.selector;
     }
 
-    function onERC1155BatchReceived(
-        address,
-        address,
-        uint256[] memory,
-        uint256[] memory,
-        bytes memory
-    ) external pure returns (bytes4) {
+    function onERC1155BatchReceived(address, address, uint256[] memory, uint256[] memory, bytes memory) external pure returns (bytes4) {
         return this.onERC1155BatchReceived.selector;
     }
 
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes memory
-    ) external pure returns (bytes4) {
+    function onERC721Received(address, address, uint256, bytes memory) external pure returns (bytes4) {
         return this.onERC721Received.selector;
     }
 
-    // The following functions are overrides required by Solidity.
     function _beforeTokenTransfer(
         address operator,
         address from,
@@ -182,32 +148,20 @@ contract Base is
         uint256[] memory amounts,
         bytes memory data
     ) internal override(ERC1155Upgradeable, ERC1155SupplyUpgradeable) {
+        require(from == address(0) || to == address(0), "Soulbound token not transferrable");
         super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
     }
 
-    function renounceOwnership() public virtual override onlyAdmin {}
-
     //custom ownable functions
     function transferOwnership(address newOwner) public override onlyOwner {
-        require(
-            newOwner != address(0x0),
-            "Ownable: new owner is the zero address"
-        );
+        require(newOwner != address(0x0), "Ownable: new owner is the zero address");
         address oldOwner = _owner;
         _owner = newOwner;
         emit OwnershipTransferred(oldOwner, newOwner);
     }
 
     //need to override to avoid conflicting instances of supportsInterface
-    function supportsInterface(
-        bytes4 interfaceId
-    )
-        public
-        view
-        virtual
-        override(ERC1155Upgradeable, AccessControlUpgradeable)
-        returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155Upgradeable, AccessControlUpgradeable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

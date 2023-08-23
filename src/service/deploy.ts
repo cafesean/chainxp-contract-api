@@ -1,6 +1,7 @@
 import { BaseService } from "./base";
-import { attachContract } from "../utils";
+import { attachContract, getGasPriceOverrides } from "../utils";
 import { ethers } from "hardhat";
+
 // import crypto from "node:crypto";
 import dotenv from "dotenv";
 dotenv.config();
@@ -13,14 +14,7 @@ export class DeployService extends BaseService {
 		return "Current network is " + process.env.DEFAULT_NETWORK;
 	}
 
-	async addContractAbi(
-		abi: string,
-		bytecode: string,
-		contract_name: string,
-		source_name: string,
-		version: string,
-		isDefault: boolean
-	) {
+	async addContractAbi(abi: string, bytecode: string, contract_name: string, source_name: string, version: string, isDefault: boolean) {
 		try {
 			const newContract = await this.prisma.contract_version.create({
 				data: {
@@ -67,22 +61,7 @@ export class DeployService extends BaseService {
 	}
 
 	async cloneProxy(reqBody: any) {
-		const {
-			factory_address,
-			contract_address,
-			delegate_address,
-			template_address,
-			external_link,
-			org_id,
-			title,
-			baseUri,
-			description,
-			symbol,
-			requirements,
-			slug,
-			image_url,
-			template_id,
-		} = reqBody;
+		const { factory_address, contract_address, delegate_address, template_address, external_link, org_id, title, baseUri, description, symbol, requirements, slug, image_url, template_id } = reqBody;
 
 		const [signer] = await ethers.getSigners();
 		// const utils = ethers.utils;
@@ -91,15 +70,9 @@ export class DeployService extends BaseService {
 
 		// const salt = ethers.utils.formatBytes32String(random.toString());
 
-
 		let addressClone;
 
-		const contractFactory = await attachContract(
-			this.config.artifacts.factoryAbi as any,
-			this.config.artifacts.factoryBytecode,
-			factory_address,
-			this.config.artifacts.factoryContractName
-		);
+		const contractFactory = await attachContract(this.config.artifacts.factoryAbi as any, this.config.artifacts.factoryBytecode, factory_address, this.config.artifacts.factoryContractName);
 
 		const response = await contractFactory.createClone(contract_address);
 
@@ -112,33 +85,16 @@ export class DeployService extends BaseService {
 		}
 
 		// initialize clone
-		const contractClone = await attachContract(
-			this.config.artifacts.tokenAbi as any,
-			this.config.artifacts.tokenBytecode,
-			addressClone,
-			this.config.artifacts.tokenContractName
-		);
+		const contractClone = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, addressClone, this.config.artifacts.tokenContractName);
 		await contractClone.initialize(signer.address, title, baseUri, description, symbol).then((tx: any) => tx.wait());
 
-
 		// configure with delegate
-		const delegateContract = await attachContract(
-			this.config.artifacts.delegateAbi as any,
-			this.config.artifacts.delegateBytecode,
-			delegate_address,
-			this.config.artifacts.delegateContractName);
-
-			
+		const delegateContract = await attachContract(this.config.artifacts.delegateAbi as any, this.config.artifacts.delegateBytecode, delegate_address, this.config.artifacts.delegateContractName);
 
 		await contractClone.setDelegateAddress(delegate_address);
 		await delegateContract.grantAccess(addressClone, "ADMIN_ROLE").then((tx: any) => tx.wait());
 
-		const contractTemplate = await attachContract(
-			this.config.artifacts.templateAbi as any,
-			this.config.artifacts.templateBytecode,
-			template_address,
-			this.config.artifacts.templateContractName
-		);
+		const contractTemplate = await attachContract(this.config.artifacts.templateAbi as any, this.config.artifacts.templateBytecode, template_address, this.config.artifacts.templateContractName);
 
 		// configure with template
 		await contractClone.setDefaultTemplate(template_address).then((tx: any) => tx.wait());
@@ -183,7 +139,6 @@ export class DeployService extends BaseService {
 					id: true, // Include the new series id in the returned data
 				},
 			});
-
 		} catch (error) {
 			console.log("seriesData Error: ", error);
 		}
@@ -191,7 +146,7 @@ export class DeployService extends BaseService {
 		const series_id = seriesData?.id;
 		console.log("Clone address: ", addressClone);
 		// return new clone (series)
-		return { "clone address": addressClone, "series_id": series_id };
+		return { "clone address": addressClone, series_id: series_id };
 	}
 
 	async deploySingle(abi: any, bytecode: string, contractName: string, sourceName: string) {
@@ -203,8 +158,8 @@ export class DeployService extends BaseService {
 		// const newContractFactory = new ContractFactory(abi, bytecode);
 
 		const factory = await ethers.getContractFactory(contractFullName);
-		// const overrides = await this.getGasPriceOverrides(2);
-		const newContract = await factory.deploy();
+		const overrides = await getGasPriceOverrides(this, 2);
+		const newContract = await factory.deploy(overrides);
 		await newContract.deployed();
 
 		// const newContract = await newContractFactory
@@ -251,12 +206,7 @@ export class DeployService extends BaseService {
 			await contractFactory.initialize();
 
 			// attach initial token proxy contract and register newly deployed factory
-			const proxyContract = await attachContract(
-				this.config.artifacts.tokenAbi as any,
-				this.config.artifacts.tokenBytecode,
-				proxy_address,
-				this.config.artifacts.tokenContractName
-			);
+			const proxyContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, proxy_address, this.config.artifacts.tokenContractName);
 
 			//register factory
 			await proxyContract.registerFactory(contractFactory.address);
@@ -321,6 +271,6 @@ export class DeployService extends BaseService {
 			return error;
 		}
 
-		return { "proxy_address": addressProxy, "template_address": addressTemplate, "delegate_address": addressDelegate };
+		return { proxy_address: addressProxy, template_address: addressTemplate, delegate_address: addressDelegate };
 	}
 }

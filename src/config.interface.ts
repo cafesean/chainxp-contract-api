@@ -20,6 +20,7 @@ export default interface Config {
 	polygon: {
 		baseUrl: string;
 		apiKey: string;
+		maxGasPrice: number;
 	};
 	alchemy: {
 		apiKey: string;

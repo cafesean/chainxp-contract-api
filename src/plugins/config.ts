@@ -53,7 +53,7 @@ export default fp(
 				version: process.env.VERSION || "",
 				timezone: process.env.TIMEZONE || "",
 				// debug: getIntEnv('debug', 0) === 1,
-				apiKey: process.env.LOCAL_PRIVATE_KEY || "",
+				apiKey: process.env.LOCAL_APIKEY || "",
 				baseUrl: process.env.BASE_URL || "",
 				database: {
 					uri: process.env.DATABASE_URL || "",
@@ -66,6 +66,7 @@ export default fp(
 				polygon: {
 					baseUrl: process.env.POLYGONSCAN_URL || "",
 					apiKey: process.env.POLYGONSCAN_API_KEY || "",
+					maxGasPrice: Number(process.env.POLYGONSCAN_MAX_GAS_PRICE) || 300,
 				},
 				alchemy: {
 					apiKey: constants.PROVIDER_API_KEY || "",

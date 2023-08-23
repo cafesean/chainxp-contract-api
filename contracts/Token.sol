@@ -137,7 +137,6 @@ contract TokenContract is Initializable, Access, Base {
             );
     }
 
-    // Operator mint NFT function
     function mint(
         address _to,
         uint256 _classId
@@ -170,12 +169,12 @@ contract TokenContract is Initializable, Access, Base {
 
     function _users(
         uint256 _classId,
-        uint256 _classTokenId
-    ) public view onlyOps returns (address) {
-        return users[_classId][_classTokenId];
+        address _address
+    ) public view onlyOps returns (uint256) {
+        return users[_classId][_address];
     }
 
-    function _classes(uint256 _id) public view returns (class memory) {
+    function _classes(uint256 _id) public view onlyOps returns (class memory) {
         return classes[_id];
     }
 
@@ -210,7 +209,7 @@ contract TokenContract is Initializable, Access, Base {
             address(this)
         );
 
-        console.log("setTemplateContract: %s", _address);
+        // console.log("setTemplateContract: %s", _address);
         return true;
     }
 
@@ -218,7 +217,6 @@ contract TokenContract is Initializable, Access, Base {
         _setupRole(ADMIN_ROLE, _address);
     }
 
-    //need to override to avoid conflicting instances of supportsInterface
     function supportsInterface(
         bytes4 interfaceId
     )
@@ -229,5 +227,21 @@ contract TokenContract is Initializable, Access, Base {
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    receive() external payable {
+        revert();
+    }
+
+    fallback() external payable onlyOps {
+        (bool success, bytes memory returnedData) = DelegateAddress
+            .delegatecall(msg.data);
+        require(success, "Delegatecall failed");
+
+        if (returnedData.length > 0) {
+            assembly {
+                return(add(0x20, returnedData), mload(returnedData))
+            }
+        }
     }
 }

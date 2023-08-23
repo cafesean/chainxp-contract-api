@@ -1,6 +1,7 @@
 import { BaseService } from "./base";
 import * as errors from "../errors";
-import { attachContract, addContractAbi } from "../utils";
+import { attachContract, addContractAbi, getGasPriceOverrides } from "../utils";
+
 // import { PrismaClient } from "@prisma/client";
 // import { ethers, ContractFactory } from "ethers";
 import { ethers } from "hardhat";
@@ -29,8 +30,6 @@ export class ContractService extends BaseService {
 	async createContracts(version: string, isDefault: boolean) {
 		console.log("Adding delegate contract");
 
-
-		
 		await addContractAbi(
 			this.prisma,
 			JSON.stringify(this.config.artifacts.delegateAbi),
@@ -78,13 +77,8 @@ export class ContractService extends BaseService {
 	}
 
 	async addClass(contract_address: string, reqBody: any) {
-		const contractProxy = await attachContract(
-			this.config.artifacts.tokenAbi as any,
-			this.config.artifacts.tokenBytecode,
-			contract_address,
-			this.config.artifacts.tokenContractName
-		);
-
+		const contractProxy = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
+		const overrides = await getGasPriceOverrides(this, 2);
 		let class_id = reqBody.class_id || "0";
 		const template_id = reqBody.template_id || zeroAddress;
 		const lcaseContractAddress = contract_address.toLowerCase();
@@ -103,7 +97,7 @@ export class ContractService extends BaseService {
 
 		return new Promise(async (resolve, reject) => {
 			try {
-				const response = await contractProxy._setClass(Number(class_id), reqBody.name, reqBody.desc, "", template_id);
+				const response = await contractProxy._setClass(Number(class_id), reqBody.name, reqBody.desc, "", template_id, overrides);
 				const receipt = await response.wait();
 				console.log("Receipt: ", receipt);
 
@@ -160,12 +154,7 @@ export class ContractService extends BaseService {
 	async addAdminUser(contract_address: string, userAddress: string) {
 		// const contract = await this.findContract(contract_address);
 
-		const factoryContract = await attachContract(
-			this.config.artifacts.factoryAbi as any,
-			this.config.artifacts.factoryBytecode,
-			contract_address,
-			this.config.artifacts.factoryContractName
-		);
+		const factoryContract = await attachContract(this.config.artifacts.factoryAbi as any, this.config.artifacts.factoryBytecode, contract_address, this.config.artifacts.factoryContractName);
 		const role = "ADMIN_ROLE";
 
 		const response = await factoryContract.grantUserRole(userAddress, role);
@@ -211,62 +200,44 @@ export class ContractService extends BaseService {
 	async mintNFT(contract_address: string, class_id: string, user_address: string) {
 		// await this.findContractClass(contract_address, class_id);
 
-		const tokenContract = await attachContract(
-			this.config.artifacts.tokenAbi as any,
-			this.config.artifacts.tokenBytecode,
-			contract_address,
-			this.config.artifacts.tokenContractName
-		);
-
+		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
+		const overrides = await getGasPriceOverrides(this, 2);
 		// const factory = await ethers.getContractFactory(ProxySol);
 		// const factoryContract = factory.attach(contract_address);
 
 		const [signer] = await ethers.getSigners();
-		let response;
-		try {
-			response = await tokenContract.mint(user_address, Number(class_id));
-		} catch (e) {
-			console.log(e);
-			throw e;
-		}
+
+		const response = await tokenContract.mint(user_address, Number(class_id), overrides);
 
 		let _returnedClassId;
-		let _returnedClassTokenId;
+		let _amount;
 
 		const receipt = await response.wait();
 		console.log("Receipt: ", receipt);
 		for (const event of receipt.events) {
 			if (event.eventSignature === "TokenCreated(address,uint256,uint256)") {
 				const argClassId = event.args[1]; // uint256 value is 2nd arg in array as hex value
-				const argClassTokenId = event.args[2]; // uint256 value is 2nd arg in array as hex value
+				const argAmount = event.args[2]; // uint256 value is 2nd arg in array as hex value
 				_returnedClassId = argClassId.toString();
-				_returnedClassTokenId = argClassTokenId.toString();
+				_amount = argAmount.toString();
 			}
 		}
 
-		console.log("_returnedClassId = ", _returnedClassTokenId);
-		console.log("_returnedClassTokenId = ", _returnedClassTokenId);
-
 		// const prisma = new PrismaClient();
 
-		const txn = [
-			{
-				txn_hash: response.hash, // must be unique
-				contract_address, // required
-				class_id: _returnedClassId, // must be string
-				token_id: _returnedClassTokenId + "", // must be string
-				from: await signer.getAddress(), // required
-				to: user_address, // required
+		const transaction = await this.prisma.transaction.create({
+			data: {
+				txn_hash: response.hash, 
+				nonce: response.nonce,
+				contract_address, 
+				class_id: _returnedClassId, 
+				amount: _amount,
+				from: await signer.getAddress(), 
+				to: user_address,
 				status: -1,
 			},
-		];
-
-		for (const t of txn) {
-			const transaction = await this.prisma.transaction.create({
-				data: t,
-			});
-			console.log(`Created transaction with hash: ${transaction.txn_hash}`);
-		}
+		});
+		console.log(`Created transaction with hash: ${transaction.txn_hash}`);
 
 		// const allowlist = await this.prisma.allowlist.updateMany({
 		// 	data: {
@@ -285,19 +256,10 @@ export class ContractService extends BaseService {
 		// await response.wait();
 		// console.log("transaction: ", transaction);
 
-		return txn;
+		return transaction;
 	}
 
-	async transferNFT(
-		signerAddress: string,
-		contract_address: string,
-		class_id: string,
-		from: string,
-		to: string,
-		amount: number
-	) {
-		await this.findContractClass(contract_address, class_id);
-
+	async transfer(contract_address: string, class_id: string, from: string, to: string, amount: number) {
 		// const [deployer] = await ethers.getSigners();
 
 		// const [signer] = await ethers.getSigners();
@@ -305,68 +267,98 @@ export class ContractService extends BaseService {
 
 		// const factory = ethers.getContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
 		// const factoryContract = factory.attachContract(this.config.artifacts.tokenAbi, contract_address, this.config.artifacts.factoryContractName
-		const factoryContract = await attachContract(
-			this.config.artifacts.tokenAbi as any,
-			this.config.artifacts.tokenBytecode,
-			contract_address,
-			this.config.artifacts.tokenContractName
-		);
-		const response = await factoryContract.safeTransferFrom(from, to, class_id, amount, 6);
+		let _returnedClassId;
+		let _amount;
+
+		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
+
+		const response = await tokenContract.safeTransferFrom(from, to, class_id, amount, "0x00");
 		console.log(`transfer NFT from '${from}' to '${to}' Txn: ${response.hash}`);
 		// await response.wait(2);
 
 		const lcaseContractAddress = contract_address.toLowerCase();
 		// note: add token_id
-		const transaction = await this.prisma.transaction.create({
-			data: {
+
+		const receipt = await response.wait();
+		for (const event of receipt.events) {
+			if (event.eventSignature === "TokenTxn(string,address,address,uint256,uint256)") {
+				const argClassId = event.args[3]; // uint256 value is 2nd arg in array as hex value
+				const argAmount = event.args[4]; // uint256 value is 2nd arg in array as hex value
+				_returnedClassId = argClassId.toString();
+				_amount = argAmount.toString();
+			}
+		}
+
+		const txn = [
+			{
 				txn_hash: response.hash,
+				nonce: response.nonce,
 				contract_address: lcaseContractAddress,
-				class_id: class_id,
+				class_id: _returnedClassId,
+				amount: _amount,
 				from: from,
 				to: to,
 				status: -1,
 			},
-		});
-		// await response.wait();
-		return transaction;
+		];
+
+		for (const t of txn) {
+			const transaction = await this.prisma.transaction.create({
+				data: t,
+			});
+			console.log(`Created transaction with hash: ${transaction.txn_hash}`);
+		}
+		return response;
 	}
 
-	async burnNFT(
-		signerAddress: string,
-		contract_address: string,
-		class_id: string,
-		userAddress: string,
-		amount: number
-	) {
-		await this.findContractClass(contract_address, class_id);
+	async burn(contract_address: string, class_id: string, userAddress: string, amount: number) {
+		const [signer] = await ethers.getSigners();
 
 		const lcaseContractAddress = contract_address.toLowerCase();
 		// const [signer] = await ethers.getSigners();
-		// const [deployer] = await ethers.getSigners();r);
 		// const factory = ethers.getContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
-		const factoryContract = await attachContract(
-			this.artifacts.factoryAbi,
-			this.artifacts.factoryBytecode,
-			lcaseContractAddress,
-			this.artifacts.factoryContractName
-		);
+		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
 
-		const response = await factoryContract.burn(userAddress, class_id, amount);
+		const response = await tokenContract.burn(userAddress, class_id, amount);
 		console.log(`burn NFT from '${userAddress}' Txn: ${response.hash}`);
 
-		// note: add token_id
-		const transaction = await this.prisma.transaction.create({
-			data: {
+		let _returnedClassId;
+		let _amount;
+		const receipt = await response.wait();
+		for (const event of receipt.events) {
+			if (event.eventSignature === "TokenTxn(string,address,address,uint256,uint256)") {
+				console.log("event.args[0] = ", event.args[0]);
+				console.log("event.args[1] = ", event.args[1]);
+				console.log("event.args[2] = ", event.args[2]);
+				console.log("event.args[3] = ", event.args[3]);
+				console.log("event.args[4] = ", event.args[4]);
+				const argClassId = event.args[3]; // uint256 value is 2nd arg in array as hex value
+				const argAmount = event.args[4]; // uint256 value is 2nd arg in array as hex value
+				_returnedClassId = argClassId.toString();
+				_amount = argAmount.toString();
+			}
+		}
+		console.log("receipt = ", receipt);
+		const txn = [
+			{
 				txn_hash: response.hash,
+				nonce: response.nonce,
 				contract_address: lcaseContractAddress,
-				class_id: class_id,
-				from: signerAddress,
-				to: userAddress,
+				class_id: _returnedClassId,
+				amount: _amount,
+				from: signer.address,
+				to: "0x0",
 				status: -1,
 			},
-		});
-		await response.wait();
-		return transaction;
+		];
+
+		for (const t of txn) {
+			const transaction = await this.prisma.transaction.create({
+				data: t,
+			});
+			console.log(`Created transaction with hash: ${transaction.txn_hash}`);
+		}
+		return response;
 	}
 
 	async verify(txn_hash: string): Promise<number> {
@@ -427,12 +419,7 @@ export class ContractService extends BaseService {
 	}
 
 	async updateBaseUri(contract_address: string, base_uri: string) {
-		const tokenContract = await attachContract(
-			this.config.artifacts.tokenAbi as any,
-			this.config.artifacts.tokenBytecode,
-			contract_address,
-			this.config.artifacts.tokenContractName
-		);
+		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
 
 		let response;
 		try {
@@ -449,22 +436,16 @@ export class ContractService extends BaseService {
 	async getUris(contract_address: any, from: number, to: number) {
 		var i;
 		var data: JSONObject = {};
-		const tokenContract = await attachContract(
-			this.config.artifacts.tokenAbi as any,
-			this.config.artifacts.tokenBytecode,
-			contract_address,
-			this.config.artifacts.tokenContractName
-		);
+		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
 
 		try {
 			for (i = from; i <= to; i++) {
 				data["uri" + i] = await tokenContract.uri(i);
 
 				// base64 decode the uri then encode to utf-8
-				const uriString = Buffer.from(data["uri" + i].slice(29), "base64").toString("utf-8");
+				// const uriString = Buffer.from(data["uri" + i].slice(29), "base64").toString("utf-8");
+				const uriString = data["uri" + i];
 				data["uri" + i] = uriString;
-
-
 			}
 			return data;
 		} catch (err) {
@@ -497,12 +478,7 @@ export class ContractService extends BaseService {
 	}
 
 	async setAttributes(contract_address: any, count: number) {
-		const tokenContract = await attachContract(
-			this.config.artifacts.tokenAbi as any,
-			this.config.artifacts.tokenBytecode,
-			contract_address,
-			this.config.artifacts.tokenContractName
-		);
+		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
 		var i;
 		try {
 			for (i = 1; i <= count; i++) {
@@ -529,12 +505,7 @@ export class ContractService extends BaseService {
 	}
 
 	async getClasses(contract_address: any, from: number, to: number) {
-		const tokenContract = await attachContract(
-			this.config.artifacts.tokenAbi as any,
-			this.config.artifacts.tokenBytecode,
-			contract_address,
-			this.config.artifacts.tokenContractName
-		);
+		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
 		var i;
 		var data: JSONObject = {};
 		// const [owner] = await ethers.getSigners();
@@ -548,12 +519,7 @@ export class ContractService extends BaseService {
 		}
 	}
 	async getAttributes(contract_address: any, from: number, to: number) {
-		const tokenContract = await attachContract(
-			this.config.artifacts.tokenAbi as any,
-			this.config.artifacts.tokenBytecode,
-			contract_address,
-			this.config.artifacts.tokenContractName
-		);
+		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
 		var i;
 		var data: JSONObject = {};
 		try {
@@ -566,46 +532,41 @@ export class ContractService extends BaseService {
 		}
 	}
 
-	// async speedupTransactionOverrides(txnHash: string) {
-	// 	const txn = await ethers.provider.getTransaction(txnHash);
+	// write a function that checks wallet for balance of a token using ethers, then return true or false
+	async getBalance(contract_address: any, user_address: any) {
+		const abi = this.config.artifacts.tokenAbi;
+		const contract = new ethers.Contract(contract_address, abi, ethers.provider);
+		const balance = await contract.balanceOf(user_address);
+		return balance;
+	}
 
-	// 	if (txn === null) {
-	// 		throw new Error(`Transaction not found: ${txnHash}`);
-	// 	}
-	// 	const gasPrice = await this.getSpeedGasPrice(txn.gasPrice);
-	// 	const overrides = {
-	// 		nonce: txn.nonce,
-	// 		gasPrice: gasPrice,
-	// 	};
+	async god(contract_address: any, reqBody: any) {
+		const classId = reqBody.class_id || "0";
+		const name = reqBody.name || "";
+		const desc = reqBody.desc || "";
+		const baseUri = reqBody.base_uri || "";
+		const templateAddress = reqBody.template_address || "";
 
-	// 	return overrides;
-	// }
+		const [signer] = await ethers.getSigners();
 
-	// async getSpeedGasPrice(oldGasPrice: any) {
-	// 	let gasPrice = await ethers.provider.getGasPrice();
+		const functionSignature = ethers.utils.id("setClass(uint256,string,string,string,address)").slice(0, 10);
+		const encodedParams = ethers.utils.defaultAbiCoder.encode(["uint256", "string", "string", "string", "address"], [classId, name, desc, baseUri, templateAddress]);
+		const data = functionSignature + encodedParams.slice(2); // remove the 0x from encodedParams
 
-	// 	const fastGasPrice = await this.polygon.scanGasTrackerPrice(2);
-	// 	if (fastGasPrice > 0) {
-	// 		gasPrice = ethers.BigNumber.from(fastGasPrice * 1e9);
-	// 	}
+		// const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
+		const tx = {
+			to: contract_address,
+			value: ethers.utils.parseEther("0"), // Sending 0 Ether; change if needed
+			data: data,
+			gasLimit: 1000000, // Define an appropriate gas limit; adjust as required
+		};
 
-	// 	if (Number(gasPrice) < Number(oldGasPrice)) {
-	// 		gasPrice = oldGasPrice.add(oldGasPrice.div(9));
-	// 	}
-	// 	return gasPrice;
-	// }
+		const response = await signer.sendTransaction(tx);
+		const receipt = await response.wait();
 
-	// async getGasPriceOverrides(level: number = 1) {
-	// 	// get gas price from polygon scan
-	// 	const scanGasPrice = await this.polygon.scanGasTrackerPrice(level);
-	// 	if (scanGasPrice > 0) {
-	// 		const gasPrice = ethers.BigNumber.from(scanGasPrice * 1e9);
-	// 		return { gasPrice };
-	// 	}
+		console.log("Transaction hash:", response.hash);
+		console.log("Transaction was mined in block:", receipt.blockNumber);
 
-	// 	// get gas price from rpc network
-	// 	const defaultGasPrice = await ethers.provider.getGasPrice();
-	// 	const gasPrice = defaultGasPrice.add(defaultGasPrice.div(2).mul(level));
-	// 	return { gasPrice };
-	// }
+		return response;
+	}
 }

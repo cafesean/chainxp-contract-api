@@ -58,7 +58,7 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 		const response = await fastify.service.contract.mintNFT(contract_id, class_id, address);
 
-		const txn = response[0];
+		const txn = response as any;
 		console.log("fastify.put txn: ", txn);
 		// resp.header("Content-Type", "application/json");
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txn });

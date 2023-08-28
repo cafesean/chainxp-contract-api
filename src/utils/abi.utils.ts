@@ -47,6 +47,40 @@ export const getAbiByCache = async (contractName: string) => {
 	}
 };
 
+// create function to get abi by contract_address
+export async function getAbiByName(contractName: string) {
+	const prisma = new PrismaClient();
+
+	const data = await prisma.contract_version.findFirst({
+		where: {
+			AND: [
+				{
+					contract_name: {
+						equals: contractName,
+					},
+					default: {
+						equals: true,
+					},
+				},
+			],
+		},
+		select: {
+			abi: true,
+			bytecode: true,
+			contract_name: true,
+			source_name: true,
+		},
+	});
+
+	if (!data) {
+		console.log("No abi data found.");
+		return [, , ,];
+	}
+
+	// console.log("source_name: ", data.source_name);
+	return [data?.abi, data?.bytecode, data?.contract_name, data?.source_name];
+}
+
 export async function addContractAbi(prisma: any, contractAbi: any, version: string, isDefault: boolean) {
 	const [abi, bytecode, contract_name, source_name] = contractAbi;
 
@@ -75,7 +109,7 @@ export async function addContractAbi(prisma: any, contractAbi: any, version: str
 								equals: true,
 							},
 							contract_name: {
-								equals: contract_name.toLowerCase(),
+								equals: contract_name,
 							},
 							id: {
 								not: {
@@ -101,21 +135,21 @@ export async function addContractAbi(prisma: any, contractAbi: any, version: str
 export async function getAbiByAddress(contractAddress: string) {
 	const prisma = new PrismaClient();
 
-	const data = await prisma.contract.findFirst({
+	const data = await prisma.contract.findMany({
+		take: 1,
 		where: {
-			AND: [
-				{
-					contract_address: {
-						equals: contractAddress,
-					},
-				},
-			],
+			contract_address: {
+				equals: contractAddress.toLowerCase(),
+			},
 		},
 		select: {
 			abi: true,
 			bytecode: true,
 			contract_name: true,
 			source_name: true,
+		},
+		orderBy: {
+			created_at: "desc",
 		},
 	});
 
@@ -125,5 +159,5 @@ export async function getAbiByAddress(contractAddress: string) {
 	}
 
 	// console.log("source_name: ", data.source_name);
-	return [data?.abi, data?.bytecode, data?.contract_name, data?.source_name];
+	return [data[0]?.abi, data[0]?.bytecode, data[0]?.contract_name, data[0]?.source_name];
 }

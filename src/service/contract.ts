@@ -1,6 +1,6 @@
 import { BaseService } from "./base";
 import * as errors from "../errors";
-import { attachContract, getGasPriceOverrides, getAbiByCache } from "../utils";
+import { attachContract, getGasPriceOverrides, getAbiByName } from "../utils";
 
 // import { PrismaClient } from "@prisma/client";
 // import { ethers, ContractFactory } from "ethers";
@@ -420,7 +420,7 @@ export class ContractService extends BaseService {
 		// var data: JSONObject = {};
 
 		// const slot1 = await ethers.provider.getStorageAt(contract_address, 0);
-		const [abi, , ,] = await getAbiByCache("Token");
+		const [abi, , ,] = await getAbiByName("TokenContract");
 		// const abi = this.config.artifacts.tokenAbi;
 		const contract = new ethers.Contract(contract_address, abi, ethers.provider);
 
@@ -498,7 +498,7 @@ export class ContractService extends BaseService {
 
 	// write a function that checks wallet for balance of a token using ethers, then return true or false
 	async getBalance(contract_address: any, user_address: any) {
-		const [abi, , ,] = await getAbiByCache("Token");
+		const [abi, , ,] = await getAbiByName("TokenContract");
 		const contract = new ethers.Contract(contract_address, abi, ethers.provider);
 		const balance = await contract.balanceOf(user_address);
 		return balance;

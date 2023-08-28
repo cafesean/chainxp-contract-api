@@ -1,5 +1,5 @@
 import { BaseService } from "./base";
-import { attachContract, getGasPriceOverrides, addContractAbi } from "../utils";
+import { attachContract, getGasPriceOverrides, addContractAbi, getAbiByName } from "../utils";
 import { ethers } from "hardhat";
 import { getAbiByCache } from "../utils";
 
@@ -31,12 +31,32 @@ export class DeployService extends BaseService {
 
 		const contractFactory = await attachContract(factory_address);
 		const response = await contractFactory.createClone(contract_address);
+
 		const receipt = await response.wait(); // response is empty if using hardhat network
+
+		const [abi, bytecode, contractName, sourceName] = await getAbiByName("TokenContract");
 		// console.log("response=", await receipt.events);
 		for (const event of receipt.events) {
 			if (event.event === "ProxyCloned") {
 				addressClone = event.args.cloneAddress.toLowerCase();
 			}
+		}
+
+		try {
+			await this.prisma.contract.create({
+				data: {
+					type: "clone",
+					name: contractName || "",
+					contract_address: addressClone.toLowerCase(),
+					contract_name: contractName,
+					source_name: sourceName,
+					owner_address: await signer.getAddress(),
+					abi: abi,
+					bytecode: bytecode,
+				},
+			});
+		} catch (error) {
+			console.log("contractData Error: ", error);
 		}
 
 		// initialize clone
@@ -57,21 +77,6 @@ export class DeployService extends BaseService {
 		await contractClone.setTemplateContract(1, template_address).then((tx: any) => tx.wait());
 		await contractTemplate.authorizeCallingContract(signer.address, addressClone).then((tx: any) => tx.wait());
 		console.log("Clone config done");
-
-		try {
-			await this.prisma.contract.create({
-				data: {
-					name: title,
-					type: "clone",
-					contract_address: addressClone,
-					factory_address: factory_address,
-					cloned_from: contract_address,
-					owner_address: await signer.getAddress(),
-				},
-			});
-		} catch (error) {
-			console.log("contractData Error: ", error);
-		}
 
 		let seriesData;
 
@@ -105,7 +110,8 @@ export class DeployService extends BaseService {
 	}
 
 	async deploy(name: string) {
-		const [abi, bytecode, contractName, sourceName] = await getAbiByCache(name);
+		const formattedContractName = name.charAt(0).toUpperCase() + name.slice(1) + "Contract";
+		const [abi, bytecode, contractName, sourceName] = await getAbiByName(formattedContractName);
 
 		const contractFullName = sourceName + ":" + contractName;
 		const [signer] = await ethers.getSigners();
@@ -119,11 +125,12 @@ export class DeployService extends BaseService {
 		try {
 			await this.prisma.contract.create({
 				data: {
+					name: contractName || "",
 					contract_address: newContract.address.toLowerCase(),
-					name: contractName,
+					contract_name: contractName,
 					source_name: sourceName,
 					owner_address: await signer.getAddress(),
-					abi: JSON.stringify(abi),
+					abi: abi,
 					bytecode: bytecode,
 				},
 			});
@@ -145,16 +152,16 @@ export class DeployService extends BaseService {
 		// console.log("	contractFactory owner: ", await contractFactory.owner());
 		// console.log("	ProxyFactory address: ", contractFactory.address);
 		// addressFactory = contractFactory.address;
-		// await contractFactory.initialize();
+		// await newFactory.initialize();
 		// attach initial token proxy contract and register newly deployed factory
 		const proxyContract = await attachContract(proxy_address);
 
 		//register factory
-		await proxyContract.registerFactory(newFactory);
+		await proxyContract.registerFactory(newFactory.address);
 		// } catch (error) {
 		// }
 
-		return newFactory;
+		return newFactory.address;
 	}
 
 	async deployAll(name: string, baseUri: string, description: string, symbol: string) {

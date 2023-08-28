@@ -193,31 +193,26 @@ model template {
   template_name          String?  @default("")
   mask                   String?  @default("")
   gradient               String?  @default("")
-  gradient_offset_1      String?  @default("")
-  gradient_offset_2      String?  @default("")
-  gradient_offset_3      String?  @default("")
-  gradient_offset_4      String?  @default("")
+  gradient_offset_1      String?  @default("{'percent':'0','color':'000000','opacity':'0'}")
+  gradient_offset_2      String?  @default("{'percent':'0','color':'000000','opacity':'0'}")
+  gradient_offset_3      String?  @default("{'percent':'0','color':'000000','opacity':'0'}")
+  gradient_offset_4      String?  @default("{'percent':'0','color':'000000','opacity':'0'}")
   base_style             String?  @default("")
   bg_color               String?  @default("")
   image_uri              String?  @default("")
   image_scale            String?  @default("")
-  image_xy               String?  @default("")
   image_h                String?  @default("")
   org_logo_uri           String?  @default("")
   org_logo_scale         String?  @default("")
   org_logo_w             String?  @default("")
-  org_logo_xy            String?  @default("")
   org_text               String?  @default("")
   org_font               String?  @default("")
   org_font_size          String?  @default("")
-  org_text_xy            String?  @default("")
   series_text            String?  @default("")
   series_font            String?  @default("")
   series_font_size       String?  @default("")
   series_font_color      String?  @default("")
-  series_text_xy         String?  @default("")
   xp_text                String?  @default("")
-  xp_text_xy             String?  @default("")
   xp_font                String?  @default("")
   xp_font_color          String?  @default("")
   xp_font_size           String?  @default("")
@@ -225,11 +220,20 @@ model template {
   chainxp_logo_uri       String?  @default("")
   chainxp_logo_transform String?  @default("")
   chainxp_logo_color     String?  @default("")
-  chainxp_logo_xy        String?  @default("")
   factor                 String?  @default(".5")
   radius                 String?  @default("175")
   rotation               String?  @default("0")
   sides                  String?  @default("4")
+  gradient_offset1       Json?    @db.Json
+  gradient_offset2       Json?    @db.Json
+  gradient_offset3       Json?    @db.Json
+  gradient_offset4       Json?    @db.Json
+  image_xy               Json?    @db.Json
+  org_logo_xy            Json?    @db.Json
+  org_text_xy            Json?    @db.Json
+  series_text_xy         Json?    @db.Json
+  xp_text_xy             Json?    @db.Json
+  chainxp_logo_xy        Json?    @db.Json
   series                 series[]
 }
 
@@ -245,4 +249,12 @@ model contract_version {
   group         String?
   default       Boolean
   created_at    DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model version {
+  id         BigInt   @id @default(autoincrement())
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  version    String?
+  chain      Int?
 }

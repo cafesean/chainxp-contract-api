@@ -21,7 +21,19 @@ const zeroAddress = "0x0000000000000000000000000000000000000000";
 
 export class ContractService extends BaseService {
 	async version() {
-		return "Contract API v" + process.env.VERSION;
+		// get version from db
+		const version = await this.prisma.version.findFirst({
+			select: {
+				version: true,
+				chain: true,
+			},
+			where: {
+				id: 1,
+			},
+		});
+		
+		return "Contract API v" + version?.version + " on " + version?.chain;
+
 	}
 	async network() {
 		return "Current network is " + process.env.DEFAULT_NETWORK;

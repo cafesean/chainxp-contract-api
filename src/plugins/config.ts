@@ -2,7 +2,7 @@ import fp from "fastify-plugin";
 // import * as ms from '@lukeed/ms';
 import Config from "../config.interface";
 import * as constants from "../constants/env.constants";
-import { templateArtifacts, delegateArtifacts, factoryArtifacts, tokenArtifacts } from "../constants/abi.constants";
+// import { templateArtifacts, delegateArtifacts, factoryArtifacts, tokenArtifacts } from "../constants/abi.constants";
 
 /**
  * @fastify/env Fastify plugin to check environment variables.
@@ -14,41 +14,41 @@ export default fp(
 		// console.log("in plugins/config.ts");
 
 		try {
-			const [tokenAbiStr, tokenBytecode, tokenContractName, tokenSourceName] = await tokenArtifacts();
-			const [factoryAbiStr, factoryBytecode, factoryContractName, factorySourceName] = await factoryArtifacts();
-			const [delegateAbiStr, delegateBytecode, delegateContractName, delegateSourceName] = await delegateArtifacts();
-			const [templateAbiStr, templateBytecode, templateContractName, templateSourceName] = await templateArtifacts();
+			// const [tokenAbiStr, tokenBytecode, tokenContractName, tokenSourceName] = await tokenArtifacts();
+			// const [factoryAbiStr, factoryBytecode, factoryContractName, factorySourceName] = await factoryArtifacts();
+			// const [delegateAbiStr, delegateBytecode, delegateContractName, delegateSourceName] = await delegateArtifacts();
+			// const [templateAbiStr, templateBytecode, templateContractName, templateSourceName] = await templateArtifacts();
 
 			// console.log("tokenContractName: ", tokenContractName);
 			// console.log("tokenSourceName: ", tokenSourceName);
 
 			// Convert the ABI strings to arrays of JSON objects
-			const tokenAbi = tokenAbiStr ? JSON.parse(tokenAbiStr) : [];
-			const factoryAbi = factoryAbiStr ? JSON.parse(factoryAbiStr) : [];
-			const delegateAbi = delegateAbiStr ? JSON.parse(delegateAbiStr) : [];
-			const templateAbi = templateAbiStr ? JSON.parse(templateAbiStr) : [];
+			// const tokenAbi = tokenAbiStr ? JSON.parse(tokenAbiStr) : [];
+			// const factoryAbi = factoryAbiStr ? JSON.parse(factoryAbiStr) : [];
+			// const delegateAbi = delegateAbiStr ? JSON.parse(delegateAbiStr) : [];
+			// const templateAbi = templateAbiStr ? JSON.parse(templateAbiStr) : [];
 
 			// console.log("tokenAbi: ", JSON.stringify(tokenAbi));
 
 			const config: Config = {
-				artifacts: {
-					tokenAbi,
-					tokenBytecode: tokenBytecode || "",
-					tokenContractName: tokenContractName || "",
-					tokenSourceName: tokenSourceName || "",
-					factoryAbi,
-					factoryBytecode: factoryBytecode || "",
-					factoryContractName: factoryContractName || "",
-					factorySourceName: factorySourceName || "",
-					delegateAbi,
-					delegateBytecode: delegateBytecode || "",
-					delegateContractName: delegateContractName || "",
-					delegateSourceName: delegateSourceName || "",
-					templateAbi,
-					templateBytecode: templateBytecode || "",
-					templateContractName: templateContractName || "",
-					templateSourceName: templateSourceName || "",
-				},
+				// artifacts: {
+				// 	tokenAbi,
+				// 	tokenBytecode: tokenBytecode || "",
+				// 	tokenContractName: tokenContractName || "",
+				// 	tokenSourceName: tokenSourceName || "",
+				// 	factoryAbi,
+				// 	factoryBytecode: factoryBytecode || "",
+				// 	factoryContractName: factoryContractName || "",
+				// 	factorySourceName: factorySourceName || "",
+				// 	delegateAbi,
+				// 	delegateBytecode: delegateBytecode || "",
+				// 	delegateContractName: delegateContractName || "",
+				// 	delegateSourceName: delegateSourceName || "",
+				// 	templateAbi,
+				// 	templateBytecode: templateBytecode || "",
+				// 	templateContractName: templateContractName || "",
+				// 	templateSourceName: templateSourceName || "",
+				// },
 				env: process.env.ENV || "",
 				version: process.env.VERSION || "",
 				timezone: process.env.TIMEZONE || "",

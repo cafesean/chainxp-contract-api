@@ -5,24 +5,60 @@ import { FastifyInstance } from "fastify";
 
 export default async function contractRoute(fastify: FastifyInstance) {
 	fastify.get("/", async () => {
-		var message = await fastify.service.contract.version();
+		const message = await fastify.service.contract.version();
 		return { result: message };
 	});
 
 	fastify.get("/network", async () => {
-		var message = await fastify.service.contract.network();
+		const message = await fastify.service.contract.network();
 		return { result: message };
 	});
 
 	fastify.put("/create", async (request: any, resp: any) => {
-		const { version, isDefault } = request.body;
-		const response = await fastify.service.contract.createContracts(version, isDefault);
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: response });
+		const { token, delegate, factory, template, version, isDefault } = request.body;
+		// append response to the responseJSON object
+		const response = await fastify.service.deploy.createContracts(token, delegate, factory, template, version, isDefault);
+
+		// if (delegate) {
+		// 	// append response to the responseJSON object
+		// 	const delegateContract = await fastify.service.contract.createContract("delegate", version, isDefault);
+		// 	responseJSON = { ...responseJSON, delegateContract };
+		// }
+		// if (factory) {
+		// 	// append response to the responseJSON object
+		// 	const factoryContract = await fastify.service.contract.createContract("factory", version, isDefault);
+		// 	responseJSON = { ...responseJSON, factoryContract };
+		// }
+		// if (template) {
+		// 	// append response to the responseJSON object
+		// 	const templateContract = await fastify.service.contract.createContract("template", version, isDefault);
+		// 	responseJSON = { ...responseJSON, templateContract };
+		// }
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(response);
 	});
 
-	fastify.post("/deploy", async (request: any, resp: any) => {
+	fastify.post("/deploySingle", async (request: any, resp: any) => {
+		const { contract_name, name, baseUri, description, symbol } = request.body;
+		const options = [name, baseUri, description, symbol];
+
+		console.log("contract_name: ", contract_name);
+		console.log("options: ", options);
+		const contract = (await fastify.service.deploy.deploySingle(contract_name, options)) as any;
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract.address });
+	});
+
+	fastify.post("/deployAll", async (request: any, resp: any) => {
 		const { name, baseUri, description, symbol } = request.body;
 		const contract = (await fastify.service.deploy.deployAll(name, baseUri, description, symbol)) as any;
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
+	});
+
+	fastify.post("/configure", async (request: any, resp: any) => {
+		const { proxyAddress, delegateAddress, templateAddress } = request.body;
+		const contract = (await fastify.service.deploy.configureProxy(proxyAddress, delegateAddress, templateAddress)) as any;
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
 	});

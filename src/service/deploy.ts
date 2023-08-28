@@ -1,63 +1,20 @@
 import { BaseService } from "./base";
-import { attachContract, getGasPriceOverrides } from "../utils";
+import { attachContract, getGasPriceOverrides, addContractAbi } from "../utils";
 import { ethers } from "hardhat";
+import { getAbiByCache } from "../utils";
 
 // import crypto from "node:crypto";
 import dotenv from "dotenv";
 dotenv.config();
-
+interface JSONObject {
+	[key: string]: any;
+}
 export class DeployService extends BaseService {
 	async version() {
 		return "Contract API v" + process.env.VERSION;
 	}
 	async network() {
 		return "Current network is " + process.env.DEFAULT_NETWORK;
-	}
-
-	async addContractAbi(abi: string, bytecode: string, contract_name: string, source_name: string, version: string, isDefault: boolean) {
-		try {
-			const newContract = await this.prisma.contract_version.create({
-				data: {
-					abi: abi,
-					bytecode: bytecode,
-					contract_name: contract_name,
-					source_name: source_name,
-					version: version,
-					default: isDefault,
-				},
-				select: {
-					id: true,
-				},
-			});
-
-			if (isDefault) {
-				// set all other Default to false, except the data.id
-				await this.prisma.contract_version.updateMany({
-					where: {
-						AND: [
-							{
-								default: {
-									equals: true,
-								},
-								contract_name: {
-									equals: contract_name,
-								},
-								id: {
-									not: {
-										equals: newContract.id,
-									},
-								},
-							},
-						],
-					},
-					data: {
-						default: false,
-					},
-				});
-			}
-		} catch (error) {
-			console.log("contractData Error: ", error);
-		}
 	}
 
 	async cloneProxy(reqBody: any) {
@@ -72,10 +29,8 @@ export class DeployService extends BaseService {
 
 		let addressClone;
 
-		const contractFactory = await attachContract(this.config.artifacts.factoryAbi as any, this.config.artifacts.factoryBytecode, factory_address, this.config.artifacts.factoryContractName);
-
+		const contractFactory = await attachContract(factory_address);
 		const response = await contractFactory.createClone(contract_address);
-
 		const receipt = await response.wait(); // response is empty if using hardhat network
 		// console.log("response=", await receipt.events);
 		for (const event of receipt.events) {
@@ -85,16 +40,16 @@ export class DeployService extends BaseService {
 		}
 
 		// initialize clone
-		const contractClone = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, addressClone, this.config.artifacts.tokenContractName);
+		const contractClone = await attachContract(addressClone);
 		await contractClone.initialize(signer.address, title, baseUri, description, symbol).then((tx: any) => tx.wait());
 
 		// configure with delegate
-		const delegateContract = await attachContract(this.config.artifacts.delegateAbi as any, this.config.artifacts.delegateBytecode, delegate_address, this.config.artifacts.delegateContractName);
+		const delegateContract = await attachContract(delegate_address);
 
 		await contractClone.setDelegateAddress(delegate_address);
 		await delegateContract.grantAccess(addressClone, "ADMIN_ROLE").then((tx: any) => tx.wait());
 
-		const contractTemplate = await attachContract(this.config.artifacts.templateAbi as any, this.config.artifacts.templateBytecode, template_address, this.config.artifacts.templateContractName);
+		const contractTemplate = await attachContract(template_address);
 
 		// configure with template
 		await contractClone.setDefaultTemplate(template_address).then((tx: any) => tx.wait());
@@ -149,30 +104,22 @@ export class DeployService extends BaseService {
 		return { "clone address": addressClone, series_id: series_id };
 	}
 
-	async deploySingle(abi: any, bytecode: string, contractName: string, sourceName: string) {
-		// console.log("signer: ", await signer.getAddress());
+	async deploy(name: string) {
+		const [abi, bytecode, contractName, sourceName] = await getAbiByCache(name);
+
 		const contractFullName = sourceName + ":" + contractName;
-		// console.log("contractFullName: ", contractFullName);
-
 		const [signer] = await ethers.getSigners();
-		// const newContractFactory = new ContractFactory(abi, bytecode);
-
 		const factory = await ethers.getContractFactory(contractFullName);
 		const overrides = await getGasPriceOverrides(this, 2);
 		const newContract = await factory.deploy(overrides);
 		await newContract.deployed();
-
-		// const newContract = await newContractFactory
-		// 	.connect(signer)
-		// 	.deploy()
-		// 	.then((contract: any) => contract.deployed());
 
 		console.log("Deployed %s: %s", contractFullName, newContract.address);
 
 		try {
 			await this.prisma.contract.create({
 				data: {
-					contract_address: newContract.address,
+					contract_address: newContract.address.toLowerCase(),
 					name: contractName,
 					source_name: sourceName,
 					owner_address: await signer.getAddress(),
@@ -187,90 +134,120 @@ export class DeployService extends BaseService {
 	}
 
 	async deployFactory(reqBody: any) {
-		var contractFactory;
-		var addressFactory;
+		// var contractFactory;
+		// var addressFactory;
 
 		const { proxy_address } = reqBody;
+		const newFactory = await this.deploySingle("Factory", null);
 
-		try {
-			contractFactory = await this.deploySingle(
-				this.config.artifacts.factoryAbi as any,
-				this.config.artifacts.factoryBytecode,
-				this.config.artifacts.factoryContractName,
-				this.config.artifacts.factorySourceName
-			);
+		// try {
+		// contractFactory = await this.deploy("Factory");
+		// console.log("	contractFactory owner: ", await contractFactory.owner());
+		// console.log("	ProxyFactory address: ", contractFactory.address);
+		// addressFactory = contractFactory.address;
+		// await contractFactory.initialize();
+		// attach initial token proxy contract and register newly deployed factory
+		const proxyContract = await attachContract(proxy_address);
 
-			console.log("	contractFactory owner: ", await contractFactory.owner());
-			console.log("	ProxyFactory address: ", contractFactory.address);
-			addressFactory = contractFactory.address;
-			await contractFactory.initialize();
+		//register factory
+		await proxyContract.registerFactory(newFactory);
+		// } catch (error) {
+		// }
 
-			// attach initial token proxy contract and register newly deployed factory
-			const proxyContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, proxy_address, this.config.artifacts.tokenContractName);
-
-			//register factory
-			await proxyContract.registerFactory(contractFactory.address);
-		} catch (error) {
-			console.log("Deploy Error: ", error);
-			return error;
-		}
-
-		return addressFactory;
+		return newFactory;
 	}
 
 	async deployAll(name: string, baseUri: string, description: string, symbol: string) {
-		var addressTemplate, addressDelegate;
-		var contractDelegate, contractProxy, contractTemplate;
-		var addressProxy, addressTemplate, addressDelegate;
 		const [deployer] = await ethers.getSigners();
 
-		try {
-			contractDelegate = await this.deploySingle(
-				this.config.artifacts.delegateAbi as any,
-				this.config.artifacts.delegateBytecode,
-				this.config.artifacts.delegateContractName,
-				this.config.artifacts.delegateSourceName
-			); // #1 Delegate
-			addressDelegate = contractDelegate.address;
-			await contractDelegate.initialize();
+		// deploy delegate
+		const initEmptyOptions = [""];
+		const contractDelegate = await this.deploySingle("delegate", initEmptyOptions); // #1 Delegate
 
-			contractProxy = await this.deploySingle(
-				this.config.artifacts.tokenAbi as any,
-				this.config.artifacts.tokenBytecode,
-				this.config.artifacts.tokenContractName,
-				this.config.artifacts.tokenSourceName
-			); // #2 Proxy
-			await contractProxy.initialize(deployer.address, name, baseUri, description, symbol);
+		// deploy proxy
+		const initProxyOptions = [name, baseUri, description, symbol];
+		const contractProxy = await this.deploySingle("token", initProxyOptions); // #2 Proxy
 
-			// ?await contractProxy.;
-			addressProxy = contractProxy.address;
-			contractTemplate = await this.deploySingle(
-				this.config.artifacts.templateAbi as any,
-				this.config.artifacts.templateBytecode,
-				this.config.artifacts.templateContractName,
-				this.config.artifacts.templateSourceName
-			); // #3 Template
-			addressTemplate = contractTemplate.address;
-		} catch (error) {
-			console.log("Deploy Error: ", error);
-			return error;
+		// deploy template and set as default
+		const contractTemplate = await this.deploySingle("template", initEmptyOptions); // #3 Template
+
+		// const response = await this.configureProxy(contractProxy.address, contractDelegate.address, contractTemplate.address);
+		// return response;
+		// configure proxy
+		await contractProxy.setDelegateAddress(contractDelegate.address);
+		await contractDelegate.grantAccess(deployer.address, "ADMIN_ROLE");
+		const setDefaultTemplate = await contractProxy.setDefaultTemplate(contractTemplate.address);
+
+		console.log("setDefaultTemplate - chainId: ", setDefaultTemplate.chainId);
+
+		await contractProxy.grantAccess(contractTemplate.address, "ADMIN_ROLE");
+		await contractProxy.setTemplateContract(1, contractTemplate.address);
+		console.log("Config done");
+
+		return { proxy_address: contractProxy.address, template_address: contractTemplate.address, delegate_address: contractDelegate.address };
+	}
+
+	async deploySingle(contractName: string, options: any) {
+		const newContract = await this.deploy(contractName);
+		const [deployer] = await ethers.getSigners();
+		switch (contractName) {
+			case "template":
+				break;
+			case "token":
+				await newContract.initialize(deployer.address, ...options);
+				break;
+			default:
+				await newContract.initialize();
+				break;
+		}
+		return newContract;
+	}
+
+	async configureProxy(proxyAddress: any, delegateAddress: any, templateAddress: any) {
+		// configure proxy
+		const [deployer] = await ethers.getSigners();
+
+		console.log("	proxyAddress: ", proxyAddress);
+		const proxyContract = await attachContract(proxyAddress);
+		await proxyContract.setDelegateAddress(delegateAddress);
+
+		console.log("	proxyAddress: ", delegateAddress);
+		const delegateContract = await attachContract(delegateAddress);
+		await delegateContract.grantAccess(deployer.address, "ADMIN_ROLE");
+		const setDefaultTemplate = await proxyContract.setDefaultTemplate(templateAddress);
+
+		console.log("setDefaultTemplate - chainId: ", setDefaultTemplate.chainId);
+
+		await proxyContract.grantAccess(templateAddress, "ADMIN_ROLE");
+		await proxyContract.setTemplateContract(1, templateAddress);
+
+		return { proxy_address: proxyAddress, template_address: templateAddress, delegate_address: delegateAddress };
+	}
+
+	async createContracts(token: boolean, delegate: boolean, factory: boolean, template: boolean, version: string, isDefault: boolean) {
+		let responseJSON: JSONObject = {};
+		if (token) {
+			const [...tokenAbi] = await getAbiByCache("Token");
+			const tokenResponse = await addContractAbi(this.prisma, [...tokenAbi], version, isDefault);
+			console.log("tokenResponse: ", tokenResponse);
+			responseJSON = { ...responseJSON, tokenResponse };
+		}
+		if (factory) {
+			const factoryAbi = await getAbiByCache("Factory");
+			const factoryResponse = await addContractAbi(this.prisma, [...factoryAbi], version, isDefault);
+			responseJSON = { ...responseJSON, factoryResponse };
+		}
+		if (delegate) {
+			const delegateAbi = await getAbiByCache("Delegate");
+			const delegateResponse = await addContractAbi(this.prisma, [...delegateAbi], version, isDefault);
+			responseJSON = { ...responseJSON, delegateResponse };
+		}
+		if (template) {
+			const templateAbi = await getAbiByCache("Template");
+			const templateResponse = await addContractAbi(this.prisma, [...templateAbi], version, isDefault);
+			responseJSON = { ...responseJSON, templateResponse };
 		}
 
-		try {
-			await contractProxy.setDelegateAddress(addressDelegate);
-			await contractDelegate.grantAccess(deployer.address, "ADMIN_ROLE");
-			const setDefaultTemplate = await contractProxy.setDefaultTemplate(addressTemplate);
-
-			console.log("setDefaultTemplate - chainId: ", setDefaultTemplate.chainId);
-
-			await contractProxy.grantAccess(addressTemplate, "ADMIN_ROLE");
-			await contractProxy.setTemplateContract(1, addressTemplate);
-			console.log("Config done");
-		} catch (error) {
-			console.log("Config Error: ", error);
-			return error;
-		}
-
-		return { proxy_address: addressProxy, template_address: addressTemplate, delegate_address: addressDelegate };
+		return responseJSON;
 	}
 }

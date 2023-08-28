@@ -26,22 +26,22 @@ export default interface Config {
 		apiKey: string;
 		network: string;
 	};
-	artifacts: {
-		tokenAbi: any;
-		tokenBytecode: string;
-		tokenContractName: string;
-		tokenSourceName: string;
-		factoryAbi: any;
-		factoryBytecode: string;
-		factoryContractName: string;
-		factorySourceName: string;
-		delegateAbi: any;
-		delegateBytecode: string;
-		delegateContractName: string;
-		delegateSourceName: string;
-		templateAbi: any;
-		templateBytecode: string;
-		templateContractName: string;
-		templateSourceName: string;
-	};
+	// artifacts: {
+	// 	tokenAbi: any;
+	// 	tokenBytecode: string;
+	// 	tokenContractName: string;
+	// 	tokenSourceName: string;
+	// 	factoryAbi: any;
+	// 	factoryBytecode: string;
+	// 	factoryContractName: string;
+	// 	factorySourceName: string;
+	// 	delegateAbi: any;
+	// 	delegateBytecode: string;
+	// 	delegateContractName: string;
+	// 	delegateSourceName: string;
+	// 	templateAbi: any;
+	// 	templateBytecode: string;
+	// 	templateContractName: string;
+	// 	templateSourceName: string;
+	// };
 }

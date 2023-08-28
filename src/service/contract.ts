@@ -1,6 +1,6 @@
 import { BaseService } from "./base";
 import * as errors from "../errors";
-import { attachContract, addContractAbi, getGasPriceOverrides } from "../utils";
+import { attachContract, getGasPriceOverrides, getAbiByCache } from "../utils";
 
 // import { PrismaClient } from "@prisma/client";
 // import { ethers, ContractFactory } from "ethers";
@@ -27,57 +27,8 @@ export class ContractService extends BaseService {
 		return "Current network is " + process.env.DEFAULT_NETWORK;
 	}
 
-	async createContracts(version: string, isDefault: boolean) {
-		console.log("Adding delegate contract");
-
-		await addContractAbi(
-			this.prisma,
-			JSON.stringify(this.config.artifacts.delegateAbi),
-			this.config.artifacts.delegateBytecode,
-			this.config.artifacts.delegateContractName,
-			this.config.artifacts.delegateSourceName,
-			version,
-			isDefault
-		);
-
-		console.log("Adding token contract");
-		await addContractAbi(
-			this.prisma,
-			JSON.stringify(this.config.artifacts.tokenAbi),
-			this.config.artifacts.tokenBytecode,
-			this.config.artifacts.tokenContractName,
-			this.config.artifacts.tokenSourceName,
-			version,
-			isDefault
-		);
-
-		console.log("Adding factory contract");
-		await addContractAbi(
-			this.prisma,
-			JSON.stringify(this.config.artifacts.factoryAbi),
-			this.config.artifacts.factoryBytecode,
-			this.config.artifacts.factoryContractName,
-			this.config.artifacts.factorySourceName,
-			version,
-			isDefault
-		);
-
-		console.log("Adding template contract");
-		await addContractAbi(
-			this.prisma,
-			JSON.stringify(this.config.artifacts.templateAbi),
-			this.config.artifacts.templateBytecode,
-			this.config.artifacts.templateContractName,
-			this.config.artifacts.templateSourceName,
-			version,
-			isDefault
-		);
-
-		return "Contract v" + version + " created successfully";
-	}
-
 	async addClass(contract_address: string, reqBody: any) {
-		const contractProxy = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
+		const contractProxy = await attachContract(contract_address);
 		const overrides = await getGasPriceOverrides(this, 2);
 		let class_id = reqBody.class_id || "0";
 		const template_id = reqBody.template_id || zeroAddress;
@@ -154,7 +105,7 @@ export class ContractService extends BaseService {
 	async addAdminUser(contract_address: string, userAddress: string) {
 		// const contract = await this.findContract(contract_address);
 
-		const factoryContract = await attachContract(this.config.artifacts.factoryAbi as any, this.config.artifacts.factoryBytecode, contract_address, this.config.artifacts.factoryContractName);
+		const factoryContract = await attachContract(contract_address);
 		const role = "ADMIN_ROLE";
 
 		const response = await factoryContract.grantUserRole(userAddress, role);
@@ -200,7 +151,7 @@ export class ContractService extends BaseService {
 	async mintNFT(contract_address: string, class_id: string, user_address: string) {
 		// await this.findContractClass(contract_address, class_id);
 
-		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
+		const tokenContract = await attachContract(contract_address);
 		const overrides = await getGasPriceOverrides(this, 2);
 		// const factory = await ethers.getContractFactory(ProxySol);
 		// const factoryContract = factory.attach(contract_address);
@@ -227,12 +178,12 @@ export class ContractService extends BaseService {
 
 		const transaction = await this.prisma.transaction.create({
 			data: {
-				txn_hash: response.hash, 
+				txn_hash: response.hash,
 				nonce: response.nonce,
-				contract_address, 
-				class_id: _returnedClassId, 
+				contract_address,
+				class_id: _returnedClassId,
 				amount: _amount,
-				from: await signer.getAddress(), 
+				from: await signer.getAddress(),
 				to: user_address,
 				status: -1,
 			},
@@ -270,7 +221,7 @@ export class ContractService extends BaseService {
 		let _returnedClassId;
 		let _amount;
 
-		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
+		const tokenContract = await attachContract(contract_address);
 
 		const response = await tokenContract.safeTransferFrom(from, to, class_id, amount, "0x00");
 		console.log(`transfer NFT from '${from}' to '${to}' Txn: ${response.hash}`);
@@ -317,7 +268,7 @@ export class ContractService extends BaseService {
 		const lcaseContractAddress = contract_address.toLowerCase();
 		// const [signer] = await ethers.getSigners();
 		// const factory = ethers.getContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
-		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
+		const tokenContract = await attachContract(contract_address);
 
 		const response = await tokenContract.burn(userAddress, class_id, amount);
 		console.log(`burn NFT from '${userAddress}' Txn: ${response.hash}`);
@@ -419,7 +370,7 @@ export class ContractService extends BaseService {
 	}
 
 	async updateBaseUri(contract_address: string, base_uri: string) {
-		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
+		const tokenContract = await attachContract(contract_address);
 
 		let response;
 		try {
@@ -436,7 +387,7 @@ export class ContractService extends BaseService {
 	async getUris(contract_address: any, from: number, to: number) {
 		var i;
 		var data: JSONObject = {};
-		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
+		const tokenContract = await attachContract(contract_address);
 
 		try {
 			for (i = from; i <= to; i++) {
@@ -457,7 +408,8 @@ export class ContractService extends BaseService {
 		// var data: JSONObject = {};
 
 		// const slot1 = await ethers.provider.getStorageAt(contract_address, 0);
-		const abi = this.config.artifacts.tokenAbi;
+		const [abi, , ,] = await getAbiByCache("Token");
+		// const abi = this.config.artifacts.tokenAbi;
 		const contract = new ethers.Contract(contract_address, abi, ethers.provider);
 
 		const name = await contract.name();
@@ -478,7 +430,7 @@ export class ContractService extends BaseService {
 	}
 
 	async setAttributes(contract_address: any, count: number) {
-		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
+		const tokenContract = await attachContract(contract_address);
 		var i;
 		try {
 			for (i = 1; i <= count; i++) {
@@ -505,7 +457,7 @@ export class ContractService extends BaseService {
 	}
 
 	async getClasses(contract_address: any, from: number, to: number) {
-		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
+		const tokenContract = await attachContract(contract_address);
 		var i;
 		var data: JSONObject = {};
 		// const [owner] = await ethers.getSigners();
@@ -519,7 +471,7 @@ export class ContractService extends BaseService {
 		}
 	}
 	async getAttributes(contract_address: any, from: number, to: number) {
-		const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);
+		const tokenContract = await attachContract(contract_address);
 		var i;
 		var data: JSONObject = {};
 		try {
@@ -534,7 +486,7 @@ export class ContractService extends BaseService {
 
 	// write a function that checks wallet for balance of a token using ethers, then return true or false
 	async getBalance(contract_address: any, user_address: any) {
-		const abi = this.config.artifacts.tokenAbi;
+		const [abi, , ,] = await getAbiByCache("Token");
 		const contract = new ethers.Contract(contract_address, abi, ethers.provider);
 		const balance = await contract.balanceOf(user_address);
 		return balance;

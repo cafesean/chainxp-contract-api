@@ -17,7 +17,7 @@ export const getAbi = (abiPath: string) => {
 
 		return [JSON.stringify(file.abi), file.bytecode, file.contractName, file.sourceName];
 	} catch (e) {
-		console.log(`e`, e);
+		return [, , ,];
 	}
 };
 
@@ -33,17 +33,22 @@ export const getBytecode = (abiPath: string) => {
 	}
 };
 
-export async function addContractAbi(
-	ctx: any,
-	abi: string,
-	bytecode: string,
-	contract_name: string,
-	source_name: string,
-	version: string,
-	isDefault: boolean
-) {
+export const getAbiByCache = async (contractName: string) => {
+	const abiPath = "src/lib/" + contractName + ".sol/" + contractName + "Contract.json";
+	const dir = path.join(process.cwd(), abiPath);
 
-	const prisma = new PrismaClient();
+	try {
+		const file = fs.readFileSync(dir, "utf-8");
+
+		const json = JSON.parse(file);
+		return [JSON.stringify(json.abi), json.bytecode, json.contractName, json.sourceName];
+	} catch (e) {
+		return [, , ,];
+	}
+};
+
+export async function addContractAbi(prisma: any, contractAbi: any, version: string, isDefault: boolean) {
+	const [abi, bytecode, contract_name, source_name] = contractAbi;
 
 	try {
 		const newContract = await prisma.contract_version.create({
@@ -70,7 +75,7 @@ export async function addContractAbi(
 								equals: true,
 							},
 							contract_name: {
-								equals: contract_name,
+								equals: contract_name.toLowerCase(),
 							},
 							id: {
 								not: {
@@ -88,4 +93,37 @@ export async function addContractAbi(
 	} catch (error) {
 		console.log("contractData Error: ", error);
 	}
+
+	return "Contract v" + version + " added.";
+}
+
+// create function to get abi by contract_address
+export async function getAbiByAddress(contractAddress: string) {
+	const prisma = new PrismaClient();
+
+	const data = await prisma.contract.findFirst({
+		where: {
+			AND: [
+				{
+					contract_address: {
+						equals: contractAddress,
+					},
+				},
+			],
+		},
+		select: {
+			abi: true,
+			bytecode: true,
+			contract_name: true,
+			source_name: true,
+		},
+	});
+
+	if (!data) {
+		console.log("No abi data found.");
+		return [, , ,];
+	}
+
+	// console.log("source_name: ", data.source_name);
+	return [data?.abi, data?.bytecode, data?.contract_name, data?.source_name];
 }

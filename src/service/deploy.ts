@@ -18,7 +18,17 @@ export class DeployService extends BaseService {
 	}
 
 	async cloneProxy(reqBody: any) {
-		const { factory_address, contract_address, delegate_address, template_address, external_link, org_id, title, baseUri, description, symbol, requirements, slug, image_url, template_id } = reqBody;
+		const {
+			factory_address,
+			contract_address,
+			delegate_address,
+			template_address,
+			series_id,
+			title,
+			baseUri,
+			description,
+			symbol,
+		} = reqBody;
 
 		const [signer] = await ethers.getSigners();
 
@@ -44,21 +54,42 @@ export class DeployService extends BaseService {
 			}
 		}
 
-		try {
-			await this.prisma.contract.create({
-				data: {
-					type: "clone",
-					name: contractName || "",
-					contract_address: addressClone.toLowerCase(),
-					contract_name: contractName,
-					source_name: sourceName,
-					owner_address: await signer.getAddress(),
-					abi: abi,
-					bytecode: bytecode,
-				},
-			});
-		} catch (error) {
-			console.log("contractData Error: ", error);
+		if (!addressClone) {
+			return { "result": "clone failed", series_id: null };
+		}
+		// update series with clone info
+		const seriesData = await this.prisma.contract.upsert({
+			where: {
+				id: series_id,
+			},
+			create: {
+				type: "clone",
+				name: contractName || "",
+				contract_address: addressClone.toLowerCase(),
+				contract_name: contractName,
+				source_name: sourceName,
+				owner_address: await signer.getAddress(),
+				abi: abi,
+				bytecode: bytecode,
+			},
+			update: {
+				id: series_id,
+				type: "clone",
+				name: contractName || "",
+				contract_address: addressClone.toLowerCase(),
+				contract_name: contractName,
+				source_name: sourceName,
+				owner_address: await signer.getAddress(),
+				abi: abi,
+				bytecode: bytecode,
+			},
+			select: {
+				id: true,
+			},
+		});
+
+		if (!seriesData) {
+			return { "result": "upsert failed", series_id: null };
 		}
 
 		// initialize clone
@@ -80,32 +111,32 @@ export class DeployService extends BaseService {
 		await contractTemplate.authorizeCallingContract(signer.address, addressClone, overrides).then((tx: any) => tx.wait());
 		console.log("Clone config done");
 
-		let seriesData;
+		// let seriesData;
 
-		try {
-			seriesData = await this.prisma.series.create({
-				data: {
-					org_id: org_id,
-					contract_address: addressClone,
-					delegate_address: delegate_address,
-					owner: await signer.getAddress(),
-					title: title,
-					description: description,
-					external_link: external_link,
-					requirements: requirements,
-					image_url: image_url,
-					slug: slug,
-					template_id: template_id as number,
-				},
-				select: {
-					id: true, // Include the new series id in the returned data
-				},
-			});
-		} catch (error) {
-			console.log("seriesData Error: ", error);
-		}
+		// try {
+		// 	seriesData = await this.prisma.series.create({
+		// 		data: {
+		// 			org_id: org_id,
+		// 			contract_address: addressClone,
+		// 			delegate_address: delegate_address,
+		// 			owner: await signer.getAddress(),
+		// 			title: title,
+		// 			description: description,
+		// 			external_link: external_link,
+		// 			requirements: requirements,
+		// 			image_url: image_url,
+		// 			slug: slug,
+		// 			template_id: template_id as number,
+		// 		},
+		// 		select: {
+		// 			id: true, // Include the new series id in the returned data
+		// 		},
+		// 	});
+		// } catch (error) {
+		// 	console.log("seriesData Error: ", error);
+		// }
 
-		const series_id = seriesData?.id;
+		// const series_id = seriesData?.id;
 		console.log("Clone address: ", addressClone);
 		// return new clone (series)
 		return { "clone address": addressClone, series_id: series_id };

@@ -31,9 +31,8 @@ export class ContractService extends BaseService {
 				id: 1,
 			},
 		});
-		
-		return "Contract API v" + version?.version + " on " + version?.chain;
 
+		return "Contract API v" + version?.version + " on " + version?.chain;
 	}
 	async network() {
 		return "Current network is " + process.env.DEFAULT_NETWORK;
@@ -422,6 +421,9 @@ export class ContractService extends BaseService {
 		// const slot1 = await ethers.provider.getStorageAt(contract_address, 0);
 		const [abi, , ,] = await getAbiByName("TokenContract");
 		// const abi = this.config.artifacts.tokenAbi;
+		if (abi === undefined) {
+			throw new Error("abi is undefined");
+		}
 		const contract = new ethers.Contract(contract_address, abi, ethers.provider);
 
 		const name = await contract.name();
@@ -499,6 +501,10 @@ export class ContractService extends BaseService {
 	// write a function that checks wallet for balance of a token using ethers, then return true or false
 	async getBalance(contract_address: any, user_address: any) {
 		const [abi, , ,] = await getAbiByName("TokenContract");
+
+		if (abi === undefined) {
+			throw new Error("abi is undefined");
+		}
 		const contract = new ethers.Contract(contract_address, abi, ethers.provider);
 		const balance = await contract.balanceOf(user_address);
 		return balance;

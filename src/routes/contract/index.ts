@@ -22,22 +22,6 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		// append response to the responseJSON object
 		const response = await fastify.service.deploy.createContracts(token, delegate, factory, template, version, isDefault);
 
-		// if (delegate) {
-		// 	// append response to the responseJSON object
-		// 	const delegateContract = await fastify.service.contract.createContract("delegate", version, isDefault);
-		// 	responseJSON = { ...responseJSON, delegateContract };
-		// }
-		// if (factory) {
-		// 	// append response to the responseJSON object
-		// 	const factoryContract = await fastify.service.contract.createContract("factory", version, isDefault);
-		// 	responseJSON = { ...responseJSON, factoryContract };
-		// }
-		// if (template) {
-		// 	// append response to the responseJSON object
-		// 	const templateContract = await fastify.service.contract.createContract("template", version, isDefault);
-		// 	responseJSON = { ...responseJSON, templateContract };
-		// }
-
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(response);
 	});
 
@@ -78,6 +62,13 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		// const { name,  } = request.body;
 
 		const contract = await fastify.service.deploy.deployFactory(request.body);
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
+	});
+
+	fastify.post("/grantAccess", async (request: any, resp: any) => {
+		const { proxyAddress, delegateAddress, templateAddress } = request.body;
+		const contract = (await fastify.service.deploy.configureProxy(proxyAddress, delegateAddress, templateAddress)) as any;
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
 	});

@@ -16,6 +16,7 @@ export default fp(
 			"fastify-prisma-client",
 			"fastify-polygon-client",
 			"fastify-alchemy-client",
+			"fastify-auth",
 			// "fastify-jwt",
 		],
 	}

@@ -53,7 +53,7 @@ export default fp(
 				version: process.env.VERSION || "",
 				timezone: process.env.TIMEZONE || "",
 				// debug: getIntEnv('debug', 0) === 1,
-				apiKey: process.env.LOCAL_APIKEY || "",
+				apiKey: process.env.CHAINXP_API_KEY || "",
 				baseUrl: process.env.BASE_URL || "",
 				database: {
 					uri: process.env.DATABASE_URL || "",

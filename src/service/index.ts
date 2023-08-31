@@ -1,3 +1,4 @@
 export { BaseService } from './base';
 export { ContractService } from './contract';
-export { DeployService } from './deploy';
+export { SeriesService } from './series';
+export { TokenService } from './token';

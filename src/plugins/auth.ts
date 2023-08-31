@@ -12,8 +12,11 @@ export default fp(
 				}
 			})
 			.addHook("onRequest", (request: FastifyRequest, resp: FastifyReply, done: any) => {
+				console.log("onRequest", request.method, request.url)				
 				if (request.method === "PUT" || request.method === "POST") {
 					return fastify.authenticate(request, resp);
+				} else {
+					done();
 				}
 			});
 		done();

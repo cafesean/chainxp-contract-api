@@ -2,7 +2,7 @@ import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 
 // import { PrismaClient } from "@prisma/client";
-import { BaseService, ContractService, DeployService } from "../service/index";
+import { BaseService, ContractService, SeriesService, TokenService } from "../service/index";
 
 export default fp(
 	async (fastify: any, opts: any) => {
@@ -29,10 +29,12 @@ declare module "fastify" {
 }
 class ServiceHolder {
 	contract: ContractService;
-	deploy: DeployService;
+	series: SeriesService;
+	token: TokenService;
 	constructor(fastify: FastifyInstance) {
 		this.contract = ServiceHolder.init(fastify, ContractService);
-		this.deploy = ServiceHolder.init(fastify, DeployService);
+		this.series = ServiceHolder.init(fastify, SeriesService);
+		this.token = ServiceHolder.init(fastify, TokenService);
 	}
 
 	static init<T extends BaseService>(fastify: FastifyInstance, serviceType: { new (): T }): T {

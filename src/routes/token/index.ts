@@ -11,10 +11,52 @@ export default async function tokenRoute(fastify: FastifyInstance) {
 	// route for getting balance
 	fastify.get("/:contract_address/:class_id/balance", async function (request: any, resp: any): Promise<any> {
 		const { contract_address, wallet_address } = request.params;
-		const balance = await fastify.service.contract.getBalance(contract_address, wallet_address);
+		const balance = await fastify.service.token.getBalance(contract_address, wallet_address);
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: balance });
 	});
 
+
+	fastify.put("/:contract_id/mint/:class_id", async (request: any, resp: any) => {
+		const { contract_id, class_id } = request.params;
+		const { address } = request.query;
+
+		const response = await fastify.service.token.mintNFT(contract_id, class_id, address);
+
+		const txn = response as any;
+		console.log("fastify.put txn: ", txn);
+		// resp.header("Content-Type", "application/json");
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txn });
+	});
+
+		fastify.get("/:contract_id/getUris/:id1/:id2", async (request: any, resp: any) => {
+		//const { count } = request.query;
+		const { contract_id, id1, id2 } = request.params;
+		// const { abi } = request.body;
+
+		try {
+			const uriString = await fastify.service.token.getUris(contract_id, id1, id2);
+
+			return { result: uriString };
+		} catch (err) {
+			resp.send(err);
+		}
+	});
+
+	fastify.post("/:contract_address/transfer/:id", async (request: any, resp: any) => {
+		const { contract_address, id } = request.params;
+		const { from, to, amount } = request.body;
+
+		const { txnHash } = await fastify.service.token.transfer(contract_address, id, from, to, amount);
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txnHash });
+	});
+
+	fastify.post("/:contract_address/burn/:id", async (request: any, resp: any) => {
+		const { contract_address, id } = request.params;
+		const { from, amount } = request.body;
+
+		const { txnHash } = await fastify.service.token.burn(contract_address, id, from, amount);
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txnHash });
+	});
 
 	// create a route that adds multiple wallet addresses to the allowlist table
 	// post request must include an api key sent in the headers to access this route

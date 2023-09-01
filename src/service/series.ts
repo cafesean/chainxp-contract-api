@@ -13,20 +13,7 @@ interface JSONObject {
 const zeroAddress = "0x0000000000000000000000000000000000000000";
 
 export class SeriesService extends BaseService {
-	async version() {
-		// get version from db
-		const version = await this.prisma.version.findFirst({
-			select: {
-				version: true,
-				chain: true,
-			},
-			where: {
-				id: 1,
-			},
-		});
 
-		return "Contract API v" + version?.version + " on " + version?.chain;
-	}
 	async network() {
 		// get current network and chain from ethers
 		const network = await ethers.provider.getNetwork();

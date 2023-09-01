@@ -4,17 +4,11 @@ import { FastifyInstance } from "fastify";
 // import { genericSchema } from "../../schema/index";
 
 export default async function contractRoute(fastify: FastifyInstance) {
-	fastify.get("/", async () => {
-		const message = await fastify.service.series.version();
-		return { result: message };
-	});
-	fastify.get("/version", async () => {
-		const message = await fastify.service.series.version();
-		return { result: message };
-	});
-	fastify.get("/network", async () => {
-		const message = await fastify.service.series.network();
-		return { result: message };
+	fastify.get("/", async function (request: any, resp: any): Promise<any> {
+		resp
+			.code(200)
+			.header("Content-Type", "application/json; charset=utf-8")
+			.send({ result: "Series API"});
 	});
 
 	fastify.post("/:contract_id/class", async (request: any, resp: any) => {

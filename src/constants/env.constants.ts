@@ -31,7 +31,7 @@ let provider;
 let apiKey;
 let network;
 
-if ((process.env.ENV = "production")) {
+if ((process.env.ENV = "alpha")) {
 	// export const POLYGON_PROVIDER = new ethers.providers.AlchemyProvider(
 	// 	process.env.POLYGON_NETWORK,
 	// 	process.env.POLYGON_API_KEY

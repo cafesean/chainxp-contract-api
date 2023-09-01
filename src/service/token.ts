@@ -1,9 +1,10 @@
 // @dev - user's on-chain transactions services
 import { BaseService } from "./base";
-import { attachContract, getGasPriceOverrides, getAbiByName } from "../utils";
+import { attachContract, getAbiByName } from "../utils";
 import * as errors from "../errors";
 import { ethers } from "hardhat";
 import dotenv from "dotenv";
+import { IForwardRequest } from "./forward.type";
 
 dotenv.config();
 interface JSONObject {
@@ -11,35 +12,60 @@ interface JSONObject {
 }
 // const zeroAddress = "0x0000000000000000000000000000000000000000";
 
-export class TokenService extends BaseService {
 
-	async mintNFT(contract_address: string, class_id: string, user_address: string) {
+export class TokenService extends BaseService {
+	async mint(contract_address: string, class_id: string, user_address: string, signedRequest: IForwardRequest) {
 		// await this.findContractClass(contract_address, class_id);
 
 		const tokenContract = await attachContract(contract_address);
-		const overrides = await getGasPriceOverrides(this, 2);
-		// const factory = await ethers.getContractFactory(ProxySol);
-		// const factoryContract = factory.attach(contract_address);
+		// const overrides = await getGasPriceOverrides(this, 2);
 
+		console.log("signedRequest: ", signedRequest);
+		const { calldata, sender, sign }: IForwardRequest = signedRequest;
+
+		// ERC2771 Forwarder
+		const verified = sender === ethers.utils.verifyMessage(calldata, sign);
+
+		// Verify signature
+		if (!verified) {
+			return { error: "Invalid signature" };
+		}
+		const forwardCalldata = calldata.concat(sender.slice(2));
 		const [signer] = await ethers.getSigners();
 
-		const response = await tokenContract.mint(user_address, Number(class_id), overrides);
+		console.log("-- contract_address: ", contract_address);
+		console.log("-- forwardCalldata: ", forwardCalldata);
+		// Creating a transaction param
+		const tx = {
+			to: contract_address,
+			data: forwardCalldata,
+		};
 
+		const response = await signer.sendTransaction(tx);
+		const receipt = await response.wait();
+
+		console.log("response: ", response);
+		console.log("receipt: ", receipt);
+
+		const logs = receipt.logs.filter((log) => log.address.toLowerCase() === contract_address.toLowerCase());
+		const events = logs.map((log) => tokenContract.interface.parseLog(log));
+
+		console.log("events: ", events);
+
+		// const response = await tokenContract.mint(user_address, Number(class_id), overrides);
 		let _returnedClassId;
 		let _amount;
-
-		const receipt = await response.wait();
-		console.log("Receipt: ", receipt);
-		for (const event of receipt.events) {
-			if (event.eventSignature === "TokenCreated(address,uint256,uint256)") {
-				const argClassId = event.args[1]; // uint256 value is 2nd arg in array as hex value
-				const argAmount = event.args[2]; // uint256 value is 2nd arg in array as hex value
+		if (!receipt || receipt === undefined) {
+			return { error: "response is undefined" };
+		}
+		for (const LogDescription of events) {
+			if (LogDescription.signature === "TokenCreated(address,uint256,uint256)") {
+				const argClassId = LogDescription.args[1]; // uint256 value is 2nd arg in array as hex value
+				const argAmount = LogDescription.args[2]; // uint256 value is 2nd arg in array as hex value
 				_returnedClassId = argClassId.toString();
 				_amount = argAmount.toString();
 			}
 		}
-
-		// const prisma = new PrismaClient();
 
 		const transaction = await this.prisma.transaction.create({
 			data: {
@@ -86,7 +112,6 @@ export class TokenService extends BaseService {
 		const balance = await contract.balanceOf(user_address);
 		return balance;
 	}
-
 
 	async getUris(contract_address: any, from: number, to: number) {
 		var i;
@@ -234,5 +259,4 @@ export class TokenService extends BaseService {
 
 		return status;
 	}
-
 }

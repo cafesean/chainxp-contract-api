@@ -15,20 +15,23 @@ export default async function tokenRoute(fastify: FastifyInstance) {
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: balance });
 	});
 
-
-	fastify.put("/:contract_id/mint/:class_id", async (request: any, resp: any) => {
+	fastify.post("/:contract_id/mint/:class_id", async (request: any, resp: any) => {
 		const { contract_id, class_id } = request.params;
 		const { address } = request.query;
+		const { signedRequest } = request.body;
 
-		const response = await fastify.service.token.mintNFT(contract_id, class_id, address);
+		const response = await fastify.service.token.mint(contract_id, class_id, address, signedRequest);
 
 		const txn = response as any;
-		console.log("fastify.put txn: ", txn);
 		// resp.header("Content-Type", "application/json");
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txn });
+		const apiResponse = {
+			code: 200,
+			data: txn,
+		};
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(apiResponse);
 	});
 
-		fastify.get("/:contract_id/getUris/:id1/:id2", async (request: any, resp: any) => {
+	fastify.get("/:contract_id/getUris/:id1/:id2", async (request: any, resp: any) => {
 		//const { count } = request.query;
 		const { contract_id, id1, id2 } = request.params;
 		// const { abi } = request.body;
@@ -55,7 +58,12 @@ export default async function tokenRoute(fastify: FastifyInstance) {
 		const { from, amount } = request.body;
 
 		const { txnHash } = await fastify.service.token.burn(contract_address, id, from, amount);
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txnHash });
+
+		const response = {
+			code: 200,
+			result: txnHash,
+		};
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(response);
 	});
 
 	// create a route that adds multiple wallet addresses to the allowlist table

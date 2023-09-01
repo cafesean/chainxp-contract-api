@@ -19,60 +19,11 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 	fastify.post("/:contract_address/grantAccess", async (request: any, resp: any) => {
 		const { contract_address } = request.params;
-		const { walletAddress } = request.body;
+		const { walletAddress, role } = request.body;
 		// append response to the responseJSON object
-		const response = await fastify.service.contract.grantCloneAccess(walletAddress, contract_address);
+		const response = await fastify.service.contract.grantAccess(walletAddress, contract_address, role);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(response);
-	});
-
-	fastify.put("/create", async (request: any, resp: any) => {
-		const { token, delegate, factory, template, version, isDefault } = request.body;
-		// append response to the responseJSON object
-		const response = await fastify.service.contract.createContracts(token, delegate, factory, template, version, isDefault);
-
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(response);
-	});
-
-	fastify.post("/deploySingle", async (request: any, resp: any) => {
-		const { contract_name, name, baseUri, description, symbol } = request.body;
-		const options = [name, baseUri, description, symbol];
-
-		console.log("contract_name: ", contract_name);
-		console.log("options: ", options);
-		const contract = (await fastify.service.contract.deploySingle(contract_name, options)) as any;
-
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract.address });
-	});
-
-	fastify.post("/deployAll", async (request: any, resp: any) => {
-		const { name, baseUri, description, symbol } = request.body;
-		const contract = (await fastify.service.contract.deployAll(name, baseUri, description, symbol)) as any;
-
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
-	});
-
-	fastify.post("/configure", async (request: any, resp: any) => {
-		const { proxyAddress, delegateAddress, templateAddress } = request.body;
-		const contract = (await fastify.service.contract.configureProxy(proxyAddress, delegateAddress, templateAddress)) as any;
-
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
-	});
-
-	fastify.post("/clone", async (request: any, resp: any) => {
-		// const { name,  } = request.body;
-
-		const contract = await fastify.service.contract.cloneProxy(request.body);
-
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
-	});
-
-	fastify.post("/deployFactory", async (request: any, resp: any) => {
-		// const { name,  } = request.body;
-
-		const contract = await fastify.service.contract.deployFactory(request.body);
-
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
 	});
 
 	fastify.post("/:contract_id/updateBaseUri", async (request: any, resp: any) => {
@@ -93,6 +44,20 @@ export default async function contractRoute(fastify: FastifyInstance) {
 			const uriString = await fastify.service.contract.getContractDetails(contract_id);
 
 			return { result: uriString };
+		} catch (err) {
+			resp.send(err);
+		}
+	});
+
+	// get abi from contract address
+	fastify.get("/:contract_address/getAbi", async (request: any, resp: any) => {
+		const { contract_address } = request.params;
+		// const { abi } = request.body;
+
+		try {
+			const abiString = await fastify.service.contract.getAbi(contract_address);
+
+			return { result: abiString };
 		} catch (err) {
 			resp.send(err);
 		}

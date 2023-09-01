@@ -137,14 +137,12 @@ contract TokenContract is Initializable, Access, Base {
             );
     }
 
-    function mint(
-        address _to,
-        uint256 _classId
-    ) public onlyOps returns (uint256 id) {
+    function mint(uint256 _classId) public onlyForwarder returns (uint256 id) {
         require(classes[_classId].id != 0, "No xp");
+        address sender = _msgSender();
         uint256 _classTokenId;
-        _classTokenId = mintSingle(_to, _classId);
-        emit TokenCreated(_to, _classId, _classTokenId);
+        _classTokenId = mintSingle(sender, _classId);
+        emit TokenCreated(sender, _classId, _classTokenId);
         return _classTokenId;
     }
 
@@ -215,6 +213,15 @@ contract TokenContract is Initializable, Access, Base {
 
     function registerFactory(address _address) public onlyAdmin {
         _setupRole(ADMIN_ROLE, _address);
+    }
+
+    function _msgSender() internal view override returns (address signer) {
+        signer = msg.sender;
+        if (msg.data.length >= 20 && hasRole(FORWARDER_ROLE, signer)) {
+            assembly {
+                signer := shr(96, calldataload(sub(calldatasize(), 20)))
+            }
+        }
     }
 
     function supportsInterface(

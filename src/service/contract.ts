@@ -3,7 +3,9 @@ import { BaseService } from "./base";
 import { attachContract, getGasPriceOverrides, getAbiByName } from "../utils";
 import { ethers } from "hardhat";
 import { getAbiByAddress } from "../utils";
+import { encryptPrivateKey } from "@root/src/utils/encryption";
 import dotenv from "dotenv";
+import * as crypto from "crypto";
 dotenv.config();
 
 export class ContractService extends BaseService {
@@ -157,5 +159,29 @@ export class ContractService extends BaseService {
 		console.log("Transaction was mined in block:", receipt.blockNumber);
 
 		return response;
+	}
+
+	// create a function that encrypts a private key using a password from params and an randomly generated IV.
+	// Use the decrypt and encrypt functions from encryption.ts
+	// Save encrypted key and IV as hex in the database using prisma
+	async encryptPrivateKey(address: string, privateKey: string, password: string) {
+		// const iv = ethers.utils.randomBytes(16);
+		const iv = crypto.randomBytes(16).toString("hex");
+		const encrypted = encryptPrivateKey(privateKey, password, iv);
+
+		const encryptedPrivateKey = encrypted;
+
+		// save to database
+		const encryptedKey = await this.prisma.forwarder.create({
+			data: {
+				address,
+				key: encryptedPrivateKey,
+				iv: iv.toString(),
+			},
+		});
+
+		if (encryptedKey) {
+			return "Key encrypted";
+		}
 	}
 }

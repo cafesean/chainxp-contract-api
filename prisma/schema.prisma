@@ -41,6 +41,7 @@ model contract {
   factory_address     String?
   cloned_from         String?
   contract_version_id BigInt?
+  forwarder_address   String?
   contract_version    contract_version? @relation(fields: [contract_version_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "contract_contract_version_id_key")
 }
 
@@ -58,6 +59,7 @@ model org {
   status       Int?      @db.SmallInt
   home_page    String?
   auth_wallets Json[]
+  tier_id      Int       @default(1)
   series       series[]
 }
 
@@ -113,9 +115,10 @@ model series {
   template_id      BigInt?
   external_link    String?
   status           Int       @default(0)
-  org              org?      @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  org              org?      @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "series_org_id_fkey")
   template         template? @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "series_template_id_key")
   xp               xp[]
+  @@unique(fields: [org_id, contract_address], name: "org_id_contract_address")
 }
 
 model user {
@@ -260,4 +263,13 @@ model version {
   created_at DateTime @default(now()) @db.Timestamptz(6)
   version    String?
   chain      Int?
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model forwarder {
+  key     String?
+  tier_id Int     @default(1)
+  iv      String?
+  address String?
+  id      Int     @id @default(autoincrement())
 }

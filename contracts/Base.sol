@@ -129,7 +129,7 @@ contract Base is
     function mintSingle(
         address _to,
         uint256 _classId
-    ) public onlyOps returns (uint256) {
+    ) public onlyForwarder returns (uint256) {
         _mint(_to, _classId, 1, "");
         uint256 classTokenCount = classes[_classId].tokenCount++;
         users[_classId][_to] += 1;

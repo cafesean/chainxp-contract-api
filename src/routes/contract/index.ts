@@ -1,4 +1,5 @@
 import { FastifyInstance } from "fastify";
+import { decryptPrivateKey } from "@root/src/utils/encryption";
 // import * as abi from "../../constants/abi.constants";
 
 // import { genericSchema } from "../../schema/index";
@@ -68,6 +69,23 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		const txnHash = await fastify.service.contract.god(contract_address, request.body);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txnHash });
+	});
+
+
+	// create route for decoding a privatekey using the decryptPrivateKey function in contract.ts
+	fastify.post("/decryptPrivateKey", async (request: any, resp: any) => {
+		const { encryptedPrivateKey, password, iv } = request.body;
+		const decrypted = decryptPrivateKey(encryptedPrivateKey, password, iv);
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: decrypted });
+	});
+
+	// create route for encrypting a privatekey using the encryptPrivateKey function in encryption.ts
+	fastify.post("/encryptPrivateKey", async (request: any, resp: any) => {
+		const { address, privateKey, password } = request.body;
+		const encrypted = await fastify.service.contract.encryptPrivateKey(address, privateKey, password);
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: encrypted });
 	});
 
 	//   fastify.post(

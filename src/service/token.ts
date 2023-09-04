@@ -5,13 +5,13 @@ import * as errors from "../errors";
 import { ethers } from "hardhat";
 import dotenv from "dotenv";
 import { IForwardRequest } from "./forward.type";
+import { decryptPrivateKey } from "../utils/encryption";
 
 dotenv.config();
 interface JSONObject {
 	[key: string]: any;
 }
 // const zeroAddress = "0x0000000000000000000000000000000000000000";
-
 
 export class TokenService extends BaseService {
 	async mint(contract_address: string, class_id: string, user_address: string, signedRequest: IForwardRequest) {
@@ -26,12 +26,63 @@ export class TokenService extends BaseService {
 		// ERC2771 Forwarder
 		const verified = sender === ethers.utils.verifyMessage(calldata, sign);
 
+		// get signer based on correct forwarder
+		const orgTierId = await this.prisma.series.findMany({
+			where: {
+				contract_address: contract_address,
+			},
+			select: {
+				org: {
+					select: {
+						tier_id: true,
+					},
+				},
+			},
+		});
+
+		if (!orgTierId[0]?.org?.tier_id) {
+			return { error: "No org tier Id" };
+		}
+
+		const tierId = orgTierId[0]?.org?.tier_id;
+
+		// get forwarder based on tier Id
+		const forwarder = await this.prisma.forwarder.findFirst({
+			where: {
+				tier_id: tierId,
+			},
+			select: {
+				address: true,
+				key: true,
+				iv: true,
+			},
+		});
+
+		const password = process.env.FORWARDER_PASSWORD as string;
+
+
+console.log("password: ", password);
+console.log("iv: ", forwarder?.iv);
+console.log("key: ", forwarder?.key);
+
+		if (!forwarder) {
+			return { error: "No forwarder" };
+		}
+		const forwarderKey = decryptPrivateKey(forwarder?.key!, password, forwarder?.iv!);
+console.log("forwarderKey: ", forwarderKey);
+
 		// Verify signature
 		if (!verified) {
 			return { error: "Invalid signature" };
 		}
 		const forwardCalldata = calldata.concat(sender.slice(2));
-		const [signer] = await ethers.getSigners();
+		// const [signer] = await ethers.getSigners();
+
+		// get signer using private key 
+		const forwarderSigner = new ethers.Wallet(forwarderKey, ethers.provider);
+console.log("forwarderSigner: ", forwarderSigner);
+console.log("forwarder address:", forwarder?.address);
+
 
 		console.log("-- contract_address: ", contract_address);
 		console.log("-- forwardCalldata: ", forwardCalldata);
@@ -41,7 +92,7 @@ export class TokenService extends BaseService {
 			data: forwardCalldata,
 		};
 
-		const response = await signer.sendTransaction(tx);
+		const response = await forwarderSigner.sendTransaction(tx);
 		const receipt = await response.wait();
 
 		console.log("response: ", response);
@@ -74,7 +125,7 @@ export class TokenService extends BaseService {
 				contract_address,
 				class_id: _returnedClassId,
 				amount: _amount,
-				from: await signer.getAddress(),
+				from: await forwarderSigner.getAddress(),
 				to: user_address,
 				status: -1,
 			},

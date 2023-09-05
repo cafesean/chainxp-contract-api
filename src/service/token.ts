@@ -1,6 +1,6 @@
 // @dev - user's on-chain transactions services
 import { BaseService } from "./base";
-import { attachContract, getAbiByName } from "../utils";
+import { attachContract, getAbiByName, getGasPriceOverrides } from "../utils";
 import * as errors from "../errors";
 import { ethers } from "hardhat";
 import dotenv from "dotenv";
@@ -18,7 +18,7 @@ export class TokenService extends BaseService {
 		// await this.findContractClass(contract_address, class_id);
 
 		const tokenContract = await attachContract(contract_address);
-		// const overrides = await getGasPriceOverrides(this, 2);
+		const overrides = await getGasPriceOverrides(this, 2);
 
 		console.log("signedRequest: ", signedRequest);
 		const { calldata, sender, sign }: IForwardRequest = signedRequest;
@@ -60,16 +60,15 @@ export class TokenService extends BaseService {
 
 		const password = process.env.FORWARDER_PASSWORD as string;
 
-
-console.log("password: ", password);
-console.log("iv: ", forwarder?.iv);
-console.log("key: ", forwarder?.key);
+		console.log("password: ", password);
+		console.log("iv: ", forwarder?.iv);
+		console.log("key: ", forwarder?.key);
 
 		if (!forwarder) {
 			return { error: "No forwarder" };
 		}
 		const forwarderKey = decryptPrivateKey(forwarder?.key!, password, forwarder?.iv!);
-console.log("forwarderKey: ", forwarderKey);
+		console.log("forwarderKey: ", forwarderKey);
 
 		// Verify signature
 		if (!verified) {
@@ -78,11 +77,10 @@ console.log("forwarderKey: ", forwarderKey);
 		const forwardCalldata = calldata.concat(sender.slice(2));
 		// const [signer] = await ethers.getSigners();
 
-		// get signer using private key 
+		// get signer using private key
 		const forwarderSigner = new ethers.Wallet(forwarderKey, ethers.provider);
-console.log("forwarderSigner: ", forwarderSigner);
-console.log("forwarder address:", forwarder?.address);
-
+		console.log("forwarderSigner: ", forwarderSigner);
+		console.log("forwarder address:", forwarder?.address);
 
 		console.log("-- contract_address: ", contract_address);
 		console.log("-- forwardCalldata: ", forwardCalldata);
@@ -92,7 +90,12 @@ console.log("forwarder address:", forwarder?.address);
 			data: forwardCalldata,
 		};
 
-		const response = await forwarderSigner.sendTransaction(tx);
+		const mergedTx = {
+			...tx,
+			...overrides,
+		};
+
+		const response = await forwarderSigner.sendTransaction(mergedTx);
 		const receipt = await response.wait();
 
 		console.log("response: ", response);

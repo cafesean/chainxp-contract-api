@@ -174,7 +174,7 @@ export class ContractService extends BaseService {
 		// save to database
 		const encryptedKey = await this.prisma.forwarder.create({
 			data: {
-				address,
+				address: address.toLowerCase(),
 				key: encryptedPrivateKey,
 				iv: iv.toString(),
 			},

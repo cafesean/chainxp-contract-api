@@ -24,6 +24,11 @@ export default async function tokenRoute(fastify: FastifyInstance) {
 
 		const txn = response as any;
 		// resp.header("Content-Type", "application/json");
+		console.log("txn: ", txn);
+		if (!txn) {
+			resp.code(400).header("Content-Type", "application/json; charset=utf-8").send({ result: "Mint failed" });
+			return;
+		}
 		const apiResponse = {
 			code: 200,
 			data: txn,

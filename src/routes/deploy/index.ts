@@ -11,6 +11,14 @@ export default async function contractRoute(fastify: FastifyInstance) {
 			.send({ result: "Deploy API"});
 	});
 
+
+	fastify.get("/getSigner", async (request: any, resp: any) => {
+		const response = await fastify.service.deploy.getSigner();
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(response);
+	});
+
+
 	fastify.put("/create", async (request: any, resp: any) => {
 		const { token, delegate, factory, template, version, isDefault } = request.body;
 		// append response to the responseJSON object

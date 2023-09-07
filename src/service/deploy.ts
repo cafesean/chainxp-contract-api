@@ -15,6 +15,11 @@ export class DeployService extends BaseService {
 		return "Current network is " + process.env.DEFAULT_NETWORK;
 	}
 
+	async getSigner() {
+		const [signer] = await ethers.getSigners();
+		return signer.address;
+	}
+
 	async cloneProxy(reqBody: any) {
 		const { series_id, factory_address, contract_address, delegate_address, template_address, title, baseUri, description, symbol } = reqBody;
 

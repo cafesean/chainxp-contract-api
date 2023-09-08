@@ -23,8 +23,7 @@ contract DelegateContract is Initializable, Access, Base {
         uint256 _classId,
         string memory _name,
         string memory _description,
-        string memory _baseUri,
-        address _templateAddress
+        string memory _baseUri
     ) public onlyOps returns (uint256 id) {
         if (_classId == 0) {
             classesCount.increment();
@@ -37,10 +36,7 @@ contract DelegateContract is Initializable, Access, Base {
             description: _description,
             classUri: bytes(_baseUri).length != 0
                 ? _baseUri
-                : classes[_classId].classUri,
-            templateAddress: _templateAddress != address(0x0)
-                ? _templateAddress
-                : DefaultTemplate
+                : classes[_classId].classUri
         });
         classes[_classId] = newClass;
         return _classId;

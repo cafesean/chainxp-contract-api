@@ -136,12 +136,11 @@ export class ContractService extends BaseService {
 		const name = reqBody.name || "";
 		const desc = reqBody.desc || "";
 		const baseUri = reqBody.base_uri || "";
-		const templateAddress = reqBody.template_address || "";
 
 		const [signer] = await ethers.getSigners();
 
 		const functionSignature = ethers.utils.id("setClass(uint256,string,string,string,address)").slice(0, 10);
-		const encodedParams = ethers.utils.defaultAbiCoder.encode(["uint256", "string", "string", "string", "address"], [classId, name, desc, baseUri, templateAddress]);
+		const encodedParams = ethers.utils.defaultAbiCoder.encode(["uint256", "string", "string", "string", "address"], [classId, name, desc, baseUri]);
 		const data = functionSignature + encodedParams.slice(2); // remove the 0x from encodedParams
 
 		// const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);

@@ -18,6 +18,7 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		return { result: message };
 	});
 
+
 	fastify.post("/:contract_address/grantAccess", async (request: any, resp: any) => {
 		const { contract_address } = request.params;
 		const { walletAddress, role } = request.body;

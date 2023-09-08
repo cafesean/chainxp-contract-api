@@ -21,7 +21,7 @@ export class DeployService extends BaseService {
 	}
 
 	async cloneProxy(reqBody: any) {
-		const { series_id, factory_address, contract_address, delegate_address, template_address, title, baseUri, description, symbol } = reqBody;
+		const { series_id, factory_address, contract_address, delegate_address, title, baseUri, description, symbol } = reqBody;
 
 		const [signer] = await ethers.getSigners();
 
@@ -74,13 +74,6 @@ export class DeployService extends BaseService {
 		await contractClone.setDelegateAddress(delegate_address, overrides);
 		await delegateContract.grantAccess(addressClone, "ADMIN_ROLE", overrides).then((tx: any) => tx.wait());
 
-		const contractTemplate = await attachContract(template_address);
-
-		// configure with template
-		await contractClone.setDefaultTemplate(template_address, overrides).then((tx: any) => tx.wait());
-		await contractClone.grantAccess(template_address, "ADMIN_ROLE", overrides).then((tx: any) => tx.wait());
-		await contractClone.setTemplateContract(1, template_address, overrides).then((tx: any) => tx.wait());
-		await contractTemplate.authorizeCallingContract(signer.address, addressClone, overrides).then((tx: any) => tx.wait());
 		console.log("Clone config done");
 
 		const seriesData = await this.prisma.series.upsert({
@@ -185,23 +178,13 @@ export class DeployService extends BaseService {
 		const initProxyOptions = [name, baseUri, description, symbol];
 		const contractProxy = await this.deploySingle("token", initProxyOptions); // #2 Proxy
 
-		// deploy template and set as default
-		const contractTemplate = await this.deploySingle("template", initEmptyOptions); // #3 Template
-
-		// const response = await this.configureProxy(contractProxy.address, contractDelegate.address, contractTemplate.address);
-		// return response;
 		// configure proxy
 		await contractProxy.setDelegateAddress(contractDelegate.address, overrides);
 		await contractDelegate.grantAccess(deployer.address, "ADMIN_ROLE", overrides);
-		const setDefaultTemplate = await contractProxy.setDefaultTemplate(contractTemplate.address);
-
-		console.log("setDefaultTemplate - chainId: ", setDefaultTemplate.chainId);
-
-		await contractProxy.grantAccess(contractTemplate.address, "ADMIN_ROLE", overrides);
-		await contractProxy.setTemplateContract(1, contractTemplate.address, overrides);
+		
 		console.log("Config done");
 
-		return { proxy_address: contractProxy.address, template_address: contractTemplate.address, delegate_address: contractDelegate.address };
+		return { proxy_address: contractProxy.address, delegate_address: contractDelegate.address };
 	}
 
 	async deploySingle(contractName: string, options: any) {
@@ -210,8 +193,6 @@ export class DeployService extends BaseService {
 		const overrides = await getGasPriceOverrides(this, 2);
 		const [deployer] = await ethers.getSigners();
 		switch (contractName) {
-			case "template":
-				break;
 			case "token":
 				await newContract.initialize(deployer.address, ...options, overrides);
 				break;
@@ -222,7 +203,7 @@ export class DeployService extends BaseService {
 		return newContract;
 	}
 
-	async configureProxy(proxyAddress: any, delegateAddress: any, templateAddress: any) {
+	async configureProxy(proxyAddress: any, delegateAddress: any) {
 		// configure proxy
 		const [deployer] = await ethers.getSigners();
 
@@ -234,14 +215,8 @@ export class DeployService extends BaseService {
 		console.log("	proxyAddress: ", delegateAddress);
 		const delegateContract = await attachContract(delegateAddress);
 		await delegateContract.grantAccess(deployer.address, "ADMIN_ROLE", overrides);
-		const setDefaultTemplate = await proxyContract.setDefaultTemplate(templateAddress);
-
-		console.log("setDefaultTemplate - chainId: ", setDefaultTemplate.chainId);
-
-		await proxyContract.grantAccess(templateAddress, "ADMIN_ROLE", overrides);
-		await proxyContract.setTemplateContract(1, templateAddress, overrides);
-
-		return { proxy_address: proxyAddress, template_address: templateAddress, delegate_address: delegateAddress };
+		
+		return { proxy_address: proxyAddress, delegate_address: delegateAddress };
 	}
 
 	async grantCloneAccess(walletAddress: string, contractAddress: string) {
@@ -253,7 +228,7 @@ export class DeployService extends BaseService {
 		return { result: "OPS_ROLE access granted to " + walletAddress };
 	}
 
-	async createContracts(token: boolean, delegate: boolean, factory: boolean, template: boolean, version: string, isDefault: boolean) {
+	async createContracts(token: boolean, delegate: boolean, factory: boolean, version: string, isDefault: boolean) {
 		let responseJSON: JSONObject = {};
 		if (token) {
 			const [...tokenAbi] = await getAbiByCache("Token");
@@ -270,11 +245,6 @@ export class DeployService extends BaseService {
 			const delegateAbi = await getAbiByCache("Delegate");
 			const delegateResponse = await addContractAbi(this.prisma, [...delegateAbi], version, isDefault);
 			responseJSON = { ...responseJSON, delegateResponse };
-		}
-		if (template) {
-			const templateAbi = await getAbiByCache("Template");
-			const templateResponse = await addContractAbi(this.prisma, [...templateAbi], version, isDefault);
-			responseJSON = { ...responseJSON, templateResponse };
 		}
 
 		return responseJSON;

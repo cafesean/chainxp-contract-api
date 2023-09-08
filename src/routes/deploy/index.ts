@@ -20,9 +20,9 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 
 	fastify.put("/create", async (request: any, resp: any) => {
-		const { token, delegate, factory, template, version, isDefault } = request.body;
+		const { token, delegate, factory, version, isDefault } = request.body;
 		// append response to the responseJSON object
-		const response = await fastify.service.deploy.createContracts(token, delegate, factory, template, version, isDefault);
+		const response = await fastify.service.deploy.createContracts(token, delegate, factory, version, isDefault);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(response);
 	});
@@ -46,8 +46,8 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/configure", async (request: any, resp: any) => {
-		const { proxyAddress, delegateAddress, templateAddress } = request.body;
-		const contract = (await fastify.service.deploy.configureProxy(proxyAddress, delegateAddress, templateAddress)) as any;
+		const { proxyAddress, delegateAddress } = request.body;
+		const contract = (await fastify.service.deploy.configureProxy(proxyAddress, delegateAddress)) as any;
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
 	});

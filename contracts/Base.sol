@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "./interface/ITemplate.sol";
 import "./Access.sol";
 import "hardhat/console.sol";
 
@@ -26,7 +25,6 @@ contract Base is
     string public symbol;
     string public baseURI;
     address public DelegateAddress;
-    address public DefaultTemplate;
 
     // mapping(uint256 => string) public tokenURI;
     // mapping(uint256 => string) public classURI;
@@ -57,7 +55,6 @@ contract Base is
         string name;
         string description;
         string classUri;
-        address templateAddress;
     }
 
     struct attribute {

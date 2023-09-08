@@ -89,12 +89,13 @@ export class TokenService extends BaseService {
 			to: contract_address,
 			data: forwardCalldata,
 		};
-
+console.log("tx: ", tx);
+console.log("overrides: ", overrides);
 		const mergedTx = {
 			...tx,
 			...overrides,
 		};
-
+console.log("mergedTx: ", mergedTx);
 		const response = await forwarderSigner.sendTransaction(mergedTx);
 		const receipt = await response.wait();
 
@@ -104,7 +105,6 @@ export class TokenService extends BaseService {
 		const logs = receipt.logs.filter((log) => log.address.toLowerCase() === contract_address.toLowerCase());
 		const events = logs.map((log) => tokenContract.interface.parseLog(log));
 
-		console.log("events: ", events);
 
 		// const response = await tokenContract.mint(user_address, Number(class_id), overrides);
 		let _returnedClassId;
@@ -113,6 +113,7 @@ export class TokenService extends BaseService {
 			return { error: "response is undefined" };
 		}
 		for (const LogDescription of events) {
+		console.log("LogDescription: ", LogDescription);
 			if (LogDescription.signature === "TokenCreated(address,uint256,uint256)") {
 				const argClassId = LogDescription.args[1]; // uint256 value is 2nd arg in array as hex value
 				const argAmount = LogDescription.args[2]; // uint256 value is 2nd arg in array as hex value

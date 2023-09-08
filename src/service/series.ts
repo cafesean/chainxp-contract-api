@@ -10,7 +10,7 @@ interface JSONObject {
 	[key: string]: any;
 }
 
-const zeroAddress = "0x0000000000000000000000000000000000000000";
+// const zeroAddress = "0x0000000000000000000000000000000000000000";
 
 export class SeriesService extends BaseService {
 
@@ -24,7 +24,6 @@ export class SeriesService extends BaseService {
 		const contractProxy = await attachContract(contract_address);
 		const overrides = await getGasPriceOverrides(this, 2);
 		let class_id = reqBody.class_id || "0";
-		const template_id = reqBody.template_id || zeroAddress;
 		const lcaseContractAddress = contract_address.toLowerCase();
 
 		// get series_id
@@ -41,7 +40,7 @@ export class SeriesService extends BaseService {
 
 		return new Promise(async (resolve, reject) => {
 			try {
-				const response = await contractProxy._setClass(Number(class_id), reqBody.name, reqBody.desc, "", template_id, overrides);
+				const response = await contractProxy._setClass(Number(class_id), reqBody.name, reqBody.desc, "", overrides);
 				const receipt = await response.wait();
 				console.log("Receipt: ", receipt);
 
@@ -190,12 +189,11 @@ export class SeriesService extends BaseService {
 		const name = reqBody.name || "";
 		const desc = reqBody.desc || "";
 		const baseUri = reqBody.base_uri || "";
-		const templateAddress = reqBody.template_address || "";
 
 		const [signer] = await ethers.getSigners();
 
 		const functionSignature = ethers.utils.id("setClass(uint256,string,string,string,address)").slice(0, 10);
-		const encodedParams = ethers.utils.defaultAbiCoder.encode(["uint256", "string", "string", "string", "address"], [classId, name, desc, baseUri, templateAddress]);
+		const encodedParams = ethers.utils.defaultAbiCoder.encode(["uint256", "string", "string", "string", "address"], [classId, name, desc, baseUri]);
 		const data = functionSignature + encodedParams.slice(2); // remove the 0x from encodedParams
 
 		// const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);

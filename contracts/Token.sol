@@ -2,7 +2,6 @@
 pragma solidity ^0.8.17;
 import "./Access.sol";
 import "./Base.sol";
-import "./interface/ITemplate.sol";
 import "./interface/IDelegate.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -39,8 +38,7 @@ contract TokenContract is Initializable, Access, Base {
         uint256 _classId,
         string calldata _name,
         string calldata _description,
-        string calldata _baseUri,
-        address _templateAddress
+        string calldata _baseUri
     ) public onlyOps returns (string memory) {
         if (
             keccak256(abi.encodePacked(_name)) ==
@@ -57,8 +55,7 @@ contract TokenContract is Initializable, Access, Base {
                     _classId,
                     _name,
                     _description,
-                    _baseUri,
-                    _templateAddress
+                    _baseUri
                 )
             );
         require(success, "setClass failed");
@@ -123,8 +120,6 @@ contract TokenContract is Initializable, Access, Base {
     function uri(
         uint256 _classId
     ) public view virtual override returns (string memory) {
-        // address _templateAddress = classes[users[_tokenId].classId]
-
         string memory proxyAddress = Strings.toHexString(
             uint160(address(this))
         );
@@ -183,32 +178,6 @@ contract TokenContract is Initializable, Access, Base {
 
     function getDelegateAddress() public view onlyOps returns (address) {
         return DelegateAddress;
-    }
-
-    function setDefaultTemplate(address _address) public onlyAdmin {
-        DefaultTemplate = _address;
-        _setupRole(OPS_ROLE, _address);
-    }
-
-    function getDefaultTemplate() public view onlyOps returns (address) {
-        return DefaultTemplate;
-    }
-
-    function setTemplateContract(
-        uint256 _classId,
-        address _address
-    ) public onlyOps returns (bool) {
-        require(_address != address(0x0));
-        classes[_classId].templateAddress = _address;
-
-        //Request template contract to add this contract
-        ITemplate(classes[_classId].templateAddress).authorizeCallingContract(
-            _msgSender(),
-            address(this)
-        );
-
-        // console.log("setTemplateContract: %s", _address);
-        return true;
     }
 
     function registerFactory(address _address) public onlyAdmin {

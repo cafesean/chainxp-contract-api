@@ -12,8 +12,4 @@ export default interface Artifacts {
 	delegateBytecode: string;
 	delegateContractName: string;
 	delegateSourceName: string;
-	templateAbi: any;
-	templateBytecode: string;
-	templateContractName: string;
-	templateSourceName: string;
 }

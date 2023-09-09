@@ -17,7 +17,7 @@ export class TokenService extends BaseService {
 	async mint(contract_address: string, class_id: string, user_address: string, signedRequest: IForwardRequest) {
 		// await this.findContractClass(contract_address, class_id);
 
-		const tokenContract = await attachContract(contract_address);
+		const tokenContract = await attachContract(contract_address, true);
 		const overrides = await getGasPriceOverrides(this, 2);
 
 		console.log("signedRequest: ", signedRequest);
@@ -164,10 +164,10 @@ console.log("mergedTx: ", mergedTx);
 	async getBalance(contract_address: any, user_address: any) {
 		const [abi, , ,] = await getAbiByName("TokenContract");
 
-		if (abi === undefined) {
+		if (abi?.toString() === undefined) {
 			throw new Error("abi is undefined");
 		}
-		const contract = new ethers.Contract(contract_address, abi, ethers.provider);
+		const contract = new ethers.Contract(contract_address, abi?.toString(), ethers.provider);
 		const balance = await contract.balanceOf(user_address);
 		return balance;
 	}
@@ -175,7 +175,7 @@ console.log("mergedTx: ", mergedTx);
 	async getUris(contract_address: any, from: number, to: number) {
 		var i;
 		var data: JSONObject = {};
-		const tokenContract = await attachContract(contract_address);
+		const tokenContract = await attachContract(contract_address, true);
 
 		try {
 			for (i = from; i <= to; i++) {
@@ -203,7 +203,7 @@ console.log("mergedTx: ", mergedTx);
 		let _returnedClassId;
 		let _amount;
 
-		const tokenContract = await attachContract(contract_address);
+		const tokenContract = await attachContract(contract_address, true);
 
 		const response = await tokenContract.safeTransferFrom(from, to, class_id, amount, "0x00");
 		console.log(`transfer NFT from '${from}' to '${to}' Txn: ${response.hash}`);
@@ -250,7 +250,7 @@ console.log("mergedTx: ", mergedTx);
 		const lcaseContractAddress = contract_address.toLowerCase();
 		// const [signer] = await ethers.getSigners();
 		// const factory = ethers.getContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
-		const tokenContract = await attachContract(contract_address);
+		const tokenContract = await attachContract(contract_address, true);
 
 		const response = await tokenContract.burn(userAddress, class_id, amount);
 		console.log(`burn NFT from '${userAddress}' Txn: ${response.hash}`);

@@ -43,7 +43,7 @@ export const getAbiByCache = async (contractName: string) => {
 		const json = JSON.parse(file);
 		return [JSON.stringify(json.abi), json.bytecode, json.contractName, json.sourceName];
 	} catch (e) {
-		return [, , ,];
+		return [null, null, null, null, null, null];
 	}
 };
 
@@ -65,23 +65,25 @@ export async function getAbiByName(contractName: string) {
 			],
 		},
 		select: {
+			id: true,
 			abi: true,
 			bytecode: true,
 			contract_name: true,
 			source_name: true,
+			version: true,
 		},
 	});
 
 	if (!data) {
 		console.log("No abi data found.");
-		return [, , ,];
+		return [null, null, null, null, null, null];
 	}
 
 	// console.log("source_name: ", data.source_name);
-	return [data?.abi, data?.bytecode, data?.contract_name, data?.source_name];
+	return [data?.id, data?.abi, data?.bytecode, data?.contract_name, data?.source_name, data?.version];
 }
 
-export async function addContractAbi(prisma: any, contractAbi: any, version: string, isDefault: boolean) {
+export async function addContractAbi(prisma: any, contractAbi: any, version: string, isDefault: boolean, tierId: number) {
 	const [abi, bytecode, contract_name, source_name] = contractAbi;
 
 	try {
@@ -93,6 +95,7 @@ export async function addContractAbi(prisma: any, contractAbi: any, version: str
 				source_name: source_name,
 				version: version,
 				default: isDefault,
+				tier_id: tierId,
 			},
 			select: {
 				id: true,
@@ -116,6 +119,9 @@ export async function addContractAbi(prisma: any, contractAbi: any, version: str
 									equals: newContract.id,
 								},
 							},
+							tier_id: {
+								equals: tierId,
+							},
 						},
 					],
 				},
@@ -132,14 +138,43 @@ export async function addContractAbi(prisma: any, contractAbi: any, version: str
 }
 
 // create function to get abi by contract_address
-export async function getAbiByAddress(contractAddress: string) {
+export async function getAbiByAddress(contractAddress: string, isClone: boolean) {
 	const prisma = new PrismaClient();
 
+	// lookup proxyAddress based on cloneAddress
+	let lookupContractAddress;
+
+	if (isClone) {
+		console.log("isClone: ", isClone);
+		const proxyAddress = await prisma.clone.findFirst({
+			where: {
+				contract_address: {
+					equals: contractAddress.toLowerCase(),
+				},
+			},
+			select: {
+				proxy_address: true,
+			},
+		});
+
+		if (!proxyAddress?.proxy_address) {
+			console.log("No proxyAddress found.");
+			lookupContractAddress = null;
+		}
+		lookupContractAddress = proxyAddress?.proxy_address;
+	} else {
+		lookupContractAddress = contractAddress;
+	}
+
+	if (!lookupContractAddress) {
+		console.log("No contractAddress found.");
+		return [, , ,];
+	}
 	const data = await prisma.contract.findMany({
 		take: 1,
 		where: {
 			contract_address: {
-				equals: contractAddress.toLowerCase(),
+				equals: lookupContractAddress.toLowerCase(),
 			},
 		},
 		select: {

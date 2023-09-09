@@ -2,11 +2,15 @@
 import { ethers } from "hardhat";
 import { getAbiByAddress } from "../utils/abi.utils";
 
-export async function attachContract(contractAddress: string) {
+export async function attachContract(contractAddress: string, isClone?: boolean) {
 	// ethers
 	// const factory = new ContractFactory(abi, bytecode);
 	// const attachedContract = factory.attach(contractAddress);
-	const [, , contract_name,] = await getAbiByAddress(contractAddress);
+
+	// lookup proxyContract address based on clone address
+	const isProxyClone = isClone ? isClone : false;
+
+	const [, , contract_name] = await getAbiByAddress(contractAddress, isProxyClone);
 	// hardhat
 	const [signer] = await ethers.getSigners();
 	const factory = await ethers.getContractFactory(contract_name as string);

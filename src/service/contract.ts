@@ -30,7 +30,7 @@ export class ContractService extends BaseService {
 	async grantAccess(walletAddress: string, contractAddress: string, role: string) {
 		const overrides = await getGasPriceOverrides(this, 2);
 		console.log("	contractAddress: ", contractAddress);
-		const proxyContract = await attachContract(contractAddress);
+		const proxyContract = await attachContract(contractAddress, true);
 		await proxyContract.grantAccess(walletAddress, role, overrides);
 
 		return { result: role + " access granted to " + walletAddress };
@@ -42,10 +42,10 @@ export class ContractService extends BaseService {
 		// const slot1 = await ethers.provider.getStorageAt(contract_address, 0);
 		const [abi, , ,] = await getAbiByName("TokenContract");
 		// const abi = this.config.artifacts.tokenAbi;
-		if (abi === undefined) {
+		if (abi?.toString() === undefined) {
 			throw new Error("abi is undefined");
 		}
-		const contract = new ethers.Contract(contract_address, abi, ethers.provider);
+		const contract = new ethers.Contract(contract_address, abi?.toString(), ethers.provider);
 
 		const name = await contract.name();
 		const description = await contract.description();
@@ -65,7 +65,7 @@ export class ContractService extends BaseService {
 	}
 
 	async updateBaseUri(contract_address: string, base_uri: string) {
-		const tokenContract = await attachContract(contract_address);
+		const tokenContract = await attachContract(contract_address, true);
 
 		let response;
 		try {
@@ -81,7 +81,7 @@ export class ContractService extends BaseService {
 	async addAdminUser(contract_address: string, userAddress: string) {
 		// const contract = await this.findContract(contract_address);
 
-		const factoryContract = await attachContract(contract_address);
+		const factoryContract = await attachContract(contract_address, true);
 		const role = "ADMIN_ROLE";
 
 		const response = await factoryContract.grantUserRole(userAddress, role);
@@ -125,8 +125,8 @@ export class ContractService extends BaseService {
 	// }
 
 	// get contract Abi
-	async getAbi(contract_address: string) {
-		const [abi, , contractName, sourceName] = await getAbiByAddress(contract_address);
+	async getAbi(contract_address: string, isClone: boolean = false) {
+		const [abi, , contractName, sourceName] = await getAbiByAddress(contract_address, isClone);
 
 		return { abi: abi, contractName: contractName, sourceName: sourceName };
 	}

@@ -21,7 +21,7 @@ export class SeriesService extends BaseService {
 	}
 
 	async addClass(contract_address: string, reqBody: any) {
-		const contractProxy = await attachContract(contract_address);
+		const contractProxy = await attachContract(contract_address, true);
 		const overrides = await getGasPriceOverrides(this, 2);
 		let class_id = reqBody.class_id || "0";
 		const lcaseContractAddress = contract_address.toLowerCase();
@@ -129,7 +129,7 @@ export class SeriesService extends BaseService {
 
 
 	async setAttributes(contract_address: any, count: number) {
-		const tokenContract = await attachContract(contract_address);
+		const tokenContract = await attachContract(contract_address, true);
 		var i;
 		try {
 			for (i = 1; i <= count; i++) {
@@ -156,7 +156,7 @@ export class SeriesService extends BaseService {
 	}
 
 	async getClasses(contract_address: any, from: number, to: number) {
-		const tokenContract = await attachContract(contract_address);
+		const tokenContract = await attachContract(contract_address, true);
 		var i;
 		var data: JSONObject = {};
 		// const [owner] = await ethers.getSigners();
@@ -170,7 +170,7 @@ export class SeriesService extends BaseService {
 		}
 	}
 	async getAttributes(contract_address: any, from: number, to: number) {
-		const tokenContract = await attachContract(contract_address);
+		const tokenContract = await attachContract(contract_address, true);
 		var i;
 		var data: JSONObject = {};
 		try {

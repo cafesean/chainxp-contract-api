@@ -57,7 +57,7 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		// const { abi } = request.body;
 
 		try {
-			const abiString = await fastify.service.contract.getAbi(contract_address);
+			const abiString = await fastify.service.contract.getAbi(contract_address, true);
 
 			return { result: abiString };
 		} catch (err) {

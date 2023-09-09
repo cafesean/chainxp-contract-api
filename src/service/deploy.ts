@@ -23,6 +23,8 @@ export class DeployService extends BaseService {
 	async cloneProxy(reqBody: any) {
 		const { series_id, factory_address, contract_address, delegate_address, title, baseUri, description, symbol } = reqBody;
 
+		// get deployed contract data based on token contract version before cloning
+
 		const [signer] = await ethers.getSigners();
 
 		const overrides = await getGasPriceOverrides(this, 2);
@@ -34,30 +36,30 @@ export class DeployService extends BaseService {
 
 		let addressClone;
 
-		const contractFactory = await attachContract(factory_address);
+		const contractFactory = await attachContract(factory_address, false);
 		const response = await contractFactory.createClone(contract_address);
 
 		const receipt = await response.wait(); // response is empty if using hardhat network
 
-		const [abi, bytecode, contractName, sourceName] = await getAbiByName("TokenContract");
-		// console.log("response=", await receipt.events);
+		const [id, abi, bytecode, contractName, sourceName, version] = await getAbiByName("TokenContract");
+		console.log("abi=", abi);
 		for (const event of receipt.events) {
 			if (event.event === "ProxyCloned") {
 				addressClone = event.args.cloneAddress.toLowerCase();
 			}
 		}
+		const signerAddress = await signer.getAddress();
 
 		try {
-			await this.prisma.contract.create({
+			await this.prisma.clone.create({
 				data: {
 					type: "clone",
-					name: contractName || "",
+					name: contractName?.toString() || "",
 					contract_address: addressClone.toLowerCase(),
-					contract_name: contractName,
-					source_name: sourceName,
-					owner_address: await signer.getAddress(),
-					abi: abi,
-					bytecode: bytecode,
+					owner_address: signerAddress.toLowerCase(),
+					factory_address: factory_address.toLowerCase(),
+					proxy_address: contract_address.toLowerCase(),
+					status: 1,
 				},
 			});
 		} catch (error) {
@@ -65,7 +67,7 @@ export class DeployService extends BaseService {
 		}
 
 		// initialize clone
-		const contractClone = await attachContract(addressClone);
+		const contractClone = await attachContract(addressClone, true);
 		await contractClone.initialize(signer.address, title, baseUri, description, symbol, overrides).then((tx: any) => tx.wait());
 
 		// configure with delegate
@@ -84,14 +86,14 @@ export class DeployService extends BaseService {
 				title: title || "",
 				contract_address: addressClone.toLowerCase(),
 				delegate_address: delegate_address.toLowerCase(),
-				owner: await signer.getAddress(),
+				owner: signerAddress.toLowerCase(),
 				status: 1,
 			},
 			update: {
 				id: Number(series_id),
 				contract_address: addressClone.toLowerCase(),
 				delegate_address: delegate_address.toLowerCase(),
-				owner: await signer.getAddress(),
+				owner: signerAddress.toLowerCase(),
 				status: 1,
 			},
 			select: {
@@ -112,11 +114,12 @@ export class DeployService extends BaseService {
 
 	async deploy(name: string) {
 		const formattedContractName = name.charAt(0).toUpperCase() + name.slice(1) + "Contract";
-		const [abi, bytecode, contractName, sourceName] = await getAbiByName(formattedContractName);
+		const [id, abi, bytecode, contractName, sourceName, version] = await getAbiByName(formattedContractName);
 
 		const contractFullName = sourceName + ":" + contractName;
 		const [signer] = await ethers.getSigners();
 		const factory = await ethers.getContractFactory(contractFullName);
+		const chainId = await ethers.provider.getNetwork().then((network) => network.chainId);
 		const overrides = await getGasPriceOverrides(this, 2);
 		const newContract = await factory.deploy(overrides);
 		await newContract.deployed();
@@ -126,13 +129,16 @@ export class DeployService extends BaseService {
 		try {
 			await this.prisma.contract.create({
 				data: {
-					name: contractName || "",
+					name: contractName?.toString() || "",
 					contract_address: newContract.address.toLowerCase(),
-					contract_name: contractName,
-					source_name: sourceName,
+					contract_name: contractName?.toString(),
+					source_name: sourceName?.toString(),
 					owner_address: await signer.getAddress(),
-					abi: abi,
-					bytecode: bytecode,
+					abi: abi?.toString(),
+					bytecode: bytecode?.toString(),
+					contract_version_id: Number(id),
+					version: version?.toString(),
+					chain_id: chainId,
 				},
 			});
 		} catch (error) {
@@ -167,9 +173,9 @@ export class DeployService extends BaseService {
 	}
 
 	async deployAll(name: string, baseUri: string, description: string, symbol: string) {
-		const [deployer] = await ethers.getSigners();
+		// const [deployer] = await ethers.getSigners();
 
-		const overrides = await getGasPriceOverrides(this, 2);
+		// const overrides = await getGasPriceOverrides(this, 2);
 		// deploy delegate
 		const initEmptyOptions = [""];
 		const contractDelegate = await this.deploySingle("delegate", initEmptyOptions); // #1 Delegate
@@ -179,9 +185,9 @@ export class DeployService extends BaseService {
 		const contractProxy = await this.deploySingle("token", initProxyOptions); // #2 Proxy
 
 		// configure proxy
-		await contractProxy.setDelegateAddress(contractDelegate.address, overrides);
-		await contractDelegate.grantAccess(deployer.address, "ADMIN_ROLE", overrides);
-		
+		// await contractProxy.setDelegateAddress(contractDelegate.address, overrides);
+		// await contractDelegate.grantAccess(deployer.address, "ADMIN_ROLE", overrides);
+
 		console.log("Config done");
 
 		return { proxy_address: contractProxy.address, delegate_address: contractDelegate.address };
@@ -212,38 +218,38 @@ export class DeployService extends BaseService {
 		const proxyContract = await attachContract(proxyAddress);
 		await proxyContract.setDelegateAddress(delegateAddress, overrides);
 
-		console.log("	proxyAddress: ", delegateAddress);
+		console.log("	delegateAddress: ", delegateAddress);
 		const delegateContract = await attachContract(delegateAddress);
 		await delegateContract.grantAccess(deployer.address, "ADMIN_ROLE", overrides);
-		
+
 		return { proxy_address: proxyAddress, delegate_address: delegateAddress };
 	}
 
 	async grantCloneAccess(walletAddress: string, contractAddress: string) {
 		const overrides = await getGasPriceOverrides(this, 2);
 		console.log("	contractAddress: ", contractAddress);
-		const proxyContract = await attachContract(contractAddress);
+		const proxyContract = await attachContract(contractAddress, true);
 		await proxyContract.grantAccess(walletAddress, "OPS_ROLE", overrides);
 
 		return { result: "OPS_ROLE access granted to " + walletAddress };
 	}
 
-	async createContracts(token: boolean, delegate: boolean, factory: boolean, version: string, isDefault: boolean) {
+	async createContracts(token: boolean, delegate: boolean, factory: boolean, version: string, isDefault: boolean, tierId: number) {
 		let responseJSON: JSONObject = {};
 		if (token) {
 			const [...tokenAbi] = await getAbiByCache("Token");
-			const tokenResponse = await addContractAbi(this.prisma, [...tokenAbi], version, isDefault);
+			const tokenResponse = await addContractAbi(this.prisma, [...tokenAbi], version, isDefault, tierId);
 			console.log("tokenResponse: ", tokenResponse);
 			responseJSON = { ...responseJSON, tokenResponse };
 		}
 		if (factory) {
 			const factoryAbi = await getAbiByCache("Factory");
-			const factoryResponse = await addContractAbi(this.prisma, [...factoryAbi], version, isDefault);
+			const factoryResponse = await addContractAbi(this.prisma, [...factoryAbi], version, isDefault, tierId);
 			responseJSON = { ...responseJSON, factoryResponse };
 		}
 		if (delegate) {
 			const delegateAbi = await getAbiByCache("Delegate");
-			const delegateResponse = await addContractAbi(this.prisma, [...delegateAbi], version, isDefault);
+			const delegateResponse = await addContractAbi(this.prisma, [...delegateAbi], version, isDefault, tierId);
 			responseJSON = { ...responseJSON, delegateResponse };
 		}
 
@@ -253,12 +259,12 @@ export class DeployService extends BaseService {
 		// var data: JSONObject = {};
 
 		// const slot1 = await ethers.provider.getStorageAt(contract_address, 0);
-		const [abi, , ,] = await getAbiByName("TokenContract");
+		const [abi, , , , ,] = await getAbiByName("TokenContract");
 		// const abi = this.config.artifacts.tokenAbi;
-		if (abi === undefined) {
+		if (abi?.toString() === undefined) {
 			throw new Error("abi is undefined");
 		}
-		const contract = new ethers.Contract(contract_address, abi, ethers.provider);
+		const contract = new ethers.Contract(contract_address, abi?.toString(), ethers.provider);
 
 		const name = await contract.name();
 		const description = await contract.description();

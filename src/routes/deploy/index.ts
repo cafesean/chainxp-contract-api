@@ -20,9 +20,9 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 
 	fastify.put("/create", async (request: any, resp: any) => {
-		const { token, delegate, factory, version, isDefault } = request.body;
+		const { token, delegate, factory, version, isDefault, tierId } = request.body;
 		// append response to the responseJSON object
-		const response = await fastify.service.deploy.createContracts(token, delegate, factory, version, isDefault);
+		const response = await fastify.service.deploy.createContracts(token, delegate, factory, version, isDefault, tierId);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(response);
 	});

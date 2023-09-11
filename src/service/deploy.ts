@@ -41,7 +41,7 @@ export class DeployService extends BaseService {
 
 		const receipt = await response.wait(); // response is empty if using hardhat network
 
-		const [id, abi, bytecode, contractName, sourceName, version] = await getAbiByName("TokenContract");
+		const [, abi,, contractName,,] = await getAbiByName("TokenContract");
 		console.log("abi=", abi);
 		for (const event of receipt.events) {
 			if (event.event === "ProxyCloned") {

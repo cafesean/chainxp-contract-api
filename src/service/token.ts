@@ -108,7 +108,7 @@ console.log("mergedTx: ", mergedTx);
 
 		// const response = await tokenContract.mint(user_address, Number(class_id), overrides);
 		let _returnedClassId;
-		let _amount;
+		let _classTokenId;
 		if (!receipt || receipt === undefined) {
 			return { error: "response is undefined" };
 		}
@@ -116,9 +116,9 @@ console.log("mergedTx: ", mergedTx);
 		console.log("LogDescription: ", LogDescription);
 			if (LogDescription.signature === "TokenCreated(address,uint256,uint256)") {
 				const argClassId = LogDescription.args[1]; // uint256 value is 2nd arg in array as hex value
-				const argAmount = LogDescription.args[2]; // uint256 value is 2nd arg in array as hex value
+				const argClassTokenId = LogDescription.args[2]; // uint256 value is 2nd arg in array as hex value
 				_returnedClassId = argClassId.toString();
-				_amount = argAmount.toString();
+				_classTokenId = argClassTokenId.toString();
 			}
 		}
 
@@ -132,7 +132,7 @@ console.log("mergedTx: ", mergedTx);
 				nonce: response.nonce,
 				contract_address,
 				class_id: _returnedClassId,
-				amount: _amount,
+				token_id: _classTokenId,
 				from: await forwarderSigner.getAddress(),
 				to: user_address,
 				status: -1,

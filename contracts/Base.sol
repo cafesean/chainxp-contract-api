@@ -26,12 +26,6 @@ contract Base is
     string public baseURI;
     address public DelegateAddress;
 
-    // mapping(uint256 => string) public tokenURI;
-    // mapping(uint256 => string) public classURI;
-    mapping(uint256 => class) public classes;
-    mapping(uint256 => attribute) public attributes; // classId => attributeId
-    mapping(uint256 => mapping(address => uint256)) public users; // classId => user address => balance
-
     //event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     // event ClassURI(string classUri, uint256 indexed classId);
     event TokenCreated(
@@ -46,7 +40,7 @@ contract Base is
         address fromAddress,
         address indexed toAddress,
         uint256 indexed classId,
-        uint256 amount
+        uint256 tokenId
     );
 
     struct class {
@@ -64,6 +58,11 @@ contract Base is
         bool visible;
         bool active;
     }
+    // mapping(uint256 => string) public tokenURI;
+    // mapping(uint256 => string) public classURI;
+    mapping(uint256 => class) public classes;
+    mapping(uint256 => attribute) public attributes; // classId => attributeId
+    mapping(uint256 => mapping(address => uint256)) public users; // classId => user address => balance
 
     bool initialized = false;
 
@@ -128,9 +127,9 @@ contract Base is
         uint256 _classId
     ) public onlyForwarder returns (uint256) {
         _mint(_to, _classId, 1, "");
-        uint256 classTokenCount = classes[_classId].tokenCount++;
+        classes[_classId].tokenCount += 1;
         users[_classId][_to] += 1;
-        return classTokenCount;
+        return classes[_classId].tokenCount;
     }
 
     function burn(

@@ -42,7 +42,7 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		const { name, baseUri, description, symbol, fungible } = request.body;
 		const contract = (await fastify.service.deploy.deployAll(name, baseUri, description, symbol, fungible)) as any;
 
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ contract });
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(contract);
 	});
 
 	fastify.post("/configure", async (request: any, resp: any) => {
@@ -57,7 +57,7 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 		const contract = await fastify.service.deploy.cloneProxy(request.body);
 
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ contract });
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(contract);
 	});
 
 	fastify.post("/deployFactory", async (request: any, resp: any) => {
@@ -65,6 +65,6 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 		const contract = await fastify.service.deploy.deployFactory(request.body);
 
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ contract });
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ "factoryAddress": contract });
 	});
 }

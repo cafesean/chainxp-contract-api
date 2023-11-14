@@ -110,7 +110,7 @@ export class DeployService extends BaseService {
 		// const series_id = seriesData?.id;
 		console.log("Clone address: ", addressClone);
 		// return new clone (series)
-		return { "clone address": addressClone, series_id: seriesData?.id };
+		return { "cloneAddress": addressClone, seriesId: seriesData?.id };
 	}
 
 	async deploy(name: string) {
@@ -191,7 +191,7 @@ export class DeployService extends BaseService {
 
 		console.log("Config done");
 
-		return { proxy_address: contractProxy.address, delegate_address: contractDelegate.address };
+		return { proxyAddress: contractProxy.address, delegateAddress: contractDelegate.address };
 	}
 
 	async deploySingle(contractName: string, options: any) {
@@ -224,7 +224,7 @@ export class DeployService extends BaseService {
 		const delegateContract = await attachContract(delegateAddress);
 		await delegateContract.grantAccess(deployer.address, "ADMIN_ROLE", overrides);
 
-		return { proxy_address: proxyAddress, delegate_address: delegateAddress };
+		return { proxyAddress: proxyAddress, delegateAddress: delegateAddress };
 	}
 
 	async grantCloneAccess(walletAddress: string, contractAddress: string) {

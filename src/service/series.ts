@@ -85,7 +85,7 @@ export class SeriesService extends BaseService {
 					},
 				});
 
-				resolve({ xp_id: newXp.id, class_id: class_id });
+				resolve({ xpId: newXp.id, classId: class_id });
 			} catch (e) {
 				console.log(e);
 				reject(new Error("Error creating class:" + e));

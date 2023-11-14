@@ -17,7 +17,7 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		console.log("In addClass route");
 		const contractClass = await fastify.service.series.addClass(contract_id, request.body);
 
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contractClass });
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(contractClass);
 	});
 
 	fastify.get("/:contract_address/users/:id1/:id2", async (request: any, resp: any) => {

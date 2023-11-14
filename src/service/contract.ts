@@ -21,7 +21,7 @@ export class ContractService extends BaseService {
 			},
 		});
 
-		return "Contract API v" + version?.version + " on " + version?.chain;
+		return "Blockchain API v" + version?.version + " on " + version?.chain;
 	}
 	async network() {
 		return "Current network is " + process.env.DEFAULT_NETWORK;
@@ -139,8 +139,8 @@ export class ContractService extends BaseService {
 
 		const [signer] = await ethers.getSigners();
 
-		const functionSignature = ethers.utils.id("setClass(uint256,string,string,string,address)").slice(0, 10);
-		const encodedParams = ethers.utils.defaultAbiCoder.encode(["uint256", "string", "string", "string", "address"], [classId, name, desc, baseUri]);
+		const functionSignature = ethers.utils.id("setClass(uint256,string,string,string)").slice(0, 10);
+		const encodedParams = ethers.utils.defaultAbiCoder.encode(["uint256", "string", "string", "string"], [classId, name, desc, baseUri]);
 		const data = functionSignature + encodedParams.slice(2); // remove the 0x from encodedParams
 
 		// const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);

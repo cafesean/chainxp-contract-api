@@ -21,10 +21,10 @@ contract DelegateContract is Initializable, Access, Base {
 
     function setClass(
         uint256 _classId,
-        string memory _name,
-        string memory _description,
+        string calldata _name,
+        string calldata _description,
         string memory _baseUri
-    ) public onlyOps returns (uint256 id) {
+    ) external onlyOps returns (uint256 id) {
         if (_classId == 0) {
             classesCount.increment();
             _classId = classesCount.current();
@@ -42,34 +42,6 @@ contract DelegateContract is Initializable, Access, Base {
         return _classId;
     }
 
-    function setAttribute(
-        uint256 _id,
-        uint256 _classId,
-        string memory _name,
-        string memory _code
-    ) public onlyOps returns (string memory) {
-        if (_id == 0) {
-            attributeCount.increment();
-            _id = attributeCount.current();
-        }
-        require(_classId > 0, "No class ID");
-
-        bytes32 code = keccak256(abi.encodePacked(_code));
-        if (code == keccak256(abi.encodePacked("delete"))) {
-            delete attributes[_classId];
-            return "Deleted";
-        }
-        attributes[_classId].visible = code ==
-            keccak256(abi.encodePacked("false"))
-            ? false : true;
-
-        if (attributes[_classId].id == 0) {
-            attributes[_classId].id = _id;
-        }
-        attributes[_classId].name = _name;
-
-        return "Done";
-    }
 
     // function burnBatchByClass(uint256 _classId) public onlyAdmin {
     //     for (uint256 _userId = 1; _userId <= tokenCount.current(); _userId++) {
@@ -82,7 +54,7 @@ contract DelegateContract is Initializable, Access, Base {
     //     }
     // }
 
-    function destroy() public onlyAdmin {
+    function destroy() external onlyAdmin {
         selfdestruct(payable(_owner));
     }
 

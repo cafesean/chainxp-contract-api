@@ -39,8 +39,8 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/deployAll", async (request: any, resp: any) => {
-		const { name, baseUri, description, symbol } = request.body;
-		const contract = (await fastify.service.deploy.deployAll(name, baseUri, description, symbol)) as any;
+		const { name, baseUri, description, symbol, fungible } = request.body;
+		const contract = (await fastify.service.deploy.deployAll(name, baseUri, description, symbol, fungible)) as any;
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
 	});

@@ -19,12 +19,15 @@ contract Base is
     Access
 {
     using Strings for uint256;
+    uint8 fungible;
+    error Unauthorized();
+    error ErrorMessage(string message);
+    address public DelegateAddress;
     address public _owner;
     string public name;
     string public description;
     string public symbol;
     string public baseURI;
-    address public DelegateAddress;
 
     //event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     // event ClassURI(string classUri, uint256 indexed classId);
@@ -61,7 +64,6 @@ contract Base is
     // mapping(uint256 => string) public tokenURI;
     // mapping(uint256 => string) public classURI;
     mapping(uint256 => class) public classes;
-    mapping(uint256 => attribute) public attributes; // classId => attributeId
     mapping(uint256 => mapping(address => uint256)) public users; // classId => user address => balance
 
     bool initialized = false;
@@ -75,12 +77,16 @@ contract Base is
     // }
 
     function setOwner(address _newOwner) public onlyOwner {
-        require(msg.sender == _owner, "Not the owner");
+        if (msg.sender != _owner) {
+            revert Unauthorized();
+        }
         _owner = _newOwner;
     }
 
     function _checkOwner() internal view virtual override {
-        require(msg.sender == _owner, "Not the owner");
+        if (msg.sender != _owner) {
+            revert Unauthorized();
+        }
     }
 
     // Initial address for contract metadata
@@ -95,7 +101,7 @@ contract Base is
             );
     }
 
-    function setBaseURI(string memory _baseURI) public onlyOps {
+    function setBaseURI(string calldata _baseURI) external onlyOps {
         baseURI = _baseURI;
     }
 
@@ -108,28 +114,20 @@ contract Base is
     //     }
     //     _setURI("n");
     // }
-    function swap(
-        address _userAddress,
-        uint256 _oldClassId,
-        uint256 _newClassId
-    ) public onlyOps returns (uint256) {
-        safeTransferFrom(_userAddress, address(0), _oldClassId, 1, bytes(""));
-        _mint(_userAddress, _newClassId, 1, "");
-        classes[_newClassId].tokenCount += 1;
-        classes[_oldClassId].tokenCount -= 1;
-        users[_newClassId][_userAddress] += 1;
-        users[_oldClassId][_userAddress] -= 1;
-        return classes[_newClassId].tokenCount;
-    }
 
-    function mintSingle(
+    function mintFT(
         address _to,
         uint256 _classId
     ) public onlyForwarder returns (uint256) {
         _mint(_to, _classId, 1, "");
-        classes[_classId].tokenCount += 1;
-        users[_classId][_to] += 1;
+        ++classes[_classId].tokenCount;
+        ++users[_classId][_to];
         return classes[_classId].tokenCount;
+    }
+
+    function mintNFT(address _to, uint256 _tokenId) public onlyForwarder {
+        _mint(_to, _tokenId, 1, "");
+        users[_tokenId][_to] = 1;
     }
 
     function burn(
@@ -137,9 +135,11 @@ contract Base is
         uint256 _classId,
         uint256 _amount
     ) public override onlyOps {
-        require(balanceOf(_account, _classId) > 0, "No token");
+        if (balanceOf(_account, _classId) < 1) {
+            revert ErrorMessage("No token");
+        }
         _burn(_account, _classId, _amount);
-        users[_classId][_account] -= 1;
+        --users[_classId][_account]; // FT _classID = NFT _tokenId
         emit TokenTxn("burn", _account, address(0), _classId, _amount);
     }
 
@@ -151,6 +151,23 @@ contract Base is
     //         }
     //     }
     // }
+
+    function swap(
+        address _userAddress,
+        uint256 _oldClassId,
+        uint256 _newClassId
+    ) external onlyOps returns (uint256) {
+        if (balanceOf(_userAddress, _oldClassId) < 1) {
+            revert ErrorMessage("No token");
+        }
+        safeTransferFrom(_userAddress, address(0), _oldClassId, 1, bytes(""));
+        _mint(_userAddress, _newClassId, 1, "");
+        ++classes[_newClassId].tokenCount;
+        --classes[_oldClassId].tokenCount;
+        ++users[_newClassId][_userAddress];
+        --users[_oldClassId][_userAddress];
+        return classes[_newClassId].tokenCount;
+    }
 
     function safeTransferFrom(
         address from,
@@ -168,7 +185,7 @@ contract Base is
         address,
         uint256,
         uint256,
-        bytes memory
+        bytes calldata
     ) external pure returns (bytes4) {
         return this.onERC1155Received.selector;
     }
@@ -176,9 +193,9 @@ contract Base is
     function onERC1155BatchReceived(
         address,
         address,
-        uint256[] memory,
-        uint256[] memory,
-        bytes memory
+        uint256[] calldata,
+        uint256[] calldata,
+        bytes calldata
     ) external pure returns (bytes4) {
         return this.onERC1155BatchReceived.selector;
     }
@@ -187,7 +204,7 @@ contract Base is
         address,
         address,
         uint256,
-        bytes memory
+        bytes calldata
     ) external pure returns (bytes4) {
         return this.onERC721Received.selector;
     }
@@ -200,19 +217,17 @@ contract Base is
         uint256[] memory amounts,
         bytes memory data
     ) internal override(ERC1155Upgradeable, ERC1155SupplyUpgradeable) {
-        require(
-            from == address(0) || to == address(0),
-            "Soulbound token not transferrable"
-        );
+        if (to != address(0) && from != address(0)) {
+            revert ErrorMessage("Soulbound token not transferrable");
+        }
         super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
     }
 
     //custom ownable functions
     function transferOwnership(address newOwner) public override onlyOwner {
-        require(
-            newOwner != address(0x0),
-            "Ownable: new owner is the zero address"
-        );
+        if (newOwner == address(0x0)) {
+            revert ErrorMessage("New owner is the zero address");
+        }
         address oldOwner = _owner;
         _owner = newOwner;
         emit OwnershipTransferred(oldOwner, newOwner);

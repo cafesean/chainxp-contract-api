@@ -21,7 +21,7 @@ export class DeployService extends BaseService {
 	}
 
 	async cloneProxy(reqBody: any) {
-		const { series_id, factory_address, contract_address, delegate_address, title, baseUri, description, symbol } = reqBody;
+		const { series_id, fungible, factory_address, contract_address, delegate_address, title, baseUri, description, symbol } = reqBody;
 
 		// get deployed contract data based on token contract version before cloning
 
@@ -54,6 +54,7 @@ export class DeployService extends BaseService {
 			await this.prisma.clone.create({
 				data: {
 					type: "clone",
+					fungible: fungible === 1, 
 					name: contractName?.toString() || "",
 					contract_address: addressClone.toLowerCase(),
 					owner_address: signerAddress.toLowerCase(),
@@ -68,7 +69,7 @@ export class DeployService extends BaseService {
 
 		// initialize clone
 		const contractClone = await attachContract(addressClone, true);
-		await contractClone.initialize(signer.address, title, baseUri, description, symbol, overrides).then((tx: any) => tx.wait());
+		await contractClone.initialize(signer.address, title, baseUri, description, symbol, fungible, overrides).then((tx: any) => tx.wait());
 
 		// configure with delegate
 		const delegateContract = await attachContract(delegate_address);
@@ -172,7 +173,7 @@ export class DeployService extends BaseService {
 		return newFactory.address;
 	}
 
-	async deployAll(name: string, baseUri: string, description: string, symbol: string) {
+	async deployAll(name: string, baseUri: string, description: string, symbol: string, fungible: boolean) {
 		// const [deployer] = await ethers.getSigners();
 
 		// const overrides = await getGasPriceOverrides(this, 2);
@@ -181,7 +182,7 @@ export class DeployService extends BaseService {
 		const contractDelegate = await this.deploySingle("delegate", initEmptyOptions); // #1 Delegate
 
 		// deploy proxy
-		const initProxyOptions = [name, baseUri, description, symbol];
+		const initProxyOptions = [name, baseUri, description, symbol, fungible];
 		const contractProxy = await this.deploySingle("token", initProxyOptions); // #2 Proxy
 
 		// configure proxy
@@ -201,6 +202,7 @@ export class DeployService extends BaseService {
 		switch (contractName) {
 			case "token":
 				await newContract.initialize(deployer.address, ...options, overrides);
+				// await newContract.initialize(deployer.address, ...options);
 				break;
 			default:
 				await newContract.initialize(overrides);

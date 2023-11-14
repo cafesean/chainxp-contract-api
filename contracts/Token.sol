@@ -18,13 +18,15 @@ contract TokenContract is Initializable, Access, Base {
         string memory _title,
         string memory _baseUri,
         string memory _description,
-        string memory _symbol
+        string memory _symbol,
+        uint8 _fungible
     ) public initializer {
         _owner = ownerAddress;
         name = _title;
         baseURI = _baseUri;
         description = _description;
         symbol = _symbol;
+        fungible = _fungible;
         __ERC1155_init(baseURI);
         __Ownable_init();
 
@@ -32,6 +34,33 @@ contract TokenContract is Initializable, Access, Base {
         _setupRole(ADMIN_ROLE, _owner);
         _setupRole(OPS_ROLE, _owner);
         initialized = true;
+    }
+
+    function mint(uint256 _classId) external onlyForwarder returns (uint256 id) {
+        uint256 _tokenId;
+        if (fungible == 1) {
+            if (classes[_classId].id == 0) {
+                revert ErrorMessage("No XP");
+            }
+            _tokenId = mintFT(_msgSender(), _classId);
+        } else {
+            classesCount.increment();
+            _tokenId = classesCount.current();
+            mintNFT(_msgSender(), _tokenId);
+            emit URI(uri(_classId), _tokenId);
+        }
+        emit TokenCreated(_msgSender(), _classId, _tokenId);
+        return _tokenId;
+    }
+
+    function mintBatchForClasses(
+        address[] calldata _to,
+        uint256 _classId
+    ) external onlyOps {
+        for (uint256 i; i < _to.length; ++i) {
+            // classes[_classId].tokenCount.increment();
+            mintFT(_to[i], _classId);
+        }
     }
 
     function _setClass(
@@ -58,63 +87,14 @@ contract TokenContract is Initializable, Access, Base {
                     _baseUri
                 )
             );
-        require(success, "setClass failed");
+        if (!success) {
+            revert ErrorMessage("setClass failed");
+        }
         uint256 returnedClassID = abi.decode(returnedData, (uint256));
         emit ClassUpdated(_name, returnedClassID);
         emit URI(uri(returnedClassID), returnedClassID);
         return string.concat("Updated ", Strings.toString(returnedClassID));
     }
-
-    function _setAttribute(
-        uint256 _classId,
-        uint256 _attributeId,
-        string memory _name,
-        string memory _code
-    ) public onlyOps returns (string memory) {
-        if (
-            keccak256(abi.encodePacked(_name)) ==
-            keccak256(abi.encodePacked("delete"))
-        ) {
-            delete classes[_attributeId];
-            return "Deleted";
-        }
-        (bool success, bytes memory returnedData) = DelegateAddress
-            .delegatecall(
-                abi.encodeWithSelector(
-                    IDelegate.setAttribute.selector,
-                    _attributeId,
-                    _classId,
-                    _name,
-                    _code
-                )
-            );
-        require(success, "setAttribute failed");
-        (string memory status, uint256 attributeId) = abi.decode(
-            returnedData,
-            (string, uint256)
-        );
-
-        emit AttributeUpdated(_name, attributeId);
-        return string.concat("Updated ", status);
-    }
-
-    // function setAttributes(
-    //     uint256 _classId,
-    //     uint256[] memory _attributeIds,
-    //     string[] memory _attributeValues
-    // ) public onlyOps {
-    //     (bool success, ) = DelegateAddress.delegatecall(
-    //         abi.encodeWithSelector(
-    //             IDelegate.setUserAttributes.selector,
-    //             _classId,
-    //             _attributeIds,
-    //             _attributeValues
-    //         )
-    //     );
-    //     // tokenURI[_tokenId] = uri(_tokenId);
-    //     // emit URI([_tokenId], _tokenId);
-    //     emit URI(uri(_tokenId), _tokenId);
-    // }
 
     //required by opensea - using classId as tokenId
     function uri(
@@ -132,34 +112,6 @@ contract TokenContract is Initializable, Access, Base {
             );
     }
 
-    function mint(uint256 _classId) public onlyForwarder returns (uint256 id) {
-        require(classes[_classId].id != 0, "No xp");
-        address sender = _msgSender();
-        uint256 _classTokenId;
-        _classTokenId = mintSingle(sender, _classId);
-        emit TokenCreated(sender, _classId, _classTokenId);
-        return _classTokenId;
-    }
-
-    function mintBatchForClasses(
-        address[] memory _to,
-        uint256 _classId
-    ) public onlyOps {
-        for (uint256 i = 0; i < _to.length; i++) {
-            // classes[_classId].tokenCount.increment();
-            mintSingle(_to[i], _classId);
-        }
-    }
-
-    // Interface getters
-    function getAttributeCount() public view returns (uint256) {
-        return attributeCount.current();
-    }
-
-    function _attributes(uint256 _id) public view returns (attribute memory) {
-        return attributes[_id];
-    }
-
     function _users(
         uint256 _classId,
         address _address
@@ -171,16 +123,16 @@ contract TokenContract is Initializable, Access, Base {
         return classes[_id];
     }
 
-    function setDelegateAddress(address _address) public onlyAdmin {
+    function setDelegateAddress(address _address) external onlyAdmin {
         DelegateAddress = _address;
         _setupRole(OPS_ROLE, _address);
     }
 
-    function getDelegateAddress() public view onlyOps returns (address) {
+    function getDelegateAddress() external view onlyOps returns (address) {
         return DelegateAddress;
     }
 
-    function registerFactory(address _address) public onlyAdmin {
+    function registerFactory(address _address) external onlyAdmin {
         _setupRole(ADMIN_ROLE, _address);
     }
 
@@ -212,8 +164,9 @@ contract TokenContract is Initializable, Access, Base {
     fallback() external payable onlyOps {
         (bool success, bytes memory returnedData) = DelegateAddress
             .delegatecall(msg.data);
-        require(success, "Delegatecall failed");
-
+        if (!success) {
+            revert ErrorMessage("Delegatecall failed");
+        }
         if (returnedData.length > 0) {
             assembly {
                 return(add(0x20, returnedData), mload(returnedData))

@@ -9,10 +9,10 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		const message = await fastify.service.contract.version();
 		return { result: message };
 	});
-	fastify.get("/version", async () => {
-		const message = await fastify.service.contract.version();
-		return { result: message };
-	});
+	// fastify.get("/version", async () => {
+	// 	const message = await fastify.service.contract.version();
+	// 	return { result: message };
+	// });
 	fastify.get("/network", async () => {
 		const message = await fastify.service.contract.network();
 		return { result: message };

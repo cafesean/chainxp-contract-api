@@ -8,56 +8,56 @@ datasource db {
 }
 
 model allowlist {
-  id               String    @id(map: "allowlist_new_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   class_id         String?
-  token_id         String?
-  user_address     String?
   contract_address String?
-  is_owned         Boolean?  @default(false)
   created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  id               String    @id(map: "allowlist_new_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  is_owned         Boolean?  @default(false)
+  token_id         String?
   updated_at       DateTime? @updatedAt @db.Timestamptz(6)
+  user_address     String?
   xp_id            Int?
   xp               xp?       @relation(fields: [xp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "allowlist_new_xp_id_fkey")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model contract {
-  id                  BigInt            @id(map: "contract_pkey") @default(autoincrement())
-  contract_version_id BigInt?
-  name                String            @db.VarChar(250)
-  contract_name       String?
-  owner_address       String?
   contract_address    String            @unique
-  factory_address     String?
-  forwarder_address   String?
-  cloned_from         String?
+  name                String            @db.VarChar(250)
+  created_at          DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime          @default(now()) @db.Timestamptz(6)
+  chain               String?
+  chain_id            Int?
+  contract_name       String?
+  deployed_at         DateTime?         @default(now()) @db.Timestamptz(6)
+  id                  BigInt            @id @default(autoincrement())
+  owner_address       String?
   status              Int?
   type                String?
   version             String?
-  chain               String?
-  chain_id            Int?
   abi                 String?
   bytecode            String?
   source_name         String?
-  created_at          DateTime          @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime          @default(now()) @db.Timestamptz(6)
-  deployed_at         DateTime?         @default(now()) @db.Timestamptz(6)
+  factory_address     String?
+  cloned_from         String?
+  contract_version_id BigInt?
+  forwarder_address   String?
   contract_version    contract_version? @relation(fields: [contract_version_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "contract_contract_version_id_key")
 }
 
 model contract_version {
   id            BigInt     @id @default(autoincrement())
-  tier_id       Int?
-  version       String
   contract_name String
   source_name   String
-  chain_id      Int?       @db.SmallInt
+  version       String
   network       String?
   abi           String
   bytecode      String
   group         String?
   default       Boolean
   created_at    DateTime?  @default(now()) @db.Timestamptz(6)
+  tier_id       Int?
+  chain_id      Int?       @db.SmallInt
   contract      contract[]
 }
 
@@ -68,38 +68,39 @@ model clone {
   owner_address    String
   contract_address String
   factory_address  String
-  proxy_address    String
   delegate_address String?
   status           Int
   chain_id         Int?
   deployed_at      DateTime @default(now()) @db.Timestamptz(6)
   created_at       DateTime @default(now()) @db.Timestamptz(6)
   updated_at       DateTime @default(now()) @db.Timestamptz(6)
+  proxy_address    String
+  fungible         Boolean? @default(true)
 }
 
 model org {
-  id           Int       @id(map: "org_pkey") @default(autoincrement())
-  tier_id      Int       @default(1)
-  country_id   BigInt?
+  id           Int       @id @default(autoincrement())
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
   name         String?
+  country_id   BigInt?
   type         Int?      @db.SmallInt
+  access_key   Json[]
   logo_url     String?
   slug         String?
   uuid         String?   @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
   status       Int?      @db.SmallInt
   home_page    String?
-  created_at   DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
-  access_key   Json[]
   auth_wallets Json[]
+  tier_id      Int       @default(1)
   series       series[]
 }
 
 model org_scheme {
   id         BigInt    @id @default(autoincrement())
-  status     Int?      @db.SmallInt
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  status     Int?      @db.SmallInt
   scheme     BigInt?
 }
 
@@ -114,23 +115,24 @@ model role {
 
 model scheme {
   id            Int       @id(map: "schemes_pkey") @default(autoincrement())
-  name          String?
   created_at    DateTime? @default(now()) @db.Timestamptz(6)
   updated_at    DateTime? @default(now()) @db.Timestamptz(6)
+  name          String?
   contracts     Json[]
   access_policy Json?
 }
 
 model series {
-  id               Int       @id(map: "series_pkey") @default(autoincrement())
+  id               Int       @id @default(autoincrement())
   org_id           Int?
-  status           Int       @default(0)
   category         Int?      @db.SmallInt
   title            String?
   description      String?
   image_url        String?
   banner_url       String?
   attributes       Json?
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime? @updatedAt @db.Timestamptz(6)
   contract_version String?
   tokens           Json?
   slug             String?
@@ -141,15 +143,15 @@ model series {
   delegate_address String?
   template_id      BigInt?
   external_link    String?
-  created_at       DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime? @updatedAt @db.Timestamptz(6)
+  status           Int       @default(0)
+  fungible         Boolean?  @default(true)
   org              org?      @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   template         template? @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "series_template_id_key")
   xp               xp[]
 }
 
 model user {
-  id            String    @id(map: "user_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
   status        Int?      @db.SmallInt
   wallets       String[]
   attributes    Json?
@@ -158,25 +160,27 @@ model user {
   profile       Json?
   role_id       BigInt[]
   org_id        BigInt[]
+  updated_at    DateTime? @updatedAt @db.Timestamptz(6)
   referred_by   String?
   is_registered Boolean?
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   email         Json?     @db.Json
   phone         Json?     @db.Json
-  created_at    DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime? @updatedAt @db.Timestamptz(6)
 }
 
 model xp {
-  id               Int         @id(map: "xp_pkey") @default(autoincrement())
-  series_id        Int?
-  class_id         String?
-  uuid             String?     @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id               Int         @id @default(autoincrement())
+  created_at       DateTime?   @default(now()) @db.Timestamptz(6)
   status           Int?        @db.SmallInt
   xp_code          String?
   title            String?
   description      String?
+  series_id        Int?
   image_url        String?
   slug             String?
+  uuid             String?     @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  updated_at       DateTime?   @updatedAt @db.Timestamptz(6)
+  class_id         String?
   requirements     String?
   contract_address String?
   xp_font          String?
@@ -186,8 +190,6 @@ model xp {
   xp_text_x        String?
   xp_text_y        String?
   external_link    String?
-  created_at       DateTime?   @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime?   @updatedAt @db.Timestamptz(6)
   allowlist        allowlist[]
   series           series?     @relation(fields: [series_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   xp_type          xp_type?    @relation(fields: [xp_code], references: [xp_code], onDelete: NoAction, onUpdate: NoAction)
@@ -196,11 +198,11 @@ model xp {
 }
 
 model xp_type {
-  xp_code     String    @id
-  name        String?
-  description String?
   created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  name        String?
   updated_at  DateTime? @updatedAt @db.Timestamptz(6)
+  description String?
+  xp_code     String    @id
   xp          xp[]
 }
 
@@ -221,7 +223,7 @@ model transaction {
 }
 
 model template {
-  id                     BigInt    @id(map: "template_pkey") @default(autoincrement())
+  id                     BigInt    @id @default(autoincrement())
   template_name          String?   @default("")
   mask                   String?   @default("")
   gradient               String?   @default("")
@@ -273,20 +275,20 @@ model template {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model version {
-  id         BigInt    @id(map: "version_pkey") @default(autoincrement())
+  id         BigInt    @id @default(autoincrement())
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
   version    String?
   chain      Int?
-  created_at DateTime  @default(now()) @db.Timestamptz(6)
   updated_at DateTime? @updatedAt @db.Timestamptz(6)
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model forwarder {
-  id         Int       @id(map: "forwarder_pkey") @default(autoincrement())
-  tier_id    Int       @default(1)
   key        String?
+  tier_id    Int       @default(1)
   iv         String?
   address    String?
+  id         Int       @id @default(autoincrement())
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   updated_at DateTime? @updatedAt @db.Timestamptz(6)
 }

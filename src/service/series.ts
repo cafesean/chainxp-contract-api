@@ -13,7 +13,6 @@ interface JSONObject {
 // const zeroAddress = "0x0000000000000000000000000000000000000000";
 
 export class SeriesService extends BaseService {
-
 	async network() {
 		// get current network and chain from ethers
 		const network = await ethers.provider.getNetwork();
@@ -94,7 +93,6 @@ export class SeriesService extends BaseService {
 		});
 	}
 
-
 	async findContract(contract_address: string) {
 		const lcaseContractAddress = contract_address.toLowerCase();
 		const data = await this.prisma.series.findFirst({
@@ -127,20 +125,6 @@ export class SeriesService extends BaseService {
 		return contract_classes;
 	}
 
-
-	async setAttributes(contract_address: any, count: number) {
-		const tokenContract = await attachContract(contract_address, true);
-		var i;
-		try {
-			for (i = 1; i <= count; i++) {
-				await tokenContract.setAttributes(i, [i], [1], [], []);
-				// await contractNFT.setAttributes(i, [1,2],[23,35],[1,2,3,4,5,6],["2020","Shanghai","Member","12","Jr. Backend Developer","No"]);
-			}
-			return "success";
-		} catch (err) {
-			return err;
-		}
-	}
 
 	async getUsers(contract: any, from: number, to: number) {
 		var i;
@@ -183,7 +167,6 @@ export class SeriesService extends BaseService {
 		}
 	}
 
-
 	async god(contract_address: any, reqBody: any) {
 		const classId = reqBody.class_id || "0";
 		const name = reqBody.name || "";
@@ -212,5 +195,4 @@ export class SeriesService extends BaseService {
 
 		return response;
 	}
-
 }

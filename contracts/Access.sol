@@ -61,7 +61,7 @@ contract Access is AccessControlUpgradeable {
 
     function grantAccess(
         address _user,
-        string memory _role
+        string calldata _role
     ) public returns (string memory) {
         bytes32 targetRole = keccak256(abi.encodePacked(_role));
         require(
@@ -78,7 +78,7 @@ contract Access is AccessControlUpgradeable {
     function removeAccess(
         address _user,
         address _owner,
-        string memory _role
+        string calldata _role
     ) public returns (string memory) {
         require(_user != _owner, "Can't change owner role");
         bytes32 targetRole = keccak256(abi.encodePacked(_role));

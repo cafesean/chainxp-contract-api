@@ -12,15 +12,18 @@ contract FactoryContract is OwnableUpgradeable, Access {
     bool public initialized;
     address public _owner;
     address[] public proxies;
-
+    error Unauthorized();
     event ProxyCloned(address cloneAddress);
 
     modifier OnlyOwner() {
         require(_msgSender() == _owner, "Only the owner can clone");
+        if (_msgSender() != _owner) {
+            revert Unauthorized();
+        }
         _;
     }
 
-    function initialize() public initializer {
+    function initialize() external initializer {
         // __Ownable_init();
         _owner = _msgSender();
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
@@ -32,7 +35,7 @@ contract FactoryContract is OwnableUpgradeable, Access {
 
     function createClone(
         address target
-    ) public onlyAdmin returns (address) {
+    ) external onlyAdmin returns (address) {
         bytes20 targetBytes = bytes20(target);
         address proxy;
 

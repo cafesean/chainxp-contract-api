@@ -28,28 +28,28 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/deploySingle", async (request: any, resp: any) => {
-		const { contract_name, name, baseUri, description, symbol } = request.body;
-		const options = [name, baseUri, description, symbol];
+		const { contract_name, name, baseUri, description, symbol, fungible} = request.body;
+		const options = [name, baseUri, description, symbol, fungible];
 
 		console.log("contract_name: ", contract_name);
 		console.log("options: ", options);
 		const contract = (await fastify.service.deploy.deploySingle(contract_name, options)) as any;
 
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract.address });
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ "newContractAddress": contract.address });
 	});
 
 	fastify.post("/deployAll", async (request: any, resp: any) => {
 		const { name, baseUri, description, symbol, fungible } = request.body;
 		const contract = (await fastify.service.deploy.deployAll(name, baseUri, description, symbol, fungible)) as any;
 
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ contract });
 	});
 
 	fastify.post("/configure", async (request: any, resp: any) => {
 		const { proxyAddress, delegateAddress } = request.body;
 		const contract = (await fastify.service.deploy.configureProxy(proxyAddress, delegateAddress)) as any;
 
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ contract });
 	});
 
 	fastify.post("/clone", async (request: any, resp: any) => {
@@ -57,7 +57,7 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 		const contract = await fastify.service.deploy.cloneProxy(request.body);
 
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ contract });
 	});
 
 	fastify.post("/deployFactory", async (request: any, resp: any) => {
@@ -65,6 +65,6 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 		const contract = await fastify.service.deploy.deployFactory(request.body);
 
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contract });
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ contract });
 	});
 }

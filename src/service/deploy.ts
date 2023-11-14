@@ -21,7 +21,7 @@ export class DeployService extends BaseService {
 	}
 
 	async cloneProxy(reqBody: any) {
-		const { series_id, fungible, factory_address, contract_address, delegate_address, title, baseUri, description, symbol } = reqBody;
+		const { seriesId, fungible, factoryAddress, proxyAddress, delegateAddress, title, baseUri, description, symbol } = reqBody;
 
 		// get deployed contract data based on token contract version before cloning
 
@@ -36,8 +36,8 @@ export class DeployService extends BaseService {
 
 		let addressClone;
 
-		const contractFactory = await attachContract(factory_address, false);
-		const response = await contractFactory.createClone(contract_address);
+		const contractFactory = await attachContract(factoryAddress, false);
+		const response = await contractFactory.createClone(proxyAddress);
 
 		const receipt = await response.wait(); // response is empty if using hardhat network
 
@@ -58,8 +58,8 @@ export class DeployService extends BaseService {
 					name: contractName?.toString() || "",
 					contract_address: addressClone.toLowerCase(),
 					owner_address: signerAddress.toLowerCase(),
-					factory_address: factory_address.toLowerCase(),
-					proxy_address: contract_address.toLowerCase(),
+					factory_address: factoryAddress.toLowerCase(),
+					proxy_address: proxyAddress.toLowerCase(),
 					status: 1,
 				},
 			});
@@ -72,28 +72,28 @@ export class DeployService extends BaseService {
 		await contractClone.initialize(signer.address, title, baseUri, description, symbol, fungible, overrides).then((tx: any) => tx.wait());
 
 		// configure with delegate
-		const delegateContract = await attachContract(delegate_address);
+		const delegateContract = await attachContract(delegateAddress);
 
-		await contractClone.setDelegateAddress(delegate_address, overrides);
+		await contractClone.setDelegateAddress(delegateAddress, overrides);
 		await delegateContract.grantAccess(addressClone, "ADMIN_ROLE", overrides).then((tx: any) => tx.wait());
 
 		console.log("Clone config done");
 
 		const seriesData = await this.prisma.series.upsert({
 			where: {
-				id: Number(series_id),
+				id: Number(seriesId),
 			},
 			create: {
 				title: title || "",
 				contract_address: addressClone.toLowerCase(),
-				delegate_address: delegate_address.toLowerCase(),
+				delegate_address: delegateAddress.toLowerCase(),
 				owner: signerAddress.toLowerCase(),
 				status: 1,
 			},
 			update: {
-				id: Number(series_id),
+				id: Number(seriesId),
 				contract_address: addressClone.toLowerCase(),
-				delegate_address: delegate_address.toLowerCase(),
+				delegate_address: delegateAddress.toLowerCase(),
 				owner: signerAddress.toLowerCase(),
 				status: 1,
 			},
@@ -152,7 +152,7 @@ export class DeployService extends BaseService {
 		// var contractFactory;
 		// var addressFactory;
 
-		const { proxy_address } = reqBody;
+		const { proxyAddress } = reqBody;
 		const newFactory = await this.deploySingle("Factory", null);
 
 		const overrides = await getGasPriceOverrides(this, 2);
@@ -163,7 +163,7 @@ export class DeployService extends BaseService {
 		// addressFactory = contractFactory.address;
 		// await newFactory.initialize();
 		// attach initial token proxy contract and register newly deployed factory
-		const proxyContract = await attachContract(proxy_address);
+		const proxyContract = await attachContract(proxyAddress);
 
 		//register factory
 		await proxyContract.registerFactory(newFactory.address, overrides);

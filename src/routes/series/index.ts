@@ -21,10 +21,10 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.get("/:contract_address/users/:id1/:id2", async (request: any, resp: any) => {
-		const { contract_address, id1, id2 } = request.params;
+		const { contractAddress, id1, id2 } = request.params;
 
 		try {
-			const response = await fastify.service.series.getUsers(contract_address, id1, id2);
+			const response = await fastify.service.series.getUsers(contractAddress, id1, id2);
 			return { result: response };
 		} catch (err) {
 			resp.send(err);
@@ -32,12 +32,12 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.get("/:contract_address/classes/:id1/:id2", async (request: any, resp: any) => {
-		const { contract_address, id1, id2 } = request.params;
+		const { contractAddress, id1, id2 } = request.params;
 
 		try {
 			// const contractNFT = new ethers.series(contract, abi, env.wallet);
 			// const response = await fastify.service.collection.getClasses(contractNFT, id1, id2);
-			const response = await fastify.service.series.getClasses(contract_address, id1, id2);
+			const response = await fastify.service.series.getClasses(contractAddress, id1, id2);
 			return { result: response };
 		} catch (err) {
 			resp.send(err);
@@ -46,8 +46,8 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 
 	fastify.post("/:contract_address/god", async (request: any, resp: any) => {
-		const { contract_address } = request.params;
-		const txnHash = await fastify.service.series.god(contract_address, request.body);
+		const { contractAddress } = request.params;
+		const txnHash = await fastify.service.series.god(contractAddress, request.body);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txnHash });
 	});

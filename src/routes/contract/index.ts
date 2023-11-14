@@ -29,21 +29,21 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/:contract_id/updateBaseUri", async (request: any, resp: any) => {
-		const { contract_id } = request.params;
-		const { base_uri } = request.body;
+		const { contractId } = request.params;
+		const { baseUri } = request.body;
 		console.log("In update clone meta data route");
-		const contractClass = await fastify.service.contract.updateBaseUri(contract_id, base_uri);
+		const contractClass = await fastify.service.contract.updateBaseUri(contractId, baseUri);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contractClass });
 	});
 
 	fastify.get("/:contract_id/details", async (request: any, resp: any) => {
 		//const { count } = request.query;
-		const { contract_id } = request.params;
+		const { contractId } = request.params;
 		// const { abi } = request.body;
 
 		try {
-			const uriString = await fastify.service.contract.getContractDetails(contract_id);
+			const uriString = await fastify.service.contract.getContractDetails(contractId);
 
 			return { result: uriString };
 		} catch (err) {
@@ -53,11 +53,11 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 	// get abi from contract address
 	fastify.get("/:contract_address/getAbi", async (request: any, resp: any) => {
-		const { contract_address } = request.params;
+		const { contractAddress } = request.params;
 		// const { abi } = request.body;
 
 		try {
-			const abiString = await fastify.service.contract.getAbi(contract_address, true);
+			const abiString = await fastify.service.contract.getAbi(contractAddress, true);
 
 			return { result: abiString };
 		} catch (err) {
@@ -66,8 +66,8 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/:contract_address/god", async (request: any, resp: any) => {
-		const { contract_address } = request.params;
-		const txnHash = await fastify.service.contract.god(contract_address, request.body);
+		const { contractAddress } = request.params;
+		const txnHash = await fastify.service.contract.god(contractAddress, request.body);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txnHash });
 	});

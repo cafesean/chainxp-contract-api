@@ -28,12 +28,12 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/deploySingle", async (request: any, resp: any) => {
-		const { contract_name, name, baseUri, description, symbol, fungible} = request.body;
+		const { contractName, name, baseUri, description, symbol, fungible} = request.body;
 		const options = [name, baseUri, description, symbol, fungible];
 
-		console.log("contract_name: ", contract_name);
+		console.log("contract_name: ", contractName);
 		console.log("options: ", options);
-		const contract = (await fastify.service.deploy.deploySingle(contract_name, options)) as any;
+		const contract = (await fastify.service.deploy.deploySingle(contractName, options)) as any;
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ "newContractAddress": contract.address });
 	});

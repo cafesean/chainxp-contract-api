@@ -17,7 +17,7 @@ export class TokenService extends BaseService {
 	async mint(contract_address: string, class_id: string, user_address: string, signedRequest: IForwardRequest) {
 		// await this.findContractClass(contract_address, class_id);
 
-		const tokenContract = await attachContract(contract_address, true);
+		const tokenContract = await attachContract(contract_address, null, true);
 		const overrides = await getGasPriceOverrides(this, 2);
 
 		console.log("signedRequest: ", signedRequest);
@@ -175,7 +175,7 @@ console.log("mergedTx: ", mergedTx);
 	async getUris(contract_address: any, from: number, to: number) {
 		var i;
 		var data: JSONObject = {};
-		const tokenContract = await attachContract(contract_address, true);
+		const tokenContract = await attachContract(contract_address, null, true);
 
 		try {
 			for (i = from; i <= to; i++) {
@@ -203,7 +203,7 @@ console.log("mergedTx: ", mergedTx);
 		let _returnedClassId;
 		let _amount;
 
-		const tokenContract = await attachContract(contract_address, true);
+		const tokenContract = await attachContract(contract_address, null, true);
 
 		const response = await tokenContract.safeTransferFrom(from, to, class_id, amount, "0x00");
 		console.log(`transfer NFT from '${from}' to '${to}' Txn: ${response.hash}`);
@@ -250,7 +250,7 @@ console.log("mergedTx: ", mergedTx);
 		const lcaseContractAddress = contract_address.toLowerCase();
 		// const [signer] = await ethers.getSigners();
 		// const factory = ethers.getContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
-		const tokenContract = await attachContract(contract_address, true);
+		const tokenContract = await attachContract(contract_address, null, true);
 
 		const response = await tokenContract.burn(userAddress, class_id, amount);
 		console.log(`burn NFT from '${userAddress}' Txn: ${response.hash}`);

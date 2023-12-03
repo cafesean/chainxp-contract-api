@@ -36,7 +36,7 @@ export class DeployService extends BaseService {
 
 		let addressClone;
 
-		const contractFactory = await attachContract(deployer, factoryAddress, false);
+		const contractFactory = await attachContract(factoryAddress, deployer, false);
 		const response = await contractFactory.createClone(proxyAddress);
 
 		const receipt = await response.wait(); // response is empty if using hardhat network
@@ -68,11 +68,11 @@ export class DeployService extends BaseService {
 		}
 
 		// initialize clone
-		const contractClone = await attachContract(deployer, addressClone, true);
+		const contractClone = await attachContract(addressClone, deployer, true);
 		await contractClone.initialize(deployer.address, title, baseUri, description, symbol, fungible, overrides).then((tx: any) => tx.wait());
 
 		// configure with delegate
-		const delegateContract = await attachContract(deployer, delegateAddress);
+		const delegateContract = await attachContract(delegateAddress, deployer);
 
 		await contractClone.setDelegateAddress(delegateAddress, overrides);
 		await delegateContract.grantAccess(addressClone, "ADMIN_ROLE", overrides).then((tx: any) => tx.wait());
@@ -171,7 +171,7 @@ export class DeployService extends BaseService {
 		// addressFactory = contractFactory.address;
 		// await newFactory.initialize();
 		// attach initial token proxy contract and register newly deployed factory
-		const proxyContract = await attachContract(deployer, proxyAddress);
+		const proxyContract = await attachContract(proxyAddress, deployer);
 
 		//register factory
 		await proxyContract.registerFactory(newFactory.address, overrides);
@@ -225,11 +225,11 @@ export class DeployService extends BaseService {
 
 		const overrides = await getGasPriceOverrides(this, 2);
 		console.log("	proxyAddress: ", proxyAddress);
-		const proxyContract = await attachContract(deployer, proxyAddress);
+		const proxyContract = await attachContract(proxyAddress, deployer);
 		await proxyContract.setDelegateAddress(delegateAddress, overrides);
 
 		console.log("	delegateAddress: ", delegateAddress);
-		const delegateContract = await attachContract(deployer, delegateAddress);
+		const delegateContract = await attachContract(delegateAddress, deployer);
 		await delegateContract.grantAccess(deployer.address, "ADMIN_ROLE", overrides);
 
 		return { proxyAddress: proxyAddress, delegateAddress: delegateAddress };
@@ -238,7 +238,7 @@ export class DeployService extends BaseService {
 	async grantCloneAccess(deployer: any, walletAddress: string, contractAddress: string) {
 		const overrides = await getGasPriceOverrides(this, 2);
 		console.log("	contractAddress: ", contractAddress);
-		const proxyContract = await attachContract(deployer, contractAddress, true);
+		const proxyContract = await attachContract(contractAddress, deployer, true);
 		await proxyContract.grantAccess(walletAddress, "OPS_ROLE", overrides);
 
 		return { result: "OPS_ROLE access granted to " + walletAddress };

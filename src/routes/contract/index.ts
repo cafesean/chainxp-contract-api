@@ -36,9 +36,14 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 	fastify.post("/:contract_id/updateBaseUri", async (request: any, resp: any) => {
 		const { contract_id } = request.params;
-		const { baseUri } = request.body;
+		const { baseUri, encryptedKey, password, iv } = request.body;
+		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
+
+		const wallet = new ethers.Wallet(deployWalletAddress);
+		const signer = wallet.connect(ethers.provider);
+
 		console.log("In update clone meta data route");
-		const contractClass = await fastify.service.contract.updateBaseUri(contract_id, baseUri);
+		const contractClass = await fastify.service.contract.updateBaseUri(signer, contract_id, baseUri);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: contractClass });
 	});

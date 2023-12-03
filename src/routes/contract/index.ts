@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { decryptPrivateKey } from "@root/src/utils/encryption";
+import { ethers } from "hardhat";
 // import * as abi from "../../constants/abi.constants";
 
 // import { genericSchema } from "../../schema/index";
@@ -21,9 +22,14 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 	fastify.post("/:contract_address/grantAccess", async (request: any, resp: any) => {
 		const { contract_address } = request.params;
-		const { walletAddress, role } = request.body;
+		const { walletAddress, role, encryptedKey, password, iv } = request.body;
+
+		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
+
+		const wallet = new ethers.Wallet(deployWalletAddress);
+		const signer = wallet.connect(ethers.provider);
 		// append response to the responseJSON object
-		const response = await fastify.service.contract.grantAccess(walletAddress, contract_address, role);
+		const response = await fastify.service.contract.grantAccess(signer, walletAddress, contract_address, role);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(response);
 	});

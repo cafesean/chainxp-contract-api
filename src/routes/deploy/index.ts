@@ -1,23 +1,21 @@
+import { decryptPrivateKey } from "@root/src/utils/encryption";
 import { FastifyInstance } from "fastify";
+import { ethers } from "hardhat";
+
 // import * as abi from "../../constants/abi.constants";
 
 // import { genericSchema } from "../../schema/index";
 
 export default async function contractRoute(fastify: FastifyInstance) {
 	fastify.get("/", async function (request: any, resp: any): Promise<any> {
-		resp
-			.code(200)
-			.header("Content-Type", "application/json; charset=utf-8")
-			.send({ result: "Deploy API"});
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: "Deploy API" });
 	});
-
 
 	fastify.get("/getSigner", async (request: any, resp: any) => {
 		const response = await fastify.service.deploy.getSigner();
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(response);
 	});
-
 
 	fastify.put("/create", async (request: any, resp: any) => {
 		const { token, delegate, factory, version, isDefault, tierId } = request.body;
@@ -28,26 +26,40 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/deploySingle", async (request: any, resp: any) => {
-		const { contractName, name, baseUri, description, symbol, fungible} = request.body;
+		const { contractName, name, baseUri, description, symbol, fungible, encryptedKey, password, iv } = request.body;
+
 		const options = [name, baseUri, description, symbol, fungible];
+
+		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
+
+		const wallet = new ethers.Wallet(deployWalletAddress);
+		const signer = wallet.connect(ethers.provider);
 
 		console.log("contract_name: ", contractName);
 		console.log("options: ", options);
-		const contract = (await fastify.service.deploy.deploySingle(contractName, options)) as any;
+		const contract = (await fastify.service.deploy.deploySingle(signer, contractName, options)) as any;
 
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ "newContractAddress": contract.address });
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ newContractAddress: contract.address });
 	});
 
 	fastify.post("/deployAll", async (request: any, resp: any) => {
-		const { name, baseUri, description, symbol, fungible } = request.body;
-		const contract = (await fastify.service.deploy.deployAll(name, baseUri, description, symbol, fungible)) as any;
+		const { name, baseUri, description, symbol, fungible, encryptedKey, password, iv } = request.body;
+		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
+
+		const wallet = new ethers.Wallet(deployWalletAddress);
+		const signer = wallet.connect(ethers.provider);
+		const contract = (await fastify.service.deploy.deployAll(signer, name, baseUri, description, symbol, fungible)) as any;
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(contract);
 	});
 
 	fastify.post("/configure", async (request: any, resp: any) => {
-		const { proxyAddress, delegateAddress } = request.body;
-		const contract = (await fastify.service.deploy.configureProxy(proxyAddress, delegateAddress)) as any;
+		const { proxyAddress, delegateAddress, encryptedKey, password, iv } = request.body;
+		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
+
+		const wallet = new ethers.Wallet(deployWalletAddress);
+		const signer = wallet.connect(ethers.provider);
+		const contract = (await fastify.service.deploy.configureProxy(signer, proxyAddress, delegateAddress)) as any;
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ contract });
 	});
@@ -55,16 +67,24 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	fastify.post("/clone", async (request: any, resp: any) => {
 		// const { name,  } = request.body;
 
-		const contract = await fastify.service.deploy.cloneProxy(request.body);
+		const { encryptedKey, iv, password } = request.body;
+		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
+
+		const wallet = new ethers.Wallet(deployWalletAddress);
+		const signer = wallet.connect(ethers.provider);
+		const contract = await fastify.service.deploy.cloneProxy(signer, request.body);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(contract);
 	});
 
 	fastify.post("/deployFactory", async (request: any, resp: any) => {
-		// const { name,  } = request.body;
+		const { encryptedKey, password, iv } = request.body;
+		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
 
-		const contract = await fastify.service.deploy.deployFactory(request.body);
+		const wallet = new ethers.Wallet(deployWalletAddress);
+		const signer = wallet.connect(ethers.provider);
+		const contract = await fastify.service.deploy.deployFactory(signer, request.body);
 
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ "factoryAddress": contract });
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ factoryAddress: contract });
 	});
 }

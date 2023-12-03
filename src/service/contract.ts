@@ -27,10 +27,10 @@ export class ContractService extends BaseService {
 		return "Current network is " + process.env.DEFAULT_NETWORK;
 	}
 
-	async grantAccess(walletAddress: string, contractAddress: string, role: string) {
+	async grantAccess(deployer: any, walletAddress: string, contractAddress: string, role: string) {
 		const overrides = await getGasPriceOverrides(this, 2);
 		console.log("	contractAddress: ", contractAddress);
-		const proxyContract = await attachContract(contractAddress, true);
+		const proxyContract = await attachContract(deployer, contractAddress, true);
 		await proxyContract.grantAccess(walletAddress, role, overrides);
 
 		return { result: role + " access granted to " + walletAddress };
@@ -64,8 +64,8 @@ export class ContractService extends BaseService {
 		return contractJSON;
 	}
 
-	async updateBaseUri(contract_address: string, base_uri: string) {
-		const tokenContract = await attachContract(contract_address, true);
+	async updateBaseUri(deployer: any, contract_address: string, base_uri: string) {
+		const tokenContract = await attachContract(deployer, contract_address, true);
 
 		let response;
 		try {
@@ -78,10 +78,10 @@ export class ContractService extends BaseService {
 			throw e;
 		}
 	}
-	async addAdminUser(contract_address: string, userAddress: string) {
+	async addAdminUser(deployer: any, contract_address: string, userAddress: string) {
 		// const contract = await this.findContract(contract_address);
 
-		const factoryContract = await attachContract(contract_address, true);
+		const factoryContract = await attachContract(deployer, contract_address, true);
 		const role = "ADMIN_ROLE";
 
 		const response = await factoryContract.grantUserRole(userAddress, role);

@@ -1,21 +1,25 @@
 import { FastifyInstance } from "fastify";
+import { decryptPrivateKey } from "@root/src/utils/encryption";
+import { ethers } from "hardhat";
 // import * as abi from "../../constants/abi.constants";
 
 // import { genericSchema } from "../../schema/index";
 
 export default async function contractRoute(fastify: FastifyInstance) {
 	fastify.get("/", async function (request: any, resp: any): Promise<any> {
-		resp
-			.code(200)
-			.header("Content-Type", "application/json; charset=utf-8")
-			.send({ result: "Series API"});
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: "Series API" });
 	});
 
 	fastify.post("/:contract_id/class", async (request: any, resp: any) => {
 		const { contract_id } = request.params;
-		// const { name, desc, image_url, slug } = request.body;
+		const { encryptedKey, password, iv } = request.body;
+		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
+
+		const wallet = new ethers.Wallet(deployWalletAddress);
+		const signer = wallet.connect(ethers.provider);
+
 		console.log("In addClass route");
-		const contractClass = await fastify.service.series.addClass(contract_id, request.body);
+		const contractClass = await fastify.service.series.addClass(signer, contract_id, request.body);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(contractClass);
 	});
@@ -34,20 +38,26 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	fastify.get("/:contract_address/classes/:id1/:id2", async (request: any, resp: any) => {
 		const { contractAddress, id1, id2 } = request.params;
 
+		const [signer] = await ethers.getSigners(); // get default signer
+
 		try {
 			// const contractNFT = new ethers.series(contract, abi, env.wallet);
 			// const response = await fastify.service.collection.getClasses(contractNFT, id1, id2);
-			const response = await fastify.service.series.getClasses(contractAddress, id1, id2);
+			const response = await fastify.service.series.getClasses(signer, contractAddress, id1, id2);
 			return { result: response };
 		} catch (err) {
 			resp.send(err);
 		}
 	});
 
-
 	fastify.post("/:contract_address/god", async (request: any, resp: any) => {
 		const { contractAddress } = request.params;
-		const txnHash = await fastify.service.series.god(contractAddress, request.body);
+		const { encryptedKey, password, iv } = request.body;
+		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
+
+		const wallet = new ethers.Wallet(deployWalletAddress);
+		const signer = wallet.connect(ethers.provider);
+		const txnHash = await fastify.service.series.god(signer, contractAddress, request.body);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txnHash });
 	});

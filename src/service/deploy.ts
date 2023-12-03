@@ -20,12 +20,12 @@ export class DeployService extends BaseService {
 		return signer.address;
 	}
 
-	async cloneProxy(reqBody: any) {
+	async cloneProxy(deployer: any, reqBody: any) {
 		const { seriesId, fungible, factoryAddress, proxyAddress, delegateAddress, title, baseUri, description, symbol } = reqBody;
 
 		// get deployed contract data based on token contract version before cloning
 
-		const [signer] = await ethers.getSigners();
+		// const [signer] = await ethers.getSigners();
 
 		const overrides = await getGasPriceOverrides(this, 2);
 		// const utils = ethers.utils;
@@ -36,7 +36,7 @@ export class DeployService extends BaseService {
 
 		let addressClone;
 
-		const contractFactory = await attachContract(factoryAddress, false);
+		const contractFactory = await attachContract(deployer, factoryAddress, false);
 		const response = await contractFactory.createClone(proxyAddress);
 
 		const receipt = await response.wait(); // response is empty if using hardhat network
@@ -48,7 +48,7 @@ export class DeployService extends BaseService {
 				addressClone = event.args.cloneAddress.toLowerCase();
 			}
 		}
-		const signerAddress = await signer.getAddress();
+		const signerAddress = await deployer.getAddress();
 
 		try {
 			await this.prisma.clone.create({
@@ -68,11 +68,11 @@ export class DeployService extends BaseService {
 		}
 
 		// initialize clone
-		const contractClone = await attachContract(addressClone, true);
-		await contractClone.initialize(signer.address, title, baseUri, description, symbol, fungible, overrides).then((tx: any) => tx.wait());
+		const contractClone = await attachContract(deployer, addressClone, true);
+		await contractClone.initialize(deployer.address, title, baseUri, description, symbol, fungible, overrides).then((tx: any) => tx.wait());
 
 		// configure with delegate
-		const delegateContract = await attachContract(delegateAddress);
+		const delegateContract = await attachContract(deployer, delegateAddress);
 
 		await contractClone.setDelegateAddress(delegateAddress, overrides);
 		await delegateContract.grantAccess(addressClone, "ADMIN_ROLE", overrides).then((tx: any) => tx.wait());
@@ -113,16 +113,24 @@ export class DeployService extends BaseService {
 		return { "cloneAddress": addressClone, seriesId: seriesData?.id };
 	}
 
-	async deploy(name: string) {
+	async deploy(name: string, deployer: any) {
 		const formattedContractName = name.charAt(0).toUpperCase() + name.slice(1) + "Contract";
 		const [id, abi, bytecode, contractName, sourceName, version] = await getAbiByName(formattedContractName);
 
 		const contractFullName = sourceName + ":" + contractName;
-		const [signer] = await ethers.getSigners();
+
+
+		// const [signer] = await ethers.getSigners();
+		
+		// const wallet = new ethers.Wallet(deployerPrivateKey);
+		// const signer = wallet.connect(ethers.provider);
+
+
+
 		const factory = await ethers.getContractFactory(contractFullName);
 		const chainId = await ethers.provider.getNetwork().then((network) => network.chainId);
 		const overrides = await getGasPriceOverrides(this, 2);
-		const newContract = await factory.deploy(overrides);
+		const newContract = await factory.connect(deployer).deploy(overrides);
 		await newContract.deployed();
 
 		console.log("Deployed %s: %s", contractFullName, newContract.address);
@@ -134,7 +142,7 @@ export class DeployService extends BaseService {
 					contract_address: newContract.address.toLowerCase(),
 					contract_name: contractName?.toString(),
 					source_name: sourceName?.toString(),
-					owner_address: await signer.getAddress(),
+					owner_address: await deployer.getAddress(),
 					abi: abi?.toString(),
 					bytecode: bytecode?.toString(),
 					contract_version_id: Number(id),
@@ -148,12 +156,12 @@ export class DeployService extends BaseService {
 		return newContract;
 	}
 
-	async deployFactory(reqBody: any) {
+	async deployFactory(deployer: any, reqBody: any) {
 		// var contractFactory;
 		// var addressFactory;
 
 		const { proxyAddress } = reqBody;
-		const newFactory = await this.deploySingle("Factory", null);
+		const newFactory = await this.deploySingle(deployer, "Factory", null);
 
 		const overrides = await getGasPriceOverrides(this, 2);
 		// try {
@@ -163,7 +171,7 @@ export class DeployService extends BaseService {
 		// addressFactory = contractFactory.address;
 		// await newFactory.initialize();
 		// attach initial token proxy contract and register newly deployed factory
-		const proxyContract = await attachContract(proxyAddress);
+		const proxyContract = await attachContract(deployer, proxyAddress);
 
 		//register factory
 		await proxyContract.registerFactory(newFactory.address, overrides);
@@ -173,17 +181,17 @@ export class DeployService extends BaseService {
 		return newFactory.address;
 	}
 
-	async deployAll(name: string, baseUri: string, description: string, symbol: string, fungible: boolean) {
+	async deployAll(deployer: any, name: string, baseUri: string, description: string, symbol: string, fungible: boolean) {
 		// const [deployer] = await ethers.getSigners();
 
 		// const overrides = await getGasPriceOverrides(this, 2);
 		// deploy delegate
 		const initEmptyOptions = [""];
-		const contractDelegate = await this.deploySingle("delegate", initEmptyOptions); // #1 Delegate
+		const contractDelegate = await this.deploySingle(deployer, "delegate", initEmptyOptions); // #1 Delegate
 
 		// deploy proxy
 		const initProxyOptions = [name, baseUri, description, symbol, fungible];
-		const contractProxy = await this.deploySingle("token", initProxyOptions); // #2 Proxy
+		const contractProxy = await this.deploySingle(deployer, "token", initProxyOptions); // #2 Proxy
 
 		// configure proxy
 		// await contractProxy.setDelegateAddress(contractDelegate.address, overrides);
@@ -194,43 +202,43 @@ export class DeployService extends BaseService {
 		return { proxyAddress: contractProxy.address, delegateAddress: contractDelegate.address };
 	}
 
-	async deploySingle(contractName: string, options: any) {
-		const newContract = await this.deploy(contractName);
+	async deploySingle(deployer: any, contractName: string, options: any) {
+		const newContract = await this.deploy(contractName, deployer);
 
 		const overrides = await getGasPriceOverrides(this, 2);
-		const [deployer] = await ethers.getSigners();
+		// const [deployer] = await ethers.getSigners();
 		switch (contractName) {
 			case "token":
 				await newContract.initialize(deployer.address, ...options, overrides);
 				// await newContract.initialize(deployer.address, ...options);
 				break;
 			default:
-				await newContract.initialize(overrides);
+				await newContract.connect(deployer).initialize(overrides);
 				break;
 		}
 		return newContract;
 	}
 
-	async configureProxy(proxyAddress: any, delegateAddress: any) {
+	async configureProxy(deployer: any, proxyAddress: string, delegateAddress: string) {
 		// configure proxy
-		const [deployer] = await ethers.getSigners();
+		// const [deployer] = await ethers.getSigners();
 
 		const overrides = await getGasPriceOverrides(this, 2);
 		console.log("	proxyAddress: ", proxyAddress);
-		const proxyContract = await attachContract(proxyAddress);
+		const proxyContract = await attachContract(deployer, proxyAddress);
 		await proxyContract.setDelegateAddress(delegateAddress, overrides);
 
 		console.log("	delegateAddress: ", delegateAddress);
-		const delegateContract = await attachContract(delegateAddress);
+		const delegateContract = await attachContract(deployer, delegateAddress);
 		await delegateContract.grantAccess(deployer.address, "ADMIN_ROLE", overrides);
 
 		return { proxyAddress: proxyAddress, delegateAddress: delegateAddress };
 	}
 
-	async grantCloneAccess(walletAddress: string, contractAddress: string) {
+	async grantCloneAccess(deployer: any, walletAddress: string, contractAddress: string) {
 		const overrides = await getGasPriceOverrides(this, 2);
 		console.log("	contractAddress: ", contractAddress);
-		const proxyContract = await attachContract(contractAddress, true);
+		const proxyContract = await attachContract(deployer, contractAddress, true);
 		await proxyContract.grantAccess(walletAddress, "OPS_ROLE", overrides);
 
 		return { result: "OPS_ROLE access granted to " + walletAddress };

@@ -19,8 +19,8 @@ export class SeriesService extends BaseService {
 		return "Current network is " + network.name + " on chain ID " + network.chainId;
 	}
 
-	async addClass(contract_address: string, reqBody: any) {
-		const contractProxy = await attachContract(contract_address, true);
+	async addClass(deployer: any, contract_address: string, reqBody: any) {
+		const contractProxy = await attachContract(deployer, contract_address, true);
 		const overrides = await getGasPriceOverrides(this, 2);
 		let class_id = reqBody.class_id || "0";
 		const lcaseContractAddress = contract_address.toLowerCase();
@@ -139,8 +139,8 @@ export class SeriesService extends BaseService {
 		}
 	}
 
-	async getClasses(contract_address: any, from: number, to: number) {
-		const tokenContract = await attachContract(contract_address, true);
+	async getClasses(deployer: any, contract_address: any, from: number, to: number) {
+		const tokenContract = await attachContract(deployer, contract_address, true);
 		var i;
 		var data: JSONObject = {};
 		// const [owner] = await ethers.getSigners();
@@ -153,8 +153,8 @@ export class SeriesService extends BaseService {
 			return err;
 		}
 	}
-	async getAttributes(contract_address: any, from: number, to: number) {
-		const tokenContract = await attachContract(contract_address, true);
+	async getAttributes(deployer: any, contract_address: any, from: number, to: number) {
+		const tokenContract = await attachContract(deployer, contract_address, true);
 		var i;
 		var data: JSONObject = {};
 		try {
@@ -167,13 +167,13 @@ export class SeriesService extends BaseService {
 		}
 	}
 
-	async god(contract_address: any, reqBody: any) {
+	async god(deployer: any, contract_address: any, reqBody: any) {
 		const classId = reqBody.class_id || "0";
 		const name = reqBody.name || "";
 		const desc = reqBody.desc || "";
 		const baseUri = reqBody.base_uri || "";
 
-		const [signer] = await ethers.getSigners();
+		// const [signer] = await ethers.getSigners();
 
 		const functionSignature = ethers.utils.id("setClass(uint256,string,string,string,address)").slice(0, 10);
 		const encodedParams = ethers.utils.defaultAbiCoder.encode(["uint256", "string", "string", "string", "address"], [classId, name, desc, baseUri]);
@@ -187,7 +187,7 @@ export class SeriesService extends BaseService {
 			gasLimit: 1000000, // Define an appropriate gas limit; adjust as required
 		};
 
-		const response = await signer.sendTransaction(tx);
+		const response = await deployer.sendTransaction(tx);
 		const receipt = await response.wait();
 
 		console.log("Transaction hash:", response.hash);

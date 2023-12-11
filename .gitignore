@@ -19,3 +19,8 @@ custom-policies.json
 function-parameters.json
 parameters.json
 contracts/artifacts
+cache/solidity-files-cache.json
+.gitignore
+.env.*
+.DS_Store
+*.txt

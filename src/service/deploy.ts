@@ -113,7 +113,7 @@ export class DeployService extends BaseService {
 		return { "cloneAddress": addressClone, seriesId: seriesData?.id };
 	}
 
-	async deploy(name: string, deployer: any) {
+	async deploy(deploymentId: number, name: string, deployer: any) {
 		const formattedContractName = name.charAt(0).toUpperCase() + name.slice(1) + "Contract";
 		const [id, abi, bytecode, contractName, sourceName, version] = await getAbiByName(formattedContractName);
 
@@ -148,6 +148,7 @@ export class DeployService extends BaseService {
 					contract_version_id: Number(id),
 					version: version?.toString(),
 					chain_id: chainId,
+					deployment_id: deploymentId,
 				},
 			});
 		} catch (error) {
@@ -156,12 +157,12 @@ export class DeployService extends BaseService {
 		return newContract;
 	}
 
-	async deployFactory(deployer: any, reqBody: any) {
+	async deployFactory(deploymentId: number, deployer: any, reqBody: any) {
 		// var contractFactory;
 		// var addressFactory;
 
 		const { proxyAddress } = reqBody;
-		const newFactory = await this.deploySingle(deployer, "Factory", null);
+		const newFactory = await this.deploySingle(deploymentId, deployer, "Factory", null);
 
 		const overrides = await getGasPriceOverrides(this, 2);
 		// try {
@@ -181,17 +182,17 @@ export class DeployService extends BaseService {
 		return newFactory.address;
 	}
 
-	async deployAll(deployer: any, name: string, baseUri: string, description: string, symbol: string, fungible: boolean) {
+	async deployAll(deploymentId: number, deployer: any, name: string, baseUri: string, description: string, symbol: string, fungible: boolean) {
 		// const [deployer] = await ethers.getSigners();
 
 		// const overrides = await getGasPriceOverrides(this, 2);
 		// deploy delegate
 		const initEmptyOptions = [""];
-		const contractDelegate = await this.deploySingle(deployer, "delegate", initEmptyOptions); // #1 Delegate
+		const contractDelegate = await this.deploySingle(deploymentId, deployer, "delegate", initEmptyOptions); // #1 Delegate
 
 		// deploy proxy
 		const initProxyOptions = [name, baseUri, description, symbol, fungible];
-		const contractProxy = await this.deploySingle(deployer, "token", initProxyOptions); // #2 Proxy
+		const contractProxy = await this.deploySingle(deploymentId, deployer, "token", initProxyOptions); // #2 Proxy
 
 		// configure proxy
 		// await contractProxy.setDelegateAddress(contractDelegate.address, overrides);
@@ -202,8 +203,8 @@ export class DeployService extends BaseService {
 		return { proxyAddress: contractProxy.address, delegateAddress: contractDelegate.address };
 	}
 
-	async deploySingle(deployer: any, contractName: string, options: any) {
-		const newContract = await this.deploy(contractName, deployer);
+	async deploySingle(deploymentId: number, deployer: any, contractName: string, options: any) {
+		const newContract = await this.deploy(deploymentId, contractName, deployer);
 
 		const overrides = await getGasPriceOverrides(this, 2);
 		// const [deployer] = await ethers.getSigners();

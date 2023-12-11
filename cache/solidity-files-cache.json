@@ -1,8 +1,45 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
+    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/Access.sol": {
+      "lastModificationDate": 1694699897311,
+      "contentHash": "b3ff9f1557fda6e6e9e9803e5fa77773",
+      "sourceName": "contracts/Access.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.2"
+      ],
+      "artifacts": [
+        "Access"
+      ]
+    },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol": {
-      "lastModificationDate": 1693202403691,
+      "lastModificationDate": 1693399989650,
       "contentHash": "c88845618a815ef601f3f552c99d7ebb",
       "sourceName": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol",
       "solcConfig": {
@@ -43,7 +80,7 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol": {
-      "lastModificationDate": 1693202403672,
+      "lastModificationDate": 1693399989670,
       "contentHash": "b0970a564d121abf9adfff8d1a01eb16",
       "sourceName": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
       "solcConfig": {
@@ -79,8 +116,43 @@
         "Initializable"
       ]
     },
+    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol": {
+      "lastModificationDate": 1693399989661,
+      "contentHash": "21b43d1337ebc77c11da3cbe3fd65316",
+      "sourceName": "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IAccessControlUpgradeable"
+      ]
+    },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol": {
-      "lastModificationDate": 1693202403733,
+      "lastModificationDate": 1693399989651,
       "contentHash": "6200b84950eb05b4a92a39fd1d6e0f9b",
       "sourceName": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol",
       "solcConfig": {
@@ -116,43 +188,8 @@
         "ContextUpgradeable"
       ]
     },
-    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol": {
-      "lastModificationDate": 1693202403683,
-      "contentHash": "21b43d1337ebc77c11da3cbe3fd65316",
-      "sourceName": "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol",
-      "solcConfig": {
-        "version": "0.8.17",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "IAccessControlUpgradeable"
-      ]
-    },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol": {
-      "lastModificationDate": 1693202403778,
+      "lastModificationDate": 1693399989673,
       "contentHash": "c221361be1c4953f5b71f47475b90266",
       "sourceName": "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol",
       "solcConfig": {
@@ -190,7 +227,7 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol": {
-      "lastModificationDate": 1693202403759,
+      "lastModificationDate": 1693399989655,
       "contentHash": "5f2d8b81c0ff5bd2047b4846c20b998d",
       "sourceName": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol",
       "solcConfig": {
@@ -228,7 +265,7 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol": {
-      "lastModificationDate": 1693202403788,
+      "lastModificationDate": 1693399989650,
       "contentHash": "c30c805386fda8a42ff515da963d3a95",
       "sourceName": "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol",
       "solcConfig": {
@@ -263,7 +300,7 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/utils/math/SignedMathUpgradeable.sol": {
-      "lastModificationDate": 1693202403762,
+      "lastModificationDate": 1693399989673,
       "contentHash": "2a6b819b2e241091ada6d645df3e3929",
       "sourceName": "@openzeppelin/contracts-upgradeable/utils/math/SignedMathUpgradeable.sol",
       "solcConfig": {
@@ -298,7 +335,7 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol": {
-      "lastModificationDate": 1693202403769,
+      "lastModificationDate": 1693399989671,
       "contentHash": "5a2a749b45b6a8eb035f4bf75addcb27",
       "sourceName": "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol",
       "solcConfig": {
@@ -333,7 +370,7 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol": {
-      "lastModificationDate": 1693202403757,
+      "lastModificationDate": 1693399989664,
       "contentHash": "d6ecf203a5e72c845be9bbf2f304a289",
       "sourceName": "@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol",
       "solcConfig": {
@@ -367,8 +404,130 @@
         "IERC165Upgradeable"
       ]
     },
+    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/Token.sol": {
+      "lastModificationDate": 1694791827156,
+      "contentHash": "ef98a2aec1611167c6f4b0c110eefc04",
+      "sourceName": "contracts/Token.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./Access.sol",
+        "./Base.sol",
+        "./interface/IDelegate.sol",
+        "@openzeppelin/contracts/utils/Base64.sol",
+        "@openzeppelin/contracts/utils/Strings.sol",
+        "hardhat/console.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.17"
+      ],
+      "artifacts": [
+        "TokenContract"
+      ]
+    },
+    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/Base.sol": {
+      "lastModificationDate": 1699159892594,
+      "contentHash": "90377b7cc4506ed1135a7e2008ec358a",
+      "sourceName": "contracts/Base.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155BurnableUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
+        "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
+        "@openzeppelin/contracts/utils/Counters.sol",
+        "@openzeppelin/contracts/utils/Strings.sol",
+        "./Access.sol",
+        "hardhat/console.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.17"
+      ],
+      "artifacts": [
+        "Base"
+      ]
+    },
+    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/interface/IDelegate.sol": {
+      "lastModificationDate": 1694762238441,
+      "contentHash": "ff45eaa2a449e0a3a4189ac25f7aecb8",
+      "sourceName": "contracts/interface/IDelegate.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.17"
+      ],
+      "artifacts": [
+        "IDelegate"
+      ]
+    },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+hardhat@2.17.1_ts-node@10.9.1_typescript@4.9.3_ts-node@10.9.1_typescript@4.9.3/node_modules/hardhat/console.sol": {
-      "lastModificationDate": 1693202402792,
+      "lastModificationDate": 1693399991415,
       "contentHash": "896f68942c3a20e9ae3c3c5bfd3add54",
       "sourceName": "hardhat/console.sol",
       "solcConfig": {
@@ -402,8 +561,43 @@
         "console"
       ]
     },
+    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts@4.9.3/node_modules/@openzeppelin/contracts/utils/Base64.sol": {
+      "lastModificationDate": 1693399989476,
+      "contentHash": "8f868da0a90e46a85baa348a896d1702",
+      "sourceName": "@openzeppelin/contracts/utils/Base64.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Base64"
+      ]
+    },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts@4.9.3/node_modules/@openzeppelin/contracts/utils/Strings.sol": {
-      "lastModificationDate": 1693202376281,
+      "lastModificationDate": 1693399989500,
       "contentHash": "48686fc32a22a3754b8e63321857dd2a",
       "sourceName": "@openzeppelin/contracts/utils/Strings.sol",
       "solcConfig": {
@@ -440,43 +634,8 @@
         "Strings"
       ]
     },
-    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts@4.9.3/node_modules/@openzeppelin/contracts/utils/Base64.sol": {
-      "lastModificationDate": 1693202376294,
-      "contentHash": "8f868da0a90e46a85baa348a896d1702",
-      "sourceName": "@openzeppelin/contracts/utils/Base64.sol",
-      "solcConfig": {
-        "version": "0.8.17",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "Base64"
-      ]
-    },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol": {
-      "lastModificationDate": 1693202403692,
+      "lastModificationDate": 1693399989672,
       "contentHash": "db24b956904575cc79d02867ec03263c",
       "sourceName": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
       "solcConfig": {
@@ -514,7 +673,7 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts@4.9.3/node_modules/@openzeppelin/contracts/utils/Counters.sol": {
-      "lastModificationDate": 1693202376240,
+      "lastModificationDate": 1693399989477,
       "contentHash": "74654e3ae5d7f39555055dfe244dab7a",
       "sourceName": "@openzeppelin/contracts/utils/Counters.sol",
       "solcConfig": {
@@ -549,7 +708,7 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol": {
-      "lastModificationDate": 1693202403666,
+      "lastModificationDate": 1693399989655,
       "contentHash": "5187bf78bbb054d9d4f5121232d5398b",
       "sourceName": "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol",
       "solcConfig": {
@@ -592,7 +751,7 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155BurnableUpgradeable.sol": {
-      "lastModificationDate": 1693202403661,
+      "lastModificationDate": 1693399989654,
       "contentHash": "fff2ea78a61d6bb81a90a28e62309608",
       "sourceName": "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155BurnableUpgradeable.sol",
       "solcConfig": {
@@ -630,7 +789,7 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol": {
-      "lastModificationDate": 1693202403661,
+      "lastModificationDate": 1693399989655,
       "contentHash": "fbf5fdb7a74554410a3b4059f3d314df",
       "sourceName": "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol",
       "solcConfig": {
@@ -667,43 +826,8 @@
         "ERC1155SupplyUpgradeable"
       ]
     },
-    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts@4.9.3/node_modules/@openzeppelin/contracts/utils/math/SignedMath.sol": {
-      "lastModificationDate": 1693202376257,
-      "contentHash": "9488ebd4daacfee8ad04811600d7d061",
-      "sourceName": "@openzeppelin/contracts/utils/math/SignedMath.sol",
-      "solcConfig": {
-        "version": "0.8.17",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "SignedMath"
-      ]
-    },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts@4.9.3/node_modules/@openzeppelin/contracts/utils/math/Math.sol": {
-      "lastModificationDate": 1693202376259,
+      "lastModificationDate": 1693399989497,
       "contentHash": "fe63409d8a06818b926cf89e0ea88b1b",
       "sourceName": "@openzeppelin/contracts/utils/math/Math.sol",
       "solcConfig": {
@@ -737,10 +861,10 @@
         "Math"
       ]
     },
-    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol": {
-      "lastModificationDate": 1693202403654,
-      "contentHash": "eb51ed084f6f7fd2c7098715c5690285",
-      "sourceName": "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol",
+    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts@4.9.3/node_modules/@openzeppelin/contracts/utils/math/SignedMath.sol": {
+      "lastModificationDate": 1693399989500,
+      "contentHash": "9488ebd4daacfee8ad04811600d7d061",
+      "sourceName": "@openzeppelin/contracts/utils/math/SignedMath.sol",
       "solcConfig": {
         "version": "0.8.17",
         "settings": {
@@ -764,18 +888,16 @@
           }
         }
       },
-      "imports": [
-        "../../utils/introspection/IERC165Upgradeable.sol"
-      ],
+      "imports": [],
       "versionPragmas": [
         "^0.8.0"
       ],
       "artifacts": [
-        "IERC1155ReceiverUpgradeable"
+        "SignedMath"
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol": {
-      "lastModificationDate": 1693202403649,
+      "lastModificationDate": 1693399989663,
       "contentHash": "5712a8d74dc6ae8d66b65cdfac95846b",
       "sourceName": "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol",
       "solcConfig": {
@@ -811,8 +933,45 @@
         "IERC1155Upgradeable"
       ]
     },
+    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol": {
+      "lastModificationDate": 1693399989663,
+      "contentHash": "eb51ed084f6f7fd2c7098715c5690285",
+      "sourceName": "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../../utils/introspection/IERC165Upgradeable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IERC1155ReceiverUpgradeable"
+      ]
+    },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts-upgradeable@4.9.3/node_modules/@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/IERC1155MetadataURIUpgradeable.sol": {
-      "lastModificationDate": 1693202403659,
+      "lastModificationDate": 1693399989663,
       "contentHash": "8b7e95c747e2dab3b5444b37410a8315",
       "sourceName": "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/IERC1155MetadataURIUpgradeable.sol",
       "solcConfig": {
@@ -848,317 +1007,9 @@
         "IERC1155MetadataURIUpgradeable"
       ]
     },
-    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts@4.9.3/node_modules/@openzeppelin/contracts/proxy/Clones.sol": {
-      "lastModificationDate": 1693202376104,
-      "contentHash": "89c075565795af5e3e88fc75642a4af8",
-      "sourceName": "@openzeppelin/contracts/proxy/Clones.sol",
-      "solcConfig": {
-        "version": "0.8.17",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "Clones"
-      ]
-    },
-    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/Access.sol": {
-      "lastModificationDate": 1693202368875,
-      "contentHash": "506453ce63fe57e72a84f40077aa30a0",
-      "sourceName": "contracts/Access.sol",
-      "solcConfig": {
-        "version": "0.8.17",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.2"
-      ],
-      "artifacts": [
-        "Access"
-      ]
-    },
-    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/Token.sol": {
-      "lastModificationDate": 1693202362956,
-      "contentHash": "4a5558115bc85ddf46c680d3469b6600",
-      "sourceName": "contracts/Token.sol",
-      "solcConfig": {
-        "version": "0.8.17",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./Access.sol",
-        "./Base.sol",
-        "./interface/ITemplate.sol",
-        "./interface/IDelegate.sol",
-        "@openzeppelin/contracts/utils/Base64.sol",
-        "@openzeppelin/contracts/utils/Strings.sol",
-        "hardhat/console.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.17"
-      ],
-      "artifacts": [
-        "TokenContract"
-      ]
-    },
-    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/Base.sol": {
-      "lastModificationDate": 1693202368804,
-      "contentHash": "cd909b3a684b041f1fdd3c069a3df7fa",
-      "sourceName": "contracts/Base.sol",
-      "solcConfig": {
-        "version": "0.8.17",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155BurnableUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
-        "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
-        "@openzeppelin/contracts/utils/Counters.sol",
-        "@openzeppelin/contracts/utils/Strings.sol",
-        "./interface/ITemplate.sol",
-        "./Access.sol",
-        "hardhat/console.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.17"
-      ],
-      "artifacts": [
-        "Base"
-      ]
-    },
-    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/interface/IDelegate.sol": {
-      "lastModificationDate": 1693202363395,
-      "contentHash": "24dbe6bf9de243bbb8ed49840ff0db15",
-      "sourceName": "contracts/interface/IDelegate.sol",
-      "solcConfig": {
-        "version": "0.8.17",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.17"
-      ],
-      "artifacts": [
-        "IDelegate"
-      ]
-    },
-    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/interface/ITemplate.sol": {
-      "lastModificationDate": 1693202362956,
-      "contentHash": "5b9fa2da830e54037c22d5f576ca5719",
-      "sourceName": "contracts/interface/ITemplate.sol",
-      "solcConfig": {
-        "version": "0.8.17",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.17"
-      ],
-      "artifacts": [
-        "ITemplate"
-      ]
-    },
-    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/Template.sol": {
-      "lastModificationDate": 1693202369807,
-      "contentHash": "909ff5b4de13c8da1bd55b16c6c7d519",
-      "sourceName": "contracts/Template.sol",
-      "solcConfig": {
-        "version": "0.8.17",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/utils/Strings.sol",
-        "@openzeppelin/contracts/utils/Counters.sol",
-        "@openzeppelin/contracts/utils/Base64.sol",
-        "./interface/IProxy.sol",
-        "hardhat/console.sol",
-        "./Access.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.17"
-      ],
-      "artifacts": [
-        "TemplateContract"
-      ]
-    },
-    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/interface/IProxy.sol": {
-      "lastModificationDate": 1693202363329,
-      "contentHash": "0430027e8d23a0d4f1201fed5e558bcc",
-      "sourceName": "contracts/interface/IProxy.sol",
-      "solcConfig": {
-        "version": "0.8.17",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.17"
-      ],
-      "artifacts": [
-        "IProxy"
-      ]
-    },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/Delegate.sol": {
-      "lastModificationDate": 1693202369928,
-      "contentHash": "da5ebed29a0f5cad05dd0ab27896d7b1",
+      "lastModificationDate": 1694791913217,
+      "contentHash": "6289d078bbbcc281379f71e27102aece",
       "sourceName": "contracts/Delegate.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -1195,8 +1046,8 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/Factory.sol": {
-      "lastModificationDate": 1693202368804,
-      "contentHash": "811381b64e5bd4ccb827fdc89f905a6b",
+      "lastModificationDate": 1694791862175,
+      "contentHash": "6825d14013438fb6146386b77487b605",
       "sourceName": "contracts/Factory.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -1234,6 +1085,76 @@
       ],
       "artifacts": [
         "FactoryContract"
+      ]
+    },
+    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/interface/IProxy.sol": {
+      "lastModificationDate": 1694180814079,
+      "contentHash": "a6cfb36889df47f64ecd29233c347f2e",
+      "sourceName": "contracts/interface/IProxy.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.17"
+      ],
+      "artifacts": [
+        "IProxy"
+      ]
+    },
+    "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/node_modules/.pnpm/registry.npmmirror.com+@openzeppelin+contracts@4.9.3/node_modules/@openzeppelin/contracts/proxy/Clones.sol": {
+      "lastModificationDate": 1693399989477,
+      "contentHash": "89c075565795af5e3e88fc75642a4af8",
+      "sourceName": "@openzeppelin/contracts/proxy/Clones.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Clones"
       ]
     }
   }

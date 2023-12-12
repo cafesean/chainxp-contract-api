@@ -41,8 +41,9 @@ model contract {
   factory_address     String?
   cloned_from         String?
   contract_version_id BigInt?
-  deployment_id       BigInt?
   forwarder_address   String?
+  deployment_id       BigInt?
+  deployment          deployment?       @relation(fields: [deployment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "contract_contract_deployment_id_key")
   contract_version    contract_version? @relation(fields: [contract_version_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "contract_contract_version_id_key")
 }
 
@@ -117,8 +118,10 @@ model role {
   id          Int           @id(map: "roles_pkey") @default(autoincrement())
   created_at  DateTime?     @default(now()) @db.Timestamptz(6)
   updated_at  DateTime?     @default(now()) @db.Timestamptz(6)
-  name        String
+  name        String?
   title       String
+  policy_ops  Json?         @db.Json
+  policy_org  Json?         @db.Json
   role_policy role_policy[]
 }
 
@@ -153,7 +156,7 @@ model series {
   template_id      BigInt?
   external_link    String?
   status           Int       @default(0)
-  fungible         Boolean?  @default(true)
+  fungible         Boolean?  @default(false)
   org              org?      @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   template         template? @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "series_template_id_key")
   xp               xp[]
@@ -167,7 +170,7 @@ model user {
   tokens             Json?
   xp                 Json?
   profile            Json?
-  role_id            Int[]
+  role_id            BigInt[]
   org_id             BigInt[]
   updated_at         DateTime?            @updatedAt @db.Timestamptz(6)
   referred_by        String?
@@ -316,39 +319,21 @@ model category {
 }
 
 model deployment {
-  id                   BigInt    @id @default(autoincrement())
-  wallet_address       String
-  proxy_contract_id    BigInt?
-  delegate_contract_id BigInt?
-  factory_contract_id  BigInt?
-  name                 String
-  description          String?
-  network              String
-  chain                String
-  status               Int
-  deployed_at          DateTime? @default(now())
-  created_at           DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at           DateTime  @default(now()) @db.Timestamptz(6)
-  metadata             Json?
-}
-
-model org_plan {
-  id         BigInt    @id @default(autoincrement())
-  org_id     BigInt
-  plan_id    BigInt
-  started_at DateTime
-  expired_at DateTime
-  created_at DateTime? @default(now())
-  updated_at DateTime?
-}
-
-model plan {
-  id         BigInt    @id @default(autoincrement())
-  name       String
-  max_series Int
-  max_xp     Int
-  created_at DateTime? @default(now())
-  updated_at DateTime?
+  id                        BigInt     @id @default(autoincrement())
+  wallet_address            String
+  name                      String
+  description               String?
+  network                   String
+  chain                     String
+  status                    Int
+  deployed_at               DateTime?  @default(now())
+  created_at                DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime   @default(now()) @db.Timestamptz(6)
+  metadata                  Json?
+  delegate_contract_address String?
+  factory_contract_address  String?
+  proxy_contract_address    String?
+  contract                  contract[]
 }
 
 model role_policy {

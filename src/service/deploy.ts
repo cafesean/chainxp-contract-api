@@ -148,7 +148,7 @@ export class DeployService extends BaseService {
 					contract_version_id: Number(id),
 					version: version?.toString(),
 					chain_id: chainId,
-					deployment_id: deploymentId,
+					deployment_id: Number(deploymentId),
 				},
 			});
 		} catch (error) {

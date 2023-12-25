@@ -22,7 +22,7 @@ model allowlist {
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model contract {
-  contract_address    String            @unique
+  contract_address    String
   name                String            @db.VarChar(250)
   created_at          DateTime          @default(now()) @db.Timestamptz(6)
   updated_at          DateTime          @default(now()) @db.Timestamptz(6)
@@ -30,7 +30,7 @@ model contract {
   chain_id            Int?
   contract_name       String?
   deployed_at         DateTime?         @default(now()) @db.Timestamptz(6)
-  id                  BigInt            @id @default(autoincrement())
+  id                  BigInt            @id(map: "contract_pkey") @default(autoincrement())
   owner_address       String?
   status              Int?
   type                String?
@@ -43,12 +43,15 @@ model contract {
   contract_version_id BigInt?
   forwarder_address   String?
   deployment_id       BigInt?
-  deployment          deployment?       @relation(fields: [deployment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "contract_contract_deployment_id_key")
+  forwarder           forwarder?        @relation(fields: [forwarder_address], references: [address], onDelete: NoAction, onUpdate: NoAction, map: "contract_forwarder_address_fkey")
+  deployment          deployment?       @relation(fields: [deployment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "contract_deployment_id_key")
   contract_version    contract_version? @relation(fields: [contract_version_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "contract_contract_version_id_key")
+
+  @@unique([contract_name, deployment_id])
 }
 
 model contract_version {
-  id            BigInt     @id @default(autoincrement())
+  id            BigInt     @id(map: "contract_version_pkey") @default(autoincrement())
   contract_name String
   source_name   String
   version       String
@@ -63,25 +66,8 @@ model contract_version {
   contract      contract[]
 }
 
-model clone {
-  id               BigInt   @id @default(autoincrement())
-  name             String
-  type             String?
-  owner_address    String
-  contract_address String
-  factory_address  String
-  delegate_address String?
-  status           Int
-  chain_id         Int?
-  deployed_at      DateTime @default(now()) @db.Timestamptz(6)
-  created_at       DateTime @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime @default(now()) @db.Timestamptz(6)
-  proxy_address    String
-  fungible         Boolean? @default(true)
-}
-
 model org {
-  id                     Int        @id @default(autoincrement())
+  id                     Int        @id(map: "org_pkey") @default(autoincrement())
   created_at             DateTime?  @default(now()) @db.Timestamptz(6)
   name                   String?
   country_id             BigInt?
@@ -89,7 +75,7 @@ model org {
   logo_url               String?
   slug                   String?
   uuid                   String?    @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  updated_at             DateTime?  @db.Timestamptz(6)
+  updated_at             DateTime?  @updatedAt @db.Timestamptz(6)
   status                 Int?       @db.SmallInt
   auth_wallets           Json[]
   tier_id                Int        @default(1)
@@ -109,7 +95,7 @@ model org {
 model org_scheme {
   id         BigInt    @id @default(autoincrement())
   created_at DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @updatedAt @db.Timestamptz(6)
   status     Int?      @db.SmallInt
   scheme     BigInt?
 }
@@ -117,7 +103,7 @@ model org_scheme {
 model role {
   id          Int           @id(map: "roles_pkey") @default(autoincrement())
   created_at  DateTime?     @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime?     @updatedAt @db.Timestamptz(6)
   name        String?
   title       String
   policy_ops  Json?         @db.Json
@@ -128,15 +114,16 @@ model role {
 model scheme {
   id            Int       @id(map: "schemes_pkey") @default(autoincrement())
   created_at    DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime? @updatedAt @db.Timestamptz(6)
   name          String?
   contracts     Json[]
   access_policy Json?
 }
 
 model series {
-  id               Int       @id @default(autoincrement())
+  id               Int       @id(map: "series_pkey") @default(autoincrement())
   org_id           Int?
+  type             Int       @default(1)
   category         Int?      @db.SmallInt
   title            String?
   description      String?
@@ -150,7 +137,7 @@ model series {
   slug             String?
   uuid             String?   @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   requirements     String?
-  contract_address String?
+  contract_address String?   @unique
   owner            String?
   delegate_address String?
   template_id      BigInt?
@@ -175,7 +162,7 @@ model user {
   updated_at         DateTime?            @updatedAt @db.Timestamptz(6)
   referred_by        String?
   is_registered      Boolean?
-  id                 String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                 String               @id(map: "user_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   email              Json?                @db.Json
   phone              Json?                @db.Json
   org_user           org_user[]
@@ -183,7 +170,7 @@ model user {
 }
 
 model xp {
-  id               Int         @id @default(autoincrement())
+  id               Int         @id(map: "xp_pkey") @default(autoincrement())
   created_at       DateTime?   @default(now()) @db.Timestamptz(6)
   status           Int?        @db.SmallInt
   xp_code          String?
@@ -221,13 +208,13 @@ model xp_type {
 }
 
 model transaction {
-  txn_hash         String   @id
+  txn_hash         String   @id(map: "transaction_pkey")
   class_id         String
   from             String
   to               String
   status           Int      @default(0)
   created_at       DateTime @default(now())
-  updated_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt @db.Timestamptz(6)
   contract_address String?
   token_id         String?
   amount           Decimal? @db.Decimal
@@ -237,7 +224,7 @@ model transaction {
 }
 
 model template {
-  id                     BigInt    @id @default(autoincrement())
+  id                     BigInt    @id(map: "template2_pkey") @default(autoincrement())
   template_name          String?   @default("")
   mask                   String?   @default("")
   gradient               String?   @default("")
@@ -289,7 +276,7 @@ model template {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model version {
-  id         BigInt    @id @default(autoincrement())
+  id         BigInt    @id(map: "version_pkey") @default(autoincrement())
   created_at DateTime  @default(now()) @db.Timestamptz(6)
   version    String?
   chain      Int?
@@ -299,27 +286,48 @@ model version {
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model forwarder {
   key        String?
-  tier_id    Int       @default(1)
+  tier_id    Int        @default(1)
   iv         String?
-  address    String?
-  id         Int       @id @default(autoincrement())
-  created_at DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at DateTime? @updatedAt @db.Timestamptz(6)
+  address    String?    @unique
+  id         Int        @id @default(autoincrement())
+  created_at DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime?  @updatedAt @db.Timestamptz(6)
   chain      String?
   role       String?
-  status     Int       @default(100)
+  status     Int        @default(100)
   token      Json?
+  contract   contract[]
+  clone      clone[]
 }
 
 model category {
-  id    BigInt  @id @default(autoincrement())
+  id    BigInt  @id(map: "category_pkey") @default(autoincrement())
   slug  String
   name  String
   image String?
 }
 
+model clone {
+  id                BigInt     @id(map: "clone_pkey") @default(autoincrement())
+  name              String
+  type              String?
+  owner_address     String
+  contract_address  String     @unique
+  factory_address   String
+  delegate_address  String?
+  forwarder_address String?
+  status            Int
+  chain_id          Int?
+  deployed_at       DateTime   @default(now()) @db.Timestamptz(6)
+  created_at        DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime   @updatedAt @db.Timestamptz(6)
+  proxy_address     String
+  fungible          Boolean?   @default(true)
+  forwarder         forwarder? @relation(fields: [forwarder_address], references: [address], onDelete: NoAction, onUpdate: NoAction, map: "clone_forwarder_address_fkey")
+}
+
 model deployment {
-  id                        BigInt     @id @default(autoincrement())
+  id                        BigInt     @id(map: "deployment_pkey") @default(autoincrement())
   wallet_address            String
   name                      String
   description               String?
@@ -328,12 +336,22 @@ model deployment {
   status                    Int
   deployed_at               DateTime?  @default(now())
   created_at                DateTime   @default(now()) @db.Timestamptz(6)
-  updated_at                DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime   @updatedAt @db.Timestamptz(6)
   metadata                  Json?
   delegate_contract_address String?
   factory_contract_address  String?
   proxy_contract_address    String?
   contract                  contract[]
+}
+
+model org_user {
+  org_id  Int
+  user_id String @db.Uuid
+  role    String
+  org     org    @relation(fields: [org_id], references: [id])
+  user    user   @relation(fields: [user_id], references: [id])
+
+  @@id([org_id, user_id])
 }
 
 model role_policy {
@@ -345,7 +363,7 @@ model role_policy {
   can_update Boolean   @default(false)
   can_delete Boolean   @default(false)
   created_at DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @updatedAt @db.Timestamptz(6)
   metadata   Json?
   role       role      @relation(fields: [role_id], references: [id])
 }
@@ -358,17 +376,19 @@ model verification_token {
   used_at    DateTime? @db.Timestamptz(6)
   expired_at DateTime? @db.Timestamptz(6)
   created_at DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at DateTime  @db.Timestamptz(6)
+  updated_at DateTime  @updatedAt @db.Timestamptz(6)
   metadata   Json?
   user       user      @relation(fields: [user_id], references: [id])
 }
 
-model org_user {
-  org_id  Int
-  user_id String @db.Uuid
-  role    String
-  org     org    @relation(fields: [org_id], references: [id])
-  user    user   @relation(fields: [user_id], references: [id])
+model inventory {
+  wallet_address   String
+  network          String
+  contract_address String
+  class_id         String
+  name             String?
+  symbol           String?
+  uri              String?
 
-  @@id([org_id, user_id])
+  @@id([wallet_address, contract_address, class_id])
 }

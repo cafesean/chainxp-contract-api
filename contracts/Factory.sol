@@ -35,7 +35,7 @@ contract FactoryContract is OwnableUpgradeable, Access {
 
     function createClone(
         address target
-    ) external onlyAdmin returns (address) {
+    ) external onlyOps returns (address) {
         bytes20 targetBytes = bytes20(target);
         address proxy;
 

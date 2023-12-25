@@ -71,8 +71,25 @@ contract Access is AccessControlUpgradeable {
                 targetRole == FORWARDER_ROLE,
             "Invalid role"
         );
-        grantRole(targetRole, _user);
+        (targetRole == ADMIN_ROLE)
+            ? grantRole(DEFAULT_ADMIN_ROLE, _user)
+            : grantRole(targetRole, _user);
         return RETURN_SUCCESS;
+    }
+
+    // function that returns the role of the provided address
+    function getRole(address _address) public view returns (string memory) {
+        if (hasRole(DEFAULT_ADMIN_ROLE, _address)) {
+            return "DEFAULT_ADMIN_ROLE";
+        } else if (hasRole(ADMIN_ROLE, _address)) {
+            return "ADMIN_ROLE";
+        } else if (hasRole(OPS_ROLE, _address)) {
+            return "OPS_ROLE";
+        } else if (hasRole(SYS_ROLE, _address)) {
+            return "SYS_ROLE";
+        } else {
+            return "NO_ROLE";
+        }
     }
 
     function removeAccess(

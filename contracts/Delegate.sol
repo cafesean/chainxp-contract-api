@@ -43,6 +43,7 @@ contract DelegateContract is Initializable, Access, Base {
     }
 
 
+
     // function burnBatchByClass(uint256 _classId) public onlyAdmin {
     //     for (uint256 _userId = 1; _userId <= tokenCount.current(); _userId++) {
     //         require(users[_classId][users[_userId].wallet][] <> 0);

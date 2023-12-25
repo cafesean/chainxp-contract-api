@@ -2,8 +2,11 @@
 import { BaseService } from "./base";
 import { attachContract, getGasPriceOverrides, addContractAbi, getAbiByName } from "../utils";
 import { ethers } from "hardhat";
+import { Contract } from "ethers";
 import { getAbiByCache } from "../utils";
+import { getForwarderWalletAddress, getForwarderAddressFromDeployment, grantAccessToForwarder, getDeployedContractAddress } from "../utils/contract.utils";
 import dotenv from "dotenv";
+
 dotenv.config();
 
 interface JSONObject {
@@ -35,48 +38,60 @@ export class DeployService extends BaseService {
 		// const salt = ethers.utils.formatBytes32String(random.toString());
 
 		let addressClone;
-
-		const contractFactory = await attachContract(factoryAddress, deployer, false);
-		const response = await contractFactory.createClone(proxyAddress);
-
-		const receipt = await response.wait(); // response is empty if using hardhat network
-
-		const [, abi,, contractName,,] = await getAbiByName("TokenContract");
-		console.log("abi=", abi);
-		for (const event of receipt.events) {
-			if (event.event === "ProxyCloned") {
-				addressClone = event.args.cloneAddress.toLowerCase();
-			}
-		}
 		const signerAddress = await deployer.getAddress();
 
+		// get forwarder address
+
 		try {
+			const forwarderAddress = (await getForwarderWalletAddress(proxyAddress)) || "";
+
+			const contractFactory = await attachContract(factoryAddress, deployer, false);
+			const response = await contractFactory.createClone(proxyAddress);
+
+			const receipt = await response.wait(); // response is empty if using hardhat network
+
+			const [, abi, , contractName, ,] = await getAbiByName("TokenContract");
+			console.log("abi=", abi);
+			for (const event of receipt.events) {
+				if (event.event === "ProxyCloned") {
+					addressClone = event.args.cloneAddress.toLowerCase();
+				}
+			}
+
 			await this.prisma.clone.create({
 				data: {
 					type: "clone",
-					fungible: fungible === 1, 
+					fungible: fungible === 1,
 					name: contractName?.toString() || "",
 					contract_address: addressClone.toLowerCase(),
 					owner_address: signerAddress.toLowerCase(),
 					factory_address: factoryAddress.toLowerCase(),
 					proxy_address: proxyAddress.toLowerCase(),
+					forwarder_address: forwarderAddress.toLowerCase(),
 					status: 1,
 				},
 			});
 		} catch (error) {
-			console.log("contractData Error: ", error);
+			console.log("Create clone Error: ", error);
 		}
 
 		// initialize clone
-		const contractClone = await attachContract(addressClone, deployer, true);
-		await contractClone.initialize(deployer.address, title, baseUri, description, symbol, fungible, overrides).then((tx: any) => tx.wait());
+		try {
+			const contractClone = await attachContract(addressClone, deployer, true);
+			await contractClone.initialize(deployer.address, title, baseUri, description, symbol, fungible, overrides).then((tx: any) => tx.wait());
 
-		// configure with delegate
-		const delegateContract = await attachContract(delegateAddress, deployer);
+			// configure with delegate
+			const delegateContract = await attachContract(delegateAddress, deployer);
 
-		await contractClone.setDelegateAddress(delegateAddress, overrides);
-		await delegateContract.grantAccess(addressClone, "ADMIN_ROLE", overrides).then((tx: any) => tx.wait());
+			await contractClone.setDelegateAddress(delegateAddress, overrides);
 
+			console.log(deployer.address + " role: ", await delegateContract.getRole(deployer.address));
+
+			await delegateContract.grantAccess(addressClone, "ADMIN_ROLE", overrides).then((tx: any) => tx.wait());
+		} catch (error) {
+			console.log("Contract configuration error: ", error);
+			throw new Error("Oops, something went wrong. (D100)");
+		}
 		console.log("Clone config done");
 
 		const seriesData = await this.prisma.series.upsert({
@@ -110,22 +125,19 @@ export class DeployService extends BaseService {
 		// const series_id = seriesData?.id;
 		console.log("Clone address: ", addressClone);
 		// return new clone (series)
-		return { "cloneAddress": addressClone, seriesId: seriesData?.id };
+		return { cloneAddress: addressClone, seriesId: seriesData?.id };
 	}
 
-	async deploy(deploymentId: number, name: string, deployer: any) {
+	async deploy(deploymentId: number, name: string, deployer: any): Promise<Contract> {
 		const formattedContractName = name.charAt(0).toUpperCase() + name.slice(1) + "Contract";
 		const [id, abi, bytecode, contractName, sourceName, version] = await getAbiByName(formattedContractName);
 
 		const contractFullName = sourceName + ":" + contractName;
 
-
 		// const [signer] = await ethers.getSigners();
-		
+
 		// const wallet = new ethers.Wallet(deployerPrivateKey);
 		// const signer = wallet.connect(ethers.provider);
-
-
 
 		const factory = await ethers.getContractFactory(contractFullName);
 		const chainId = await ethers.provider.getNetwork().then((network) => network.chainId);
@@ -157,29 +169,26 @@ export class DeployService extends BaseService {
 		return newContract;
 	}
 
-	async deployFactory(deploymentId: number, deployer: any, reqBody: any) {
+	async deployFactory(deploymentId: number, deployer: any, reqBody: any): Promise<string> {
 		// var contractFactory;
 		// var addressFactory;
 
 		const { proxyAddress } = reqBody;
-		const newFactory = await this.deploySingle(deploymentId, deployer, "Factory", null);
 
-		const overrides = await getGasPriceOverrides(this, 2);
-		// try {
-		// contractFactory = await this.deploy("Factory");
-		// console.log("	contractFactory owner: ", await contractFactory.owner());
-		// console.log("	ProxyFactory address: ", contractFactory.address);
-		// addressFactory = contractFactory.address;
-		// await newFactory.initialize();
-		// attach initial token proxy contract and register newly deployed factory
-		const proxyContract = await attachContract(proxyAddress, deployer);
+		try {
+			// deploy factory
+			const newFactory = await this.deploySingle(deploymentId, deployer, "Factory", null);
+			const overrides = await getGasPriceOverrides(this, 2);
 
-		//register factory
-		await proxyContract.registerFactory(newFactory.address, overrides);
-		// } catch (error) {
-		// }
+			// attach proxy contract and register factory
+			const proxyContract = await attachContract(proxyAddress, deployer);
+			await proxyContract.registerFactory(newFactory.address, overrides);
 
-		return newFactory.address;
+			return newFactory.address;
+		} catch (error) {
+			console.log("Factory deployment Error: ", error);
+			throw new Error("Factory deployment Error: " + error);
+		}
 	}
 
 	async deployAll(deploymentId: number, deployer: any, name: string, baseUri: string, description: string, symbol: string, fungible: boolean) {
@@ -203,18 +212,37 @@ export class DeployService extends BaseService {
 		return { proxyAddress: contractProxy.address, delegateAddress: contractDelegate.address };
 	}
 
-	async deploySingle(deploymentId: number, deployer: any, contractName: string, options: any) {
-		const newContract = await this.deploy(deploymentId, contractName, deployer);
+	async deploySingle(deploymentId: number, deployer: any, contractName: string, options: any): Promise<Contract> {
+		// if deploymentId exists, skip
+		const formattedContractName = contractName.charAt(0).toUpperCase() + contractName.slice(1) + "Contract";
 
+		const deployedContract = await getDeployedContractAddress(formattedContractName, deploymentId);
+		if (deployedContract) {
+			// get contract object from contract table
+			const existingContract = await attachContract(deployedContract, deployer);
+			return existingContract;
+		}
+
+		const newContract = await this.deploy(deploymentId, contractName, deployer);
 		const overrides = await getGasPriceOverrides(this, 2);
-		// const [deployer] = await ethers.getSigners();
+		const forwarderAddress = await getForwarderAddressFromDeployment(deploymentId as number);
+
 		switch (contractName) {
 			case "token":
 				await newContract.initialize(deployer.address, ...options, overrides);
-				// await newContract.initialize(deployer.address, ...options);
+
+				// save forwarder address to database by looking up proxy address in deployment table using deploymentId
+				await this.prisma.contract.update({
+					where: { contract_name_deployment_id: { contract_name: formattedContractName, deployment_id: deploymentId } },
+					data: { forwarder_address: forwarderAddress },
+				});
 				break;
 			default:
+				// delegate or factory
 				await newContract.connect(deployer).initialize(overrides);
+				const grantAccessResult = await grantAccessToForwarder(formattedContractName, newContract, overrides, forwarderAddress, "ADMIN_ROLE", deploymentId);
+
+				console.log("grantAccessResult: ", formattedContractName + " - " + grantAccessResult);
 				break;
 		}
 		return newContract;

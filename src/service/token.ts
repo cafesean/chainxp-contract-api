@@ -5,7 +5,8 @@ import * as errors from "../errors";
 import { ethers } from "hardhat";
 import dotenv from "dotenv";
 import { IForwardRequest } from "./forward.type";
-import { decryptPrivateKey } from "../utils/encryption";
+// import { decryptPrivateKey } from "../utils/encryption";
+import { getForwarderWalletKeyFromClone } from "../utils/contract.utils";
 
 dotenv.config();
 interface JSONObject {
@@ -44,31 +45,12 @@ export class TokenService extends BaseService {
 			return { error: "No org tier Id" };
 		}
 
-		const tierId = orgTierId[0]?.org?.tier_id;
+		// const tierId = orgTierId[0]?.org?.tier_id;
 
 		// get forwarder based on tier Id
-		const forwarder = await this.prisma.forwarder.findFirst({
-			where: {
-				tier_id: tierId,
-			},
-			select: {
-				address: true,
-				key: true,
-				iv: true,
-			},
-		});
-
-		const password = process.env.FORWARDER_PASSWORD as string;
-
-		console.log("password: ", password);
-		console.log("iv: ", forwarder?.iv);
-		console.log("key: ", forwarder?.key);
-
-		if (!forwarder) {
-			return { error: "No forwarder" };
-		}
-		const forwarderKey = decryptPrivateKey(forwarder?.key!, password, forwarder?.iv!);
-		console.log("forwarderKey: ", forwarderKey);
+		const forwarderWalletKey = await getForwarderWalletKeyFromClone(contract_address);
+		// get signer using private key
+		const forwarderSigner = new ethers.Wallet(forwarderWalletKey, ethers.provider);
 
 		// Verify signature
 		if (!verified) {
@@ -77,10 +59,9 @@ export class TokenService extends BaseService {
 		const forwardCalldata = calldata.concat(sender.slice(2));
 		// const [signer] = await ethers.getSigners();
 
-		// get signer using private key
-		const forwarderSigner = new ethers.Wallet(forwarderKey, ethers.provider);
+
 		console.log("forwarderSigner: ", forwarderSigner);
-		console.log("forwarder address:", forwarder?.address);
+		console.log("forwarder address:", forwarderSigner?.address);
 
 		console.log("-- contract_address: ", contract_address);
 		console.log("-- forwardCalldata: ", forwardCalldata);
@@ -89,13 +70,13 @@ export class TokenService extends BaseService {
 			to: contract_address,
 			data: forwardCalldata,
 		};
-console.log("tx: ", tx);
-console.log("overrides: ", overrides);
+		console.log("tx: ", tx);
+		console.log("overrides: ", overrides);
 		const mergedTx = {
 			...tx,
 			...overrides,
 		};
-console.log("mergedTx: ", mergedTx);
+		console.log("mergedTx: ", mergedTx);
 		const response = await forwarderSigner.sendTransaction(mergedTx);
 		const receipt = await response.wait();
 
@@ -105,7 +86,6 @@ console.log("mergedTx: ", mergedTx);
 		const logs = receipt.logs.filter((log) => log.address.toLowerCase() === contract_address.toLowerCase());
 		const events = logs.map((log) => tokenContract.interface.parseLog(log));
 
-
 		// const response = await tokenContract.mint(user_address, Number(class_id), overrides);
 		let _returnedClassId;
 		let _classTokenId;
@@ -113,7 +93,7 @@ console.log("mergedTx: ", mergedTx);
 			return { error: "response is undefined" };
 		}
 		for (const LogDescription of events) {
-		console.log("LogDescription: ", LogDescription);
+			console.log("LogDescription: ", LogDescription);
 			if (LogDescription.signature === "TokenCreated(address,uint256,uint256)") {
 				const argClassId = LogDescription.args[1]; // uint256 value is 2nd arg in array as hex value
 				const argClassTokenId = LogDescription.args[2]; // uint256 value is 2nd arg in array as hex value

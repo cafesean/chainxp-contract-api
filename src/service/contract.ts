@@ -27,11 +27,15 @@ export class ContractService extends BaseService {
 		return "Current network is " + process.env.DEFAULT_NETWORK;
 	}
 
-	async grantAccess(deployer: any, walletAddress: string, contractAddress: string, role: string) {
+	async grantAccess(deployer: any, walletAddress: string, contractAddress: string, role: string, isClone: boolean) {
 		const overrides = await getGasPriceOverrides(this, 2);
 		console.log("	contractAddress: ", contractAddress);
-		const proxyContract = await attachContract(contractAddress, deployer, true);
-		await proxyContract.grantAccess(walletAddress, role, overrides);
+		const contract = await attachContract(contractAddress, deployer, isClone);
+		await contract.grantAccess(walletAddress, role, overrides);
+
+		const checkRole = await contract.getRole(walletAddress);
+
+		console.log("Role: ", checkRole);
 
 		return { result: role + " access granted to " + walletAddress };
 	}

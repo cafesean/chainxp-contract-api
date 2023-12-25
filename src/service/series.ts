@@ -1,6 +1,7 @@
 // @dev - on-chain transactions for series creation and configuration
 import { BaseService } from "./base";
 import { attachContract, getGasPriceOverrides } from "../utils";
+// import { getForwarderWalletAddressFromClone } from "../utils/contract.utils";
 import * as errors from "../errors";
 import { ethers } from "hardhat";
 import dotenv from "dotenv";
@@ -19,21 +20,32 @@ export class SeriesService extends BaseService {
 		return "Current network is " + network.name + " on chain ID " + network.chainId;
 	}
 
-	async addClass(deployer: any, contract_address: string, reqBody: any) {
-		const contractProxy = await attachContract(contract_address, deployer, true);
-		const overrides = await getGasPriceOverrides(this, 2);
-		let class_id = reqBody.class_id || "0";
-		const lcaseContractAddress = contract_address.toLowerCase();
+	async addClass(signer: any, contract_address: string, reqBody: any) {
+		let contractProxy: any;
+		let overrides: any;
+		let class_id: string;
+		let lcaseContractAddress: string;
+		let series: any;
 
-		// get series_id
-		const series = await this.prisma.series.findFirst({
-			select: {
-				id: true,
-			},
-			where: {
-				contract_address: contract_address,
-			},
-		});
+		class_id = reqBody.class_id || "0";
+		lcaseContractAddress = contract_address.toLowerCase();
+
+		try {
+			contractProxy = await attachContract(contract_address, signer, true);
+			overrides = await getGasPriceOverrides(this, 2);
+
+			// get series_id
+			series = await this.prisma.series.findUnique({
+				select: {
+					id: true,
+				},
+				where: {
+					contract_address: contract_address,
+				},
+			});
+		} catch (error) {
+			throw new Error("Failed to add class: " + error);
+		}
 
 		console.log("series?.id: ", series?.id);
 
@@ -124,7 +136,6 @@ export class SeriesService extends BaseService {
 		}
 		return contract_classes;
 	}
-
 
 	async getUsers(contract: any, from: number, to: number) {
 		var i;

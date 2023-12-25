@@ -22,17 +22,18 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 	fastify.post("/:contract_address/grantAccess", async (request: any, resp: any) => {
 		const { contract_address } = request.params;
-		const { walletAddress, role, encryptedKey, password, iv } = request.body;
+		const { targetAddress, role, encryptedKey, password, iv, isClone = false } = request.body;
 
-		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
+		const signerWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
 
-		const wallet = new ethers.Wallet(deployWalletAddress);
-		const signer = wallet.connect(ethers.provider);
+		const signerWallet = new ethers.Wallet(signerWalletAddress);
+		const signer = signerWallet.connect(ethers.provider);
 		// append response to the responseJSON object
-		const response = await fastify.service.contract.grantAccess(signer, walletAddress, contract_address, role);
+		const response = await fastify.service.contract.grantAccess(signer, targetAddress, contract_address, role, isClone);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(response);
 	});
+
 
 	fastify.post("/:contract_id/updateBaseUri", async (request: any, resp: any) => {
 		const { contract_id } = request.params;

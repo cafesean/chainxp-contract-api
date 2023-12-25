@@ -1,6 +1,7 @@
 import { decryptPrivateKey } from "@root/src/utils/encryption";
 import { FastifyInstance } from "fastify";
 import { ethers } from "hardhat";
+import { getForwarderWalletKey } from "@root/src/utils/contract.utils";
 
 // import * as abi from "../../constants/abi.constants";
 
@@ -67,12 +68,12 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/clone", async (request: any, resp: any) => {
-		// const { name,  } = request.body;
+		const { proxyAddress,  } = request.body;
 
-		const { encryptedKey, iv, password } = request.body;
-		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
-
-		const wallet = new ethers.Wallet(deployWalletAddress);
+		// const { encryptedKey, iv, password } = request.body;
+		// const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
+		const forwarderKey = await getForwarderWalletKey(proxyAddress);
+		const wallet = new ethers.Wallet(forwarderKey);
 		const signer = wallet.connect(ethers.provider);
 		const contract = await fastify.service.deploy.cloneProxy(signer, request.body);
 

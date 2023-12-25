@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "src/utils/prisma";
 
 // Load the JSON from the provided path
 function loadContractJson(abiPath: string): any {
@@ -49,8 +49,6 @@ export const getAbiByCache = async (contractName: string) => {
 
 // create function to get abi by contract_address
 export async function getAbiByName(contractName: string) {
-	const prisma = new PrismaClient();
-
 	const data = await prisma.contract_version.findFirst({
 		where: {
 			AND: [
@@ -139,8 +137,6 @@ export async function addContractAbi(prisma: any, contractAbi: any, version: str
 
 // create function to get abi by contract_address
 export async function getAbiByAddress(contractAddress: string, isClone: boolean) {
-	const prisma = new PrismaClient();
-
 	// lookup proxyAddress based on cloneAddress
 	let lookupContractAddress;
 

@@ -79,7 +79,7 @@ export class DeployService extends BaseService {
 		try {
 			const contractClone = await attachContract(addressClone, deployer, true);
 			await contractClone.initialize(deployer.address, title, baseUri, description, symbol, fungible, overrides).then((tx: any) => tx.wait());
-
+			await contractClone.grantAccess(deployer.address, "FORWARDER_ROLE", overrides).then((tx: any) => tx.wait());
 			// configure with delegate
 			const delegateContract = await attachContract(delegateAddress, deployer);
 

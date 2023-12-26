@@ -87,7 +87,7 @@ export async function getForwarderWalletAddress(proxyAddress: string) {
 		throw new Error("No forwarder");
 	}
 
-	return contract?.forwarder?.address;
+	return contract?.forwarder?.address?.toLowerCase();
 }
 
 // get forwarder address from proxy address

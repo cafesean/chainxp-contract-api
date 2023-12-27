@@ -105,6 +105,114 @@ export class SeriesService extends BaseService {
 		});
 	}
 
+	async addAttributes(signer: any, contractAddress: string, xpId: number, reqBody: any) {
+		let contractProxy: any;
+		let overrides: any;
+		// let attribute_id: string;
+		// let class_id: string;
+		// let name: string;
+		// let value: string;
+		// let lcaseContractAddress: string;
+		let xp: any;
+
+		let attributes = reqBody.attributes;
+
+		let ids = attributes.map((attribute: { id: number }) => attribute.id);
+		let names = attributes.map((attribute: { name: string }) => attribute.name);
+		let values = attributes.map((attribute: { value: string }) => attribute.value);
+
+		try {
+			xp = await this.prisma.xp.findUnique({
+				where: {
+					id: xpId,
+				},
+			});
+		} catch (error) {
+			throw new Error("Failed to add attribute: " + error);
+		}
+
+		contractProxy = await attachContract(xp?.contract_address, signer, true);
+		overrides = await getGasPriceOverrides(this, 2);
+
+		return new Promise(async (resolve, reject) => {
+			try {
+				const response = await contractProxy.setAttributes(Number(xp?.class_id), ids, names, values, overrides);
+				
+				// const response = await contractProxy.setAttributes(1,[1,2,3],["name1","name2","name3"],["value1","value2","value3"], overrides);
+				const receipt = await response.wait();
+				console.log("Receipt: ", receipt);
+
+				// for (const event of receipt.events) {
+				// 	if (event.eventSignature === "AttributeUpdated(string,uint256)") {
+				// 		const arg = event.args[1]; // uint256 value is 2nd arg in array as hex value
+				// 		attribute_id = arg.toString();
+				// 	}
+				// }
+
+				resolve({ response: response });
+			} catch (e) {
+				console.log(e);
+				reject(new Error("Error creating attribute:" + e));
+			}
+		});
+	}
+
+	async addAttribute(signer: any, contractAddress: string, xpId: number, reqBody: any) {
+		let contractProxy: any;
+		let overrides: any;
+		let attribute_id: string;
+		// let class_id: string;
+		let name: string;
+		let value: string;
+		// let lcaseContractAddress: string;
+		let xp: any;
+
+		// class_id = reqBody.class_id || "0";
+		attribute_id = reqBody.attribute_id || "0";
+		name = reqBody.name || "";
+		value = reqBody.value || "";
+		// lcaseContractAddress = contract_address.toLowerCase();
+
+		try {
+			xp = await this.prisma.xp.findUnique({
+				where: {
+					id: xpId,
+				},
+			});
+		} catch (error) {
+			throw new Error("Failed to add attribute: " + error);
+		}
+
+		contractProxy = await attachContract(xp?.contract_address, signer, true);
+		overrides = await getGasPriceOverrides(this, 2);
+
+		return new Promise(async (resolve, reject) => {
+			try {
+				const response = await contractProxy._setAttribute(
+					Number(xp?.class_id),
+					Number(attribute_id),
+					name,
+					value,
+					overrides
+				);
+				const receipt = await response.wait();
+				console.log("Receipt: ", receipt);
+
+				for (const event of receipt.events) {
+					if (event.eventSignature === "AttributeUpdated(string,uint256)") {
+						const arg = event.args[1]; // uint256 value is 2nd arg in array as hex value
+						attribute_id = arg.toString();
+					}
+				}
+
+				resolve({ response: response });
+			} catch (e) {
+				console.log(e);
+				reject(new Error("Error creating attribute:" + e));
+			}
+		});
+	}
+
 	async findContract(contract_address: string) {
 		const lcaseContractAddress = contract_address.toLowerCase();
 		const data = await this.prisma.series.findFirst({
@@ -164,13 +272,13 @@ export class SeriesService extends BaseService {
 			return err;
 		}
 	}
-	async getAttributes(deployer: any, contract_address: any, from: number, to: number) {
+	async getAttributes(deployer: any, contract_address: any, classId: number, from: number, to: number) {
 		const tokenContract = await attachContract(contract_address, deployer, true);
-		var i;
-		var data: JSONObject = {};
 		try {
+			var i;
+			var data: JSONObject = {};
 			for (i = from; i <= to; i++) {
-				data["attribute" + i] = await tokenContract._attributes(i);
+				data["attribute" + i] = await tokenContract._attributes(classId, i);
 			}
 			return data;
 		} catch (err) {
@@ -187,7 +295,10 @@ export class SeriesService extends BaseService {
 		// const [signer] = await ethers.getSigners();
 
 		const functionSignature = ethers.utils.id("setClass(uint256,string,string,string,address)").slice(0, 10);
-		const encodedParams = ethers.utils.defaultAbiCoder.encode(["uint256", "string", "string", "string", "address"], [classId, name, desc, baseUri]);
+		const encodedParams = ethers.utils.defaultAbiCoder.encode(
+			["uint256", "string", "string", "string", "address"],
+			[classId, name, desc, baseUri]
+		);
 		const data = functionSignature + encodedParams.slice(2); // remove the 0x from encodedParams
 
 		// const tokenContract = await attachContract(this.config.artifacts.tokenAbi as any, this.config.artifacts.tokenBytecode, contract_address, this.config.artifacts.tokenContractName);

@@ -13,25 +13,29 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 	fastify.post("/:contract_id/class", async (request: any, resp: any) => {
 		const { contract_id } = request.params;
-		// const { encryptedKey, password, iv } = request.body;
-		// const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
-
-		// const wallet = new ethers.Wallet(deployWalletAddress);
-		// const signer = wallet.connect(ethers.provider);
-
-
 
 		console.log("In addClass route");
 		// get forwarder wallet using clone address
 		const forwarderKey = await getForwarderWalletKeyFromClone(contract_id);
 		const wallet = new ethers.Wallet(forwarderKey);
 		const signer = wallet.connect(ethers.provider);
-
-
-		// const contractClass = await fastify.service.series.addClass(signer, contract_id, request.body);
 		const contractClass = await fastify.service.series.addClass(signer, contract_id, request.body);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(contractClass);
+	});
+
+	fastify.post("/:contract_id/attributes", async (request: any, resp: any) => {
+		const { contract_id } = request.params;
+		const { xpId } = request.body;
+
+		console.log("In addAttribute route");
+		// get forwarder wallet using clone address
+		const forwarderKey = await getForwarderWalletKeyFromClone(contract_id);
+		const wallet = new ethers.Wallet(forwarderKey);
+		const signer = wallet.connect(ethers.provider);
+		const contractAttribute = await fastify.service.series.addAttributes(signer, contract_id, xpId, request.body);
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(contractAttribute);
 	});
 
 	fastify.get("/:contract_address/users/:id1/:id2", async (request: any, resp: any) => {
@@ -46,14 +50,34 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.get("/:contract_address/classes/:id1/:id2", async (request: any, resp: any) => {
-		const { contractAddress, id1, id2 } = request.params;
+		const { contract_address, id1, id2 } = request.params;
 
-		const [signer] = await ethers.getSigners(); // get default signer
+		const forwarderKey = await getForwarderWalletKeyFromClone(contract_address);
+		const wallet = new ethers.Wallet(forwarderKey);
+		const signer = wallet.connect(ethers.provider);
 
 		try {
 			// const contractNFT = new ethers.series(contract, abi, env.wallet);
 			// const response = await fastify.service.collection.getClasses(contractNFT, id1, id2);
-			const response = await fastify.service.series.getClasses(signer, contractAddress, id1, id2);
+			const response = await fastify.service.series.getClasses(signer, contract_address, id1, id2);
+			return { result: response };
+		} catch (err) {
+			resp.send(err);
+		}
+	});
+
+	fastify.post("/:contract_address/attributes/:id1/:id2", async (request: any, resp: any) => {
+		const { contract_address, id1, id2 } = request.params;
+		const { classId } = request.body;
+
+		const forwarderKey = await getForwarderWalletKeyFromClone(contract_address);
+		const wallet = new ethers.Wallet(forwarderKey);
+		const signer = wallet.connect(ethers.provider);
+
+		try {
+			// const contractNFT = new ethers.series(contract, abi, env.wallet);
+			// const response = await fastify.service.collection.getClasses(contractNFT, id1, id2);
+			const response = await fastify.service.series.getAttributes(signer, contract_address, classId, id1, id2);
 			return { result: response };
 		} catch (err) {
 			resp.send(err);

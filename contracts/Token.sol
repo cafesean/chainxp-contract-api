@@ -36,7 +36,9 @@ contract TokenContract is Initializable, Access, Base {
         initialized = true;
     }
 
-    function mint(uint256 _classId) external onlyForwarder returns (uint256 id) {
+    function mint(
+        uint256 _classId
+    ) external onlyForwarder returns (uint256 id) {
         uint256 _tokenId;
         if (fungible == 1) {
             if (classes[_classId].id == 0) {
@@ -84,7 +86,8 @@ contract TokenContract is Initializable, Access, Base {
                     _classId,
                     _name,
                     _description,
-                    _baseUri
+                    _baseUri,
+                    fungible
                 )
             );
         if (!success) {
@@ -95,6 +98,92 @@ contract TokenContract is Initializable, Access, Base {
         emit URI(uri(returnedClassID), returnedClassID);
         return string.concat("Updated ", Strings.toString(returnedClassID));
     }
+
+    // function setAttributes(
+    //     uint256 _classId,
+    //     uint256[] calldata _attributeIds,
+    //     string[] calldata _attributeNames,
+    //     string[] calldata _attributeValues
+    // ) public onlyOps returns (string memory) {
+    //     (bool success, ) = DelegateAddress.delegatecall(
+    //         abi.encodeWithSelector(
+    //             IDelegate.setUserAttributes.selector,
+    //             _classId,
+    //             _attributeIds,
+    //             _attributeNames,
+    //             _attributeValues
+    //         )
+    //     );
+    //     // emit URI(uri[_classId], _classId);
+    //     // emit AttributeUpdated(_name, attributeId);
+    //     require(success, "setAttributes failed");
+    //     return
+    //         string.concat(
+    //             "Attributes added for ID ",
+    //             Strings.toString(_classId)
+    //         );
+    // }
+
+    function setAttributes(
+        uint256 _classId,
+        uint256[] calldata _attributeIds,
+        string[] calldata _attributeNames,
+        string[] calldata _attributeValues
+    ) public onlyOps returns (string memory) {
+        //attribs
+        for (uint256 _a = 0; _a < _attributeIds.length; _a++) {
+            require(_classId > 0, "No class ID");
+            require(_attributeIds[_a] > 0, "No attr ID");
+            (bool success, ) = DelegateAddress.delegatecall(
+                abi.encodeWithSelector(
+                    IDelegate.setAttribute.selector,
+                    _attributeIds[_a],
+                    _classId,
+                    _attributeNames[_a],
+                    _attributeValues[_a]
+                )
+            );
+            require(success, "setAttribute failed");
+        }
+        return
+            string.concat(
+                "Attributes added: ",
+                Strings.toString(_attributeIds.length)
+            );
+    }
+
+    // function _setAttribute(
+    //     uint256 _classId,
+    //     uint256 _attributeId,
+    //     string memory _name,
+    //     string memory _value
+    // ) public onlyOps returns (string memory) {
+    //     if (
+    //         keccak256(abi.encodePacked(_name)) ==
+    //         keccak256(abi.encodePacked("delete"))
+    //     ) {
+    //         delete classes[_attributeId];
+    //         return "Deleted";
+    //     }
+    //     (bool success, bytes memory returnedData) = DelegateAddress
+    //         .delegatecall(
+    //             abi.encodeWithSelector(
+    //                 IDelegate.setAttribute.selector,
+    //                 _attributeId,
+    //                 _classId,
+    //                 _name,
+    //                 _value
+    //             )
+    //         );
+    //     require(success, "setAttribute failed");
+    //     (string memory status, uint256 attributeId) = abi.decode(
+    //         returnedData,
+    //         (string, uint256)
+    //     );
+
+    // emit AttributeUpdated(_name, attributeId);
+    // return string.concat("Updated ", status);
+    // }
 
     //required by opensea - using classId as tokenId
     function uri(
@@ -117,6 +206,13 @@ contract TokenContract is Initializable, Access, Base {
         address _address
     ) public view onlyOps returns (uint256) {
         return users[_classId][_address];
+    }
+
+    function _attributes(
+        uint256 _classId,
+        uint256 _id
+    ) public view onlyOps returns (attribute memory) {
+        return attributes[_classId][_id];
     }
 
     function _classes(uint256 _id) public view onlyOps returns (class memory) {

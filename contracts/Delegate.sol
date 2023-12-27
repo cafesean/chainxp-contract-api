@@ -23,10 +23,13 @@ contract DelegateContract is Initializable, Access, Base {
         uint256 _classId,
         string calldata _name,
         string calldata _description,
-        string memory _baseUri
+        string memory _baseUri,
+        bool fungible
     ) external onlyOps returns (uint256 id) {
         if (_classId == 0) {
-            classesCount.increment();
+            if (fungible) {
+                classesCount.increment();
+            }
             _classId = classesCount.current();
         }
         class memory newClass = class({
@@ -42,6 +45,17 @@ contract DelegateContract is Initializable, Access, Base {
         return _classId;
     }
 
+    function setAttribute(
+        uint256 _id,
+        uint256 _classId,
+        string memory _name,
+        string memory _value
+    ) external onlyOps {
+        require(_classId > 0, "No class ID");
+
+        attributes[_classId][_id].name = _name;
+        attributes[_classId][_id].value = _value;
+    }
 
 
     // function burnBatchByClass(uint256 _classId) public onlyAdmin {

@@ -56,14 +56,14 @@ contract Base is
 
     struct attribute {
         uint256 id;
-        string code;
+        uint256 count;
         string name;
-        bool visible;
-        bool active;
+        string value;
     }
     // mapping(uint256 => string) public tokenURI;
     // mapping(uint256 => string) public classURI;
     mapping(uint256 => class) public classes;
+    mapping(uint256 => mapping(uint256 => attribute)) public attributes; // classId => attributeId => attribute
     mapping(uint256 => mapping(address => uint256)) public users; // classId => user address => balance
 
     bool initialized = false;

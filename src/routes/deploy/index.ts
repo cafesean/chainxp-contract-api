@@ -41,7 +41,10 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		console.log("options: ", options);
 		const contract = (await fastify.service.deploy.deploySingle(deployment_id, signer, name, options)) as any;
 
-		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ newContractAddress: contract.address });
+		resp
+			.code(200)
+			.header("Content-Type", "application/json; charset=utf-8")
+			.send({ newContractAddress: contract.address });
 	});
 
 	fastify.post("/deployAll/:deployment_id", async (request: any, resp: any) => {
@@ -51,7 +54,15 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 		const wallet = new ethers.Wallet(deployWalletAddress);
 		const signer = wallet.connect(ethers.provider);
-		const contract = (await fastify.service.deploy.deployAll(deployment_id, signer, name, baseUri, description, symbol, fungible)) as any;
+		const contract = (await fastify.service.deploy.deployAll(
+			deployment_id,
+			signer,
+			name,
+			baseUri,
+			description,
+			symbol,
+			fungible
+		)) as any;
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(contract);
 	});
@@ -68,8 +79,8 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/clone", async (request: any, resp: any) => {
-		const { proxyAddress,  } = request.body;
-
+		const { proxyAddress } = request.body;
+		console.log("proxyAddress: ", proxyAddress);
 		// const { encryptedKey, iv, password } = request.body;
 		// const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
 		const forwarderKey = await getForwarderWalletKey(proxyAddress);
@@ -83,7 +94,7 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	fastify.post("/deployFactory/:deployment_id", async (request: any, resp: any) => {
 		const { encryptedKey, password, iv } = request.body;
 		const { deployment_id } = request.params;
-		
+
 		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
 
 		const wallet = new ethers.Wallet(deployWalletAddress);

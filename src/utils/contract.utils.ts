@@ -52,7 +52,7 @@ export async function getForwarderWalletKey(proxyAddress: string) {
 				},
 			},
 		});
-
+		console.log("contract: ", contract);
 		const password = process.env.FORWARDER_PASSWORD as string;
 
 		if (!contract?.forwarder) {
@@ -148,7 +148,14 @@ export async function getForwarderAddressFromDeployment(deploymentId: number) {
 }
 
 // grant access to forwarder and save forwarder address in contract table
-export async function grantAccessToForwarder(contractName: string, contract: any, overrides: any, forwarderAddress: string, role: string, deploymentId: number): Promise<boolean> {
+export async function grantAccessToForwarder(
+	contractName: string,
+	contract: any,
+	overrides: any,
+	forwarderAddress: string,
+	role: string,
+	deploymentId: number
+): Promise<boolean> {
 	try {
 		await contract.grantAccess(forwarderAddress, role, overrides);
 		const checkRole = await contract.getRole(forwarderAddress);

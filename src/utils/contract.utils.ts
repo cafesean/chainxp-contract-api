@@ -40,7 +40,7 @@ export async function getForwarderWalletKey(proxyAddress: string) {
 	try {
 		const contract = await prisma.contract.findFirst({
 			where: {
-				contract_address: proxyAddress,
+				contract_address: proxyAddress.toLowerCase(),
 			},
 			select: {
 				forwarder: {

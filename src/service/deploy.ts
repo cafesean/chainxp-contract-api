@@ -43,7 +43,7 @@ export class DeployService extends BaseService {
 		// get forwarder address
 
 		try {
-			const forwarderAddress = (await getForwarderWalletAddress(proxyAddress)) || "";
+			const forwarderAddress = (await getForwarderWalletAddress(proxyAddress.toLowerCase())) || "";
 
 			const contractFactory = await attachContract(factoryAddress, deployer, false);
 			const response = await contractFactory.createClone(proxyAddress);

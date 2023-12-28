@@ -27,7 +27,7 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/deploySingle/:deployment_id", async (request: any, resp: any) => {
-		const { contractName, name, baseUri, description, symbol, fungible, encryptedKey, password, iv } = request.body;
+		const { name, baseUri, description, symbol, fungible, encryptedKey, password, iv } = request.body;
 		const { deployment_id } = request.params;
 
 		const options = [name, baseUri, description, symbol, fungible];
@@ -37,9 +37,9 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		const wallet = new ethers.Wallet(deployWalletAddress);
 		const signer = wallet.connect(ethers.provider);
 
-		console.log("contract_name: ", contractName);
+		// console.log("contract_name: ", contractName);
 		console.log("options: ", options);
-		const contract = (await fastify.service.deploy.deploySingle(deployment_id, signer, contractName, options)) as any;
+		const contract = (await fastify.service.deploy.deploySingle(deployment_id, signer, name, options)) as any;
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ newContractAddress: contract.address });
 	});

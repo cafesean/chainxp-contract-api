@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/Access.sol": {
-      "lastModificationDate": 1694699897311,
-      "contentHash": "b3ff9f1557fda6e6e9e9803e5fa77773",
+      "lastModificationDate": 1703505155733,
+      "contentHash": "287c4bed8831110d5dd66af846258ae5",
       "sourceName": "contracts/Access.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -405,8 +405,8 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/Token.sol": {
-      "lastModificationDate": 1694791827156,
-      "contentHash": "ef98a2aec1611167c6f4b0c110eefc04",
+      "lastModificationDate": 1703668543445,
+      "contentHash": "5c3437c289dc22925ef5409cf2ea3786",
       "sourceName": "contracts/Token.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -447,8 +447,8 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/Base.sol": {
-      "lastModificationDate": 1699159892594,
-      "contentHash": "90377b7cc4506ed1135a7e2008ec358a",
+      "lastModificationDate": 1703666124723,
+      "contentHash": "6cff72a2c517c96523680266dd2b020a",
       "sourceName": "contracts/Base.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -492,8 +492,8 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/interface/IDelegate.sol": {
-      "lastModificationDate": 1694762238441,
-      "contentHash": "ff45eaa2a449e0a3a4189ac25f7aecb8",
+      "lastModificationDate": 1703667620664,
+      "contentHash": "3fe19cee63f2a7492ffe6e82619312a7",
       "sourceName": "contracts/interface/IDelegate.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -1008,8 +1008,8 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/Delegate.sol": {
-      "lastModificationDate": 1694791913217,
-      "contentHash": "6289d078bbbcc281379f71e27102aece",
+      "lastModificationDate": 1703667406168,
+      "contentHash": "fcc4017512c2a8b3a49aaa481a999c67",
       "sourceName": "contracts/Delegate.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -1046,8 +1046,8 @@
       ]
     },
     "/Users/seanliao/Dropbox/_engineering/code/chainxp/1. active/contract-api/contracts/Factory.sol": {
-      "lastModificationDate": 1694791862175,
-      "contentHash": "6825d14013438fb6146386b77487b605",
+      "lastModificationDate": 1703505155853,
+      "contentHash": "3d26c491f829f3c27428abffa96eee9f",
       "sourceName": "contracts/Factory.sol",
       "solcConfig": {
         "version": "0.8.17",

@@ -138,7 +138,7 @@ export class ContractService extends BaseService {
 	async god(contract_address: any, reqBody: any) {
 		const classId = reqBody.class_id || "0";
 		const name = reqBody.name || "";
-		const desc = reqBody.desc || "";
+		const desc = reqBody.description || "";
 		const baseUri = reqBody.base_uri || "";
 
 		const [signer] = await ethers.getSigners();

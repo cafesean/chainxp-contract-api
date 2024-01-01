@@ -51,7 +51,7 @@ export class SeriesService extends BaseService {
 
 		return new Promise(async (resolve, reject) => {
 			try {
-				const response = await contractProxy._setClass(Number(class_id), reqBody.name, reqBody.desc, "", overrides);
+				const response = await contractProxy._setClass(Number(class_id), reqBody.name, reqBody.description, "", overrides);
 				const receipt = await response.wait();
 				console.log("Receipt: ", receipt);
 
@@ -74,7 +74,7 @@ export class SeriesService extends BaseService {
 						series_id: series?.id,
 						contract_address: lcaseContractAddress,
 						title: reqBody.name,
-						description: reqBody.desc,
+						description: reqBody.description,
 						requirements: reqBody.requirements,
 						image_url: reqBody.image_url,
 						slug: reqBody.slug,
@@ -82,7 +82,7 @@ export class SeriesService extends BaseService {
 					},
 					update: {
 						title: reqBody.name,
-						description: reqBody.desc,
+						description: reqBody.description,
 						requirements: reqBody.requirements,
 						image_url: reqBody.image_url,
 						slug: reqBody.slug,
@@ -289,7 +289,7 @@ export class SeriesService extends BaseService {
 	async god(deployer: any, contract_address: any, reqBody: any) {
 		const classId = reqBody.class_id || "0";
 		const name = reqBody.name || "";
-		const desc = reqBody.desc || "";
+		const desc = reqBody.description || "";
 		const baseUri = reqBody.base_uri || "";
 
 		// const [signer] = await ethers.getSigners();

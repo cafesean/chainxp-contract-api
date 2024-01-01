@@ -30,7 +30,7 @@ model contract {
   chain_id            Int?
   contract_name       String?
   deployed_at         DateTime?         @default(now()) @db.Timestamptz(6)
-  id                  BigInt            @id(map: "contract_pkey") @default(autoincrement())
+  id                  BigInt            @id @default(autoincrement())
   owner_address       String?
   status              Int?
   type                String?
@@ -43,15 +43,15 @@ model contract {
   contract_version_id BigInt?
   forwarder_address   String?
   deployment_id       BigInt?
-  forwarder           forwarder?        @relation(fields: [forwarder_address], references: [address], onDelete: NoAction, onUpdate: NoAction, map: "contract_forwarder_address_fkey")
   deployment          deployment?       @relation(fields: [deployment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "contract_deployment_id_key")
   contract_version    contract_version? @relation(fields: [contract_version_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "contract_contract_version_id_key")
+  forwarder           forwarder?        @relation(fields: [forwarder_address], references: [address], onDelete: NoAction, onUpdate: NoAction, map: "contract_forwarder_address_fkey")
 
   @@unique([contract_name, deployment_id])
 }
 
 model contract_version {
-  id            BigInt     @id(map: "contract_version_pkey") @default(autoincrement())
+  id            BigInt     @id @default(autoincrement())
   contract_name String
   source_name   String
   version       String
@@ -67,7 +67,7 @@ model contract_version {
 }
 
 model org {
-  id                     Int        @id(map: "org_pkey") @default(autoincrement())
+  id                     Int        @id @default(autoincrement())
   created_at             DateTime?  @default(now()) @db.Timestamptz(6)
   name                   String?
   country_id             BigInt?
@@ -121,9 +121,8 @@ model scheme {
 }
 
 model series {
-  id               Int       @id(map: "series_pkey") @default(autoincrement())
+  id               Int       @id @default(autoincrement())
   org_id           Int?
-  type             Int       @default(1)
   category         Int?      @db.SmallInt
   title            String?
   description      String?
@@ -144,6 +143,7 @@ model series {
   external_link    String?
   status           Int       @default(0)
   fungible         Boolean?  @default(false)
+  type             Int       @default(1)
   org              org?      @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   template         template? @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "series_template_id_key")
   xp               xp[]
@@ -162,7 +162,7 @@ model user {
   updated_at         DateTime?            @updatedAt @db.Timestamptz(6)
   referred_by        String?
   is_registered      Boolean?
-  id                 String               @id(map: "user_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                 String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   email              Json?                @db.Json
   phone              Json?                @db.Json
   org_user           org_user[]
@@ -170,7 +170,7 @@ model user {
 }
 
 model xp {
-  id               Int         @id(map: "xp_pkey") @default(autoincrement())
+  id               Int         @id @default(autoincrement())
   created_at       DateTime?   @default(now()) @db.Timestamptz(6)
   status           Int?        @db.SmallInt
   xp_code          String?
@@ -182,7 +182,6 @@ model xp {
   uuid             String?     @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   updated_at       DateTime?   @updatedAt @db.Timestamptz(6)
   class_id         String?
-  requirements     String?
   contract_address String?
   xp_font          String?
   xp_font_color    String?
@@ -191,6 +190,7 @@ model xp {
   xp_text_x        String?
   xp_text_y        String?
   external_link    String?
+  requirements     Json?
   allowlist        allowlist[]
   series           series?     @relation(fields: [series_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   xp_type          xp_type?    @relation(fields: [xp_code], references: [xp_code], onDelete: NoAction, onUpdate: NoAction)
@@ -208,7 +208,7 @@ model xp_type {
 }
 
 model transaction {
-  txn_hash         String   @id(map: "transaction_pkey")
+  txn_hash         String   @id
   class_id         String
   from             String
   to               String
@@ -276,7 +276,7 @@ model template {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model version {
-  id         BigInt    @id(map: "version_pkey") @default(autoincrement())
+  id         BigInt    @id @default(autoincrement())
   created_at DateTime  @default(now()) @db.Timestamptz(6)
   version    String?
   chain      Int?
@@ -296,26 +296,25 @@ model forwarder {
   role       String?
   status     Int        @default(100)
   token      Json?
-  contract   contract[]
   clone      clone[]
+  contract   contract[]
 }
 
 model category {
-  id    BigInt  @id(map: "category_pkey") @default(autoincrement())
+  id    BigInt  @id @default(autoincrement())
   slug  String
   name  String
   image String?
 }
 
 model clone {
-  id                BigInt     @id(map: "clone_pkey") @default(autoincrement())
+  id                BigInt     @id @default(autoincrement())
   name              String
   type              String?
   owner_address     String
   contract_address  String     @unique
   factory_address   String
   delegate_address  String?
-  forwarder_address String?
   status            Int
   chain_id          Int?
   deployed_at       DateTime   @default(now()) @db.Timestamptz(6)
@@ -323,11 +322,12 @@ model clone {
   updated_at        DateTime   @updatedAt @db.Timestamptz(6)
   proxy_address     String
   fungible          Boolean?   @default(true)
+  forwarder_address String?
   forwarder         forwarder? @relation(fields: [forwarder_address], references: [address], onDelete: NoAction, onUpdate: NoAction, map: "clone_forwarder_address_fkey")
 }
 
 model deployment {
-  id                        BigInt     @id(map: "deployment_pkey") @default(autoincrement())
+  id                        BigInt     @id @default(autoincrement())
   wallet_address            String
   name                      String
   description               String?

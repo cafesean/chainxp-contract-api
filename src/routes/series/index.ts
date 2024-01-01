@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { decryptPrivateKey } from "@root/src/utils/encryption";
 import { ethers } from "hardhat";
 import { getForwarderWalletKeyFromClone } from "@root/src/utils/contract.utils";
+import * as type from "src/types";
 // import * as abi from "../../constants/abi.constants";
 
 // import { genericSchema } from "../../schema/index";
@@ -13,13 +14,14 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 	fastify.post("/:contract_id/class", async (request: any, resp: any) => {
 		const { contract_id } = request.params;
+		const body : type.PublishXPCloneAddressPayload = request.body;
 
 		console.log("In addClass route");
 		// get forwarder wallet using clone address
 		const forwarderKey = await getForwarderWalletKeyFromClone(contract_id);
 		const wallet = new ethers.Wallet(forwarderKey);
 		const signer = wallet.connect(ethers.provider);
-		const contractClass = await fastify.service.series.addClass(signer, contract_id, request.body);
+		const contractClass = await fastify.service.series.addClass(signer, contract_id, body);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(contractClass);
 	});

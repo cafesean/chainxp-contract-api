@@ -2,6 +2,7 @@ import { decryptPrivateKey } from "@root/src/utils/encryption";
 import { FastifyInstance } from "fastify";
 import { ethers } from "hardhat";
 import { getForwarderWalletKey } from "@root/src/utils/contract.utils";
+import * as type from "src/types";
 
 // import * as abi from "../../constants/abi.constants";
 
@@ -48,7 +49,16 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/deployAll/:deployment_id", async (request: any, resp: any) => {
-		const { name, baseUri, description, symbol = "", fungible, encryptedKey, password, iv } = request.body;
+		const {
+			name,
+			baseUri,
+			description,
+			symbol = "",
+			fungible,
+			encryptedKey,
+			password,
+			iv,
+		}: type.DeployAllBlockchainContractRequest = request.body;
 		const { deployment_id } = request.params;
 		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
 
@@ -57,11 +67,11 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		const contract = (await fastify.service.deploy.deployAll(
 			deployment_id,
 			signer,
-			name,
-			baseUri,
-			description,
-			symbol,
-			fungible
+			name || "",
+			baseUri || "",
+			description || "",
+			symbol || "",
+			fungible == 1 ? true : false
 		)) as any;
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(contract);

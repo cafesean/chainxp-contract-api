@@ -102,9 +102,9 @@ export class TokenService extends BaseService {
 			}
 		}
 
-		if (_returnedClassId === undefined) {
-			return { error: "No classId; mint failed" };
-		}
+		// if (_returnedClassId === undefined) {
+		// 	return { error: "No classId; mint failed" };
+		// }
 
 		const transaction = await this.prisma.transaction.create({
 			data: {

@@ -1,5 +1,5 @@
 // import { ContractFactory } from "ethers";
-import { ethers } from "hardhat";
+import { ethers } from "ethers";
 import { getAbiByAddress } from "../utils/abi.utils";
 import { decryptPrivateKey } from "../utils/encryption";
 import { prisma } from "src/utils/prisma";
@@ -13,15 +13,15 @@ export async function attachContract(contractAddress: string, signer?: any, isCl
 	// lookup proxyContract address based on clone address
 	const isProxyClone = isClone ? isClone : false;
 	try {
-		const [, , contract_name] = await getAbiByAddress(contractAddress, isProxyClone);
+		const [abi, bytecode] = await getAbiByAddress(contractAddress, isProxyClone);
 		// hardhat
-		contractName = contract_name;
 		const attachSigner = signer;
 
 		// if (!attachSigner) {
 		// 	attachSigner = await ethers.getSigners();
 		// }
-		const contract = await ethers.getContractFactory(contract_name as string);
+		// const contract = await ethers.ContractFactory(contract_name as string);
+		const contract = new ethers.ContractFactory(abi as ethers.ContractInterface, bytecode as ethers.utils.BytesLike);
 		attachedContract = contract.connect(attachSigner).attach(contractAddress);
 	} catch (error) {
 		throw new Error("Error in attachContract: " + error);
@@ -174,11 +174,25 @@ export async function grantAccessToForwarder(
 
 // get deployment from deployment table using contract name and deploymentId
 export async function getDeployedContractAddress(contractName: string, deploymentId: number) {
-	const contract = await prisma.contract.findUnique({
-		where: {
-			contract_name_deployment_id: { contract_name: contractName, deployment_id: deploymentId },
-		},
-	});
+	try {
+		const contract = await prisma.contract.findUnique({
+			where: {
+				contract_name_deployment_id: { contract_name: contractName, deployment_id: deploymentId },
+			},
+		});
 
-	return contract?.contract_address;
+		return contract?.contract_address;
+	} catch (error) {
+		console.log("Error getting deployed contract address: ", error);
+		// throw new Error(error as string);
+		return null;
+	}
+}
+
+// get Signer
+export function getSigner(walletPrivateKey: string) {
+	const privateKey = walletPrivateKey;
+	const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL);
+	const signer = new ethers.Wallet(privateKey, provider);
+	return signer;
 }

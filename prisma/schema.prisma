@@ -20,29 +20,55 @@ model allowlist {
   xp               xp?       @relation(fields: [xp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "allowlist_new_xp_id_fkey")
 }
 
+model category {
+  id    BigInt  @id @default(autoincrement())
+  slug  String
+  name  String
+  image String?
+}
+
+model clone {
+  id                BigInt     @id @default(autoincrement())
+  name              String
+  type              String?
+  owner_address     String
+  contract_address  String     @unique
+  factory_address   String
+  delegate_address  String?
+  status            Int
+  chain_id          Int?
+  deployed_at       DateTime   @default(now()) @db.Timestamptz(6)
+  created_at        DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime   @updatedAt @db.Timestamptz(6)
+  proxy_address     String
+  fungible          Boolean?   @default(true)
+  forwarder_address String?
+  forwarder         forwarder? @relation(fields: [forwarder_address], references: [address], onDelete: NoAction, onUpdate: NoAction, map: "clone_forwarder_address_fkey")
+}
+
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model contract {
+  id                  BigInt            @id @default(autoincrement())
+  deployment_id       BigInt?
+  contract_version_id BigInt?
   contract_address    String
+  contract_name       String?
   name                String            @db.VarChar(250)
-  created_at          DateTime          @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime          @default(now()) @db.Timestamptz(6)
   chain               String?
   chain_id            Int?
-  contract_name       String?
-  deployed_at         DateTime?         @default(now()) @db.Timestamptz(6)
-  id                  BigInt            @id @default(autoincrement())
   owner_address       String?
+  factory_address     String?
+  forwarder_address   String?
+  cloned_from         String?
   status              Int?
   type                String?
   version             String?
   abi                 String?
   bytecode            String?
   source_name         String?
-  factory_address     String?
-  cloned_from         String?
-  contract_version_id BigInt?
-  forwarder_address   String?
-  deployment_id       BigInt?
+  deployed_at         DateTime?         @default(now()) @db.Timestamptz(6)
+  created_at          DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime          @default(now()) @db.Timestamptz(6)
   deployment          deployment?       @relation(fields: [deployment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "contract_deployment_id_key")
   contract_version    contract_version? @relation(fields: [contract_version_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "contract_contract_version_id_key")
   forwarder           forwarder?        @relation(fields: [forwarder_address], references: [address], onDelete: NoAction, onUpdate: NoAction, map: "contract_forwarder_address_fkey")
@@ -64,6 +90,53 @@ model contract_version {
   tier_id       Int?
   chain_id      Int?       @db.SmallInt
   contract      contract[]
+}
+
+model deployment {
+  id                        BigInt     @id @default(autoincrement())
+  proxy_contract_address    String?
+  delegate_contract_address String?
+  factory_contract_address  String?
+  name                      String
+  description               String?
+  network                   String
+  chain                     String
+  status                    Int
+  deployed_at               DateTime?  @default(now())
+  created_at                DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime   @updatedAt @db.Timestamptz(6)
+  wallet_address            String
+  metadata                  Json?
+  contract                  contract[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model forwarder {
+  key        String?
+  tier_id    Int        @default(1)
+  iv         String?
+  address    String?    @unique
+  id         Int        @id @default(autoincrement())
+  created_at DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime?  @updatedAt @db.Timestamptz(6)
+  chain      String?
+  role       String?
+  status     Int        @default(100)
+  token      Json?
+  clone      clone[]
+  contract   contract[]
+}
+
+model inventory {
+  wallet_address   String
+  network          String
+  contract_address String
+  class_id         String
+  name             String?
+  symbol           String?
+  uri              String?
+
+  @@id([wallet_address, contract_address, class_id])
 }
 
 model org {
@@ -100,6 +173,16 @@ model org_scheme {
   scheme     BigInt?
 }
 
+model org_user {
+  org_id  Int
+  user_id String @db.Uuid
+  role    String
+  org     org    @relation(fields: [org_id], references: [id])
+  user    user   @relation(fields: [user_id], references: [id])
+
+  @@id([org_id, user_id])
+}
+
 model role {
   id          Int           @id(map: "roles_pkey") @default(autoincrement())
   created_at  DateTime?     @default(now()) @db.Timestamptz(6)
@@ -109,6 +192,20 @@ model role {
   policy_ops  Json?         @db.Json
   policy_org  Json?         @db.Json
   role_policy role_policy[]
+}
+
+model role_policy {
+  id         BigInt    @id @default(autoincrement())
+  role_id    Int
+  name       String
+  can_create Boolean   @default(false)
+  can_read   Boolean   @default(false)
+  can_update Boolean   @default(false)
+  can_delete Boolean   @default(false)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @updatedAt @db.Timestamptz(6)
+  metadata   Json?
+  role       role      @relation(fields: [role_id], references: [id])
 }
 
 model scheme {
@@ -148,6 +245,74 @@ model series {
   org              org?      @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   template         template? @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "series_template_id_key")
   xp               xp[]
+}
+
+model template {
+  id                     BigInt    @id(map: "template2_pkey") @default(autoincrement())
+  template_name          String?   @default("")
+  mask                   String?   @default("")
+  gradient               String?   @default("")
+  gradient_offset_1      String?   @default("{'percent':'0','color':'000000','opacity':'0'}")
+  gradient_offset_2      String?   @default("{'percent':'0','color':'000000','opacity':'0'}")
+  gradient_offset_3      String?   @default("{'percent':'0','color':'000000','opacity':'0'}")
+  gradient_offset_4      String?   @default("{'percent':'0','color':'000000','opacity':'0'}")
+  base_style             String?   @default("")
+  bg_color               String?   @default("")
+  image_uri              String?   @default("")
+  image_scale            String?   @default("")
+  image_h                String?   @default("")
+  org_logo_uri           String?   @default("")
+  org_logo_scale         String?   @default("")
+  org_logo_w             String?   @default("")
+  org_text               String?   @default("")
+  org_font               String?   @default("")
+  org_font_size          String?   @default("")
+  series_text            String?   @default("")
+  series_font            String?   @default("")
+  series_font_size       String?   @default("")
+  series_font_color      String?   @default("")
+  xp_text                String?   @default("")
+  xp_font                String?   @default("")
+  xp_font_color          String?   @default("")
+  xp_font_size           String?   @default("")
+  xp_font_weight         String?   @default("")
+  chainxp_logo_uri       String?   @default("")
+  chainxp_logo_transform String?   @default("")
+  chainxp_logo_color     String?   @default("")
+  factor                 String?   @default(".5")
+  radius                 String?   @default("175")
+  rotation               String?   @default("0")
+  sides                  String?   @default("4")
+  gradient_offset1       Json?     @db.Json
+  gradient_offset2       Json?     @db.Json
+  gradient_offset3       Json?     @db.Json
+  gradient_offset4       Json?     @db.Json
+  image_xy               Json?     @db.Json
+  org_logo_xy            Json?     @db.Json
+  org_text_xy            Json?     @db.Json
+  series_text_xy         Json?     @db.Json
+  xp_text_xy             Json?     @db.Json
+  chainxp_logo_xy        Json?     @db.Json
+  created_at             DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime? @updatedAt @db.Timestamptz(6)
+  series                 series[]
+}
+
+model transaction {
+  txn_hash String @id
+
+  class_id         String
+  from             String
+  to               String
+  status           Int      @default(0)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt @db.Timestamptz(6)
+  contract_address String?
+  token_id         String?
+  amount           Decimal? @db.Decimal
+  method           String?
+  nonce            Int?     @default(0)
+  parentNonce      Int?     @default(0)
 }
 
 model user {
@@ -208,73 +373,6 @@ model xp_type {
   xp          xp[]
 }
 
-model transaction {
-  txn_hash         String   @id
-  class_id         String
-  from             String
-  to               String
-  status           Int      @default(0)
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt @db.Timestamptz(6)
-  contract_address String?
-  token_id         String?
-  amount           Decimal? @db.Decimal
-  method           String?
-  nonce            Int?     @default(0)
-  parentNonce      Int?     @default(0)
-}
-
-model template {
-  id                     BigInt    @id(map: "template2_pkey") @default(autoincrement())
-  template_name          String?   @default("")
-  mask                   String?   @default("")
-  gradient               String?   @default("")
-  gradient_offset_1      String?   @default("{'percent':'0','color':'000000','opacity':'0'}")
-  gradient_offset_2      String?   @default("{'percent':'0','color':'000000','opacity':'0'}")
-  gradient_offset_3      String?   @default("{'percent':'0','color':'000000','opacity':'0'}")
-  gradient_offset_4      String?   @default("{'percent':'0','color':'000000','opacity':'0'}")
-  base_style             String?   @default("")
-  bg_color               String?   @default("")
-  image_uri              String?   @default("")
-  image_scale            String?   @default("")
-  image_h                String?   @default("")
-  org_logo_uri           String?   @default("")
-  org_logo_scale         String?   @default("")
-  org_logo_w             String?   @default("")
-  org_text               String?   @default("")
-  org_font               String?   @default("")
-  org_font_size          String?   @default("")
-  series_text            String?   @default("")
-  series_font            String?   @default("")
-  series_font_size       String?   @default("")
-  series_font_color      String?   @default("")
-  xp_text                String?   @default("")
-  xp_font                String?   @default("")
-  xp_font_color          String?   @default("")
-  xp_font_size           String?   @default("")
-  xp_font_weight         String?   @default("")
-  chainxp_logo_uri       String?   @default("")
-  chainxp_logo_transform String?   @default("")
-  chainxp_logo_color     String?   @default("")
-  factor                 String?   @default(".5")
-  radius                 String?   @default("175")
-  rotation               String?   @default("0")
-  sides                  String?   @default("4")
-  gradient_offset1       Json?     @db.Json
-  gradient_offset2       Json?     @db.Json
-  gradient_offset3       Json?     @db.Json
-  gradient_offset4       Json?     @db.Json
-  image_xy               Json?     @db.Json
-  org_logo_xy            Json?     @db.Json
-  org_text_xy            Json?     @db.Json
-  series_text_xy         Json?     @db.Json
-  xp_text_xy             Json?     @db.Json
-  chainxp_logo_xy        Json?     @db.Json
-  created_at             DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at             DateTime? @updatedAt @db.Timestamptz(6)
-  series                 series[]
-}
-
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model version {
   id         BigInt    @id @default(autoincrement())
@@ -282,91 +380,6 @@ model version {
   version    String?
   chain      Int?
   updated_at DateTime? @updatedAt @db.Timestamptz(6)
-}
-
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model forwarder {
-  key        String?
-  tier_id    Int        @default(1)
-  iv         String?
-  address    String?    @unique
-  id         Int        @id @default(autoincrement())
-  created_at DateTime?  @default(now()) @db.Timestamptz(6)
-  updated_at DateTime?  @updatedAt @db.Timestamptz(6)
-  chain      String?
-  role       String?
-  status     Int        @default(100)
-  token      Json?
-  clone      clone[]
-  contract   contract[]
-}
-
-model category {
-  id    BigInt  @id @default(autoincrement())
-  slug  String
-  name  String
-  image String?
-}
-
-model clone {
-  id                BigInt     @id @default(autoincrement())
-  name              String
-  type              String?
-  owner_address     String
-  contract_address  String     @unique
-  factory_address   String
-  delegate_address  String?
-  status            Int
-  chain_id          Int?
-  deployed_at       DateTime   @default(now()) @db.Timestamptz(6)
-  created_at        DateTime   @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime   @updatedAt @db.Timestamptz(6)
-  proxy_address     String
-  fungible          Boolean?   @default(true)
-  forwarder_address String?
-  forwarder         forwarder? @relation(fields: [forwarder_address], references: [address], onDelete: NoAction, onUpdate: NoAction, map: "clone_forwarder_address_fkey")
-}
-
-model deployment {
-  id                        BigInt     @id @default(autoincrement())
-  proxy_contract_address    String?
-  delegate_contract_address String?
-  factory_contract_address  String?
-  name                      String
-  description               String?
-  network                   String
-  chain                     String
-  status                    Int
-  deployed_at               DateTime?  @default(now())
-  created_at                DateTime   @default(now()) @db.Timestamptz(6)
-  updated_at                DateTime   @updatedAt @db.Timestamptz(6)
-  wallet_address            String
-  metadata                  Json?
-  contract                  contract[]
-}
-
-model org_user {
-  org_id  Int
-  user_id String @db.Uuid
-  role    String
-  org     org    @relation(fields: [org_id], references: [id])
-  user    user   @relation(fields: [user_id], references: [id])
-
-  @@id([org_id, user_id])
-}
-
-model role_policy {
-  id         BigInt    @id @default(autoincrement())
-  role_id    Int
-  name       String
-  can_create Boolean   @default(false)
-  can_read   Boolean   @default(false)
-  can_update Boolean   @default(false)
-  can_delete Boolean   @default(false)
-  created_at DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at DateTime? @updatedAt @db.Timestamptz(6)
-  metadata   Json?
-  role       role      @relation(fields: [role_id], references: [id])
 }
 
 model verification_token {
@@ -380,16 +393,4 @@ model verification_token {
   updated_at DateTime  @updatedAt @db.Timestamptz(6)
   metadata   Json?
   user       user      @relation(fields: [user_id], references: [id])
-}
-
-model inventory {
-  wallet_address   String
-  network          String
-  contract_address String
-  class_id         String
-  name             String?
-  symbol           String?
-  uri              String?
-
-  @@id([wallet_address, contract_address, class_id])
 }

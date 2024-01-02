@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { decryptPrivateKey } from "@root/src/utils/encryption";
-import { ethers } from "hardhat";
-import { getForwarderWalletKeyFromClone } from "@root/src/utils/contract.utils";
+// import { ethers } from "hardhat";
+import { getForwarderWalletKeyFromClone, getSigner } from "@root/src/utils/contract.utils";
 import * as type from "src/types";
 // import * as abi from "../../constants/abi.constants";
 
@@ -19,8 +19,7 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		console.log("In addClass route");
 		// get forwarder wallet using clone address
 		const forwarderKey = await getForwarderWalletKeyFromClone(contract_id);
-		const wallet = new ethers.Wallet(forwarderKey);
-		const signer = wallet.connect(ethers.provider);
+		const signer = getSigner(forwarderKey);
 		const contractClass = await fastify.service.series.addClass(signer, contract_id, body);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(contractClass);
@@ -33,8 +32,7 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		console.log("In addAttribute route");
 		// get forwarder wallet using clone address
 		const forwarderKey = await getForwarderWalletKeyFromClone(contract_id);
-		const wallet = new ethers.Wallet(forwarderKey);
-		const signer = wallet.connect(ethers.provider);
+		const signer = getSigner(forwarderKey);
 		const contractAttribute = await fastify.service.series.addAttributes(signer, contract_id, xpId, request.body);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send(contractAttribute);
@@ -55,8 +53,7 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		const { contract_address, id1, id2 } = request.params;
 
 		const forwarderKey = await getForwarderWalletKeyFromClone(contract_address);
-		const wallet = new ethers.Wallet(forwarderKey);
-		const signer = wallet.connect(ethers.provider);
+		const signer = getSigner(forwarderKey);
 
 		try {
 			// const contractNFT = new ethers.series(contract, abi, env.wallet);
@@ -73,8 +70,7 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		const { classId } = request.body;
 
 		const forwarderKey = await getForwarderWalletKeyFromClone(contract_address);
-		const wallet = new ethers.Wallet(forwarderKey);
-		const signer = wallet.connect(ethers.provider);
+		const signer = getSigner(forwarderKey);
 
 		try {
 			// const contractNFT = new ethers.series(contract, abi, env.wallet);
@@ -89,10 +85,9 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	fastify.post("/:contract_address/god", async (request: any, resp: any) => {
 		const { contractAddress } = request.params;
 		const { encryptedKey, password, iv } = request.body;
-		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
+		const deployWalletKey = decryptPrivateKey(encryptedKey, password, iv);
 
-		const wallet = new ethers.Wallet(deployWalletAddress);
-		const signer = wallet.connect(ethers.provider);
+		const signer = getSigner(deployWalletKey);
 		const txnHash = await fastify.service.series.god(signer, contractAddress, request.body);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: txnHash });

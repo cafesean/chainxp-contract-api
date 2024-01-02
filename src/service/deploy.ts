@@ -1,10 +1,16 @@
 // @dev - contract deployment and configuration services
 import { BaseService } from "./base";
 import { attachContract, getGasPriceOverrides, addContractAbi, getAbiByName } from "../utils";
-import { ethers } from "hardhat";
+import { ethers } from "ethers";
+// import { ethers as hardhatEthers } from "hardhat";
 import { Contract } from "ethers";
 import { getAbiByCache } from "../utils";
-import { getForwarderWalletAddress, getForwarderAddressFromDeployment, grantAccessToForwarder, getDeployedContractAddress } from "../utils/contract.utils";
+import {
+	getForwarderWalletAddress,
+	getForwarderAddressFromDeployment,
+	grantAccessToForwarder,
+	getDeployedContractAddress,
+} from "../utils/contract.utils";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -18,13 +24,23 @@ export class DeployService extends BaseService {
 		return "Current network is " + process.env.DEFAULT_NETWORK;
 	}
 
-	async getSigner() {
-		const [signer] = await ethers.getSigners();
-		return signer.address;
-	}
+	// async getSigner() {
+	// 	const [signer] = await ethers.getSigners();
+	// 	return signer.address;
+	// }
 
 	async cloneProxy(deployer: any, reqBody: any) {
-		const { seriesId, fungible, factoryAddress, proxyAddress, delegateAddress, title, baseUri, description, symbol } = reqBody;
+		const {
+			seriesId,
+			fungible,
+			factoryAddress,
+			proxyAddress,
+			delegateAddress,
+			title,
+			baseUri,
+			description,
+			symbol,
+		} = reqBody;
 
 		// get deployed contract data based on token contract version before cloning
 
@@ -50,7 +66,7 @@ export class DeployService extends BaseService {
 
 			const receipt = await response.wait(); // response is empty if using hardhat network
 
-			const [,,, contractName, ,] = await getAbiByName("TokenContract");
+			const [, , , contractName, ,] = await getAbiByName("TokenContract");
 			// console.log("abi=", abi);
 			for (const event of receipt.events) {
 				if (event.event === "ProxyCloned") {
@@ -78,7 +94,9 @@ export class DeployService extends BaseService {
 		// initialize clone
 		try {
 			const contractClone = await attachContract(addressClone, deployer, true);
-			await contractClone.initialize(deployer.address, title, baseUri, description, symbol, fungible, overrides).then((tx: any) => tx.wait());
+			await contractClone
+				.initialize(deployer.address, title, baseUri, description, symbol, fungible, overrides)
+				.then((tx: any) => tx.wait());
 			await contractClone.grantAccess(deployer.address, "FORWARDER_ROLE", overrides).then((tx: any) => tx.wait());
 			// configure with delegate
 			const delegateContract = await attachContract(delegateAddress, deployer);
@@ -139,8 +157,19 @@ export class DeployService extends BaseService {
 		// const wallet = new ethers.Wallet(deployerPrivateKey);
 		// const signer = wallet.connect(ethers.provider);
 
-		const factory = await ethers.getContractFactory(contractFullName);
-		const chainId = await ethers.provider.getNetwork().then((network) => network.chainId);
+		const factory = new ethers.ContractFactory(
+			abi as ethers.ContractInterface,
+			bytecode as ethers.utils.BytesLike,
+			deployer
+		);
+		// let network;
+		// if (process.env.DEFAULT_NETWORK === "hardhat") {
+		// 	network = await hardhatEthers.provider.getNetwork();
+		// } else {
+		const network = await new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL).getNetwork();
+		// }
+		console.log("network: ", network);
+		const chainId = network.chainId;
 		const overrides = await getGasPriceOverrides(this, 2);
 		const newContract = await factory.connect(deployer).deploy(overrides);
 		await newContract.deployed();
@@ -191,16 +220,25 @@ export class DeployService extends BaseService {
 		}
 	}
 
-	async deployAll(deploymentId: number, deployer: any, name: string, baseUri: string, description: string, symbol: string, fungible: boolean) {
+	async deployAll(
+		deploymentId: number,
+		deployer: any,
+		name: string,
+		baseUri: string,
+		description: string,
+		symbol: string,
+		fungible: number
+	) {
 		// const [deployer] = await ethers.getSigners();
 
 		// const overrides = await getGasPriceOverrides(this, 2);
 		// deploy delegate
 		const initEmptyOptions = [""];
-		const contractDelegate = await this.deploySingle(deploymentId, deployer, "delegate", initEmptyOptions); // #1 Delegate
 
+		console.log("signer address:", deployer.address);
+		const contractDelegate = await this.deploySingle(deploymentId, deployer, "delegate", initEmptyOptions); // #1 Delegate
 		// deploy proxy
-		const initProxyOptions = [name, baseUri, description, symbol, fungible];
+		const initProxyOptions: [string, string, string, string, number] = [name, baseUri, description, symbol, fungible];
 		const contractProxy = await this.deploySingle(deploymentId, deployer, "token", initProxyOptions); // #2 Proxy
 
 		// configure proxy
@@ -216,36 +254,51 @@ export class DeployService extends BaseService {
 		// if deploymentId exists, skip
 		const formattedContractName = contractName.charAt(0).toUpperCase() + contractName.slice(1) + "Contract";
 
+		let contract;
 		const deployedContract = await getDeployedContractAddress(formattedContractName, deploymentId);
 		if (deployedContract) {
 			// get contract object from contract table
-			const existingContract = await attachContract(deployedContract, deployer);
-			return existingContract;
+			contract = await attachContract(deployedContract, deployer);
+		} else {
+			contract = await this.deploy(deploymentId, contractName, deployer);
 		}
-
-		const newContract = await this.deploy(deploymentId, contractName, deployer);
 		const overrides = await getGasPriceOverrides(this, 2);
 		const forwarderAddress = await getForwarderAddressFromDeployment(deploymentId as number);
 
-		switch (contractName) {
-			case "token":
-				await newContract.initialize(deployer.address, ...options, overrides);
+		try {
+			switch (contractName) {
+				case "token":
+					console.log("options:", options);
+					await contract.initialize(deployer.address, ...options, overrides);
 
-				// save forwarder address to database by looking up proxy address in deployment table using deploymentId
-				await this.prisma.contract.update({
-					where: { contract_name_deployment_id: { contract_name: formattedContractName, deployment_id: deploymentId } },
-					data: { forwarder_address: forwarderAddress },
-				});
-				break;
-			default:
-				// delegate or factory
-				await newContract.connect(deployer).initialize(overrides);
-				const grantAccessResult = await grantAccessToForwarder(formattedContractName, newContract, overrides, forwarderAddress, "ADMIN_ROLE", deploymentId);
+					// save forwarder address to database by looking up proxy address in deployment table using deploymentId
+					await this.prisma.contract.update({
+						where: {
+							contract_name_deployment_id: { contract_name: formattedContractName, deployment_id: deploymentId },
+						},
+						data: { forwarder_address: forwarderAddress },
+					});
+					break;
+				default:
+					// delegate or factory
+					await contract.connect(deployer).initialize(overrides);
+					const grantAccessResult = await grantAccessToForwarder(
+						formattedContractName,
+						contract,
+						overrides,
+						forwarderAddress,
+						"ADMIN_ROLE",
+						deploymentId
+					);
 
-				console.log("grantAccessResult: ", formattedContractName + " - " + grantAccessResult);
-				break;
+					console.log("grantAccessResult: ", formattedContractName + " - " + grantAccessResult);
+					break;
+			}
+		} catch (error) {
+			console.log("error:", error);
+			console.log("already initialized");
 		}
-		return newContract;
+		return contract;
 	}
 
 	async configureProxy(deployer: any, proxyAddress: string, delegateAddress: string) {
@@ -273,7 +326,14 @@ export class DeployService extends BaseService {
 		return { result: "OPS_ROLE access granted to " + walletAddress };
 	}
 
-	async createContracts(token: boolean, delegate: boolean, factory: boolean, version: string, isDefault: boolean, tierId: number) {
+	async createContracts(
+		token: boolean,
+		delegate: boolean,
+		factory: boolean,
+		version: string,
+		isDefault: boolean,
+		tierId: number
+	) {
 		let responseJSON: JSONObject = {};
 		if (token) {
 			const [...tokenAbi] = await getAbiByCache("Token");
@@ -303,7 +363,10 @@ export class DeployService extends BaseService {
 		if (abi?.toString() === undefined) {
 			throw new Error("abi is undefined");
 		}
-		const contract = new ethers.Contract(contract_address, abi?.toString(), ethers.provider);
+		const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL);
+
+		// const provider = ethers.getDefaultProvider();
+		const contract = new ethers.Contract(contract_address, abi?.toString(), provider);
 
 		const name = await contract.name();
 		const description = await contract.description();

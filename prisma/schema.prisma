@@ -17,6 +17,7 @@ model allowlist {
   updated_at       DateTime? @updatedAt @db.Timestamptz(6)
   user_address     String?
   xp_id            Int?
+  status           Int?
   xp               xp?       @relation(fields: [xp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "allowlist_new_xp_id_fkey")
 }
 
@@ -48,29 +49,29 @@ model clone {
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model contract {
-  id                  BigInt            @id @default(autoincrement())
-  deployment_id       BigInt?
-  contract_version_id BigInt?
   contract_address    String
-  contract_name       String?
   name                String            @db.VarChar(250)
+  created_at          DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime          @default(now()) @db.Timestamptz(6)
   chain               String?
   chain_id            Int?
+  contract_name       String?
+  deployed_at         DateTime?         @default(now()) @db.Timestamptz(6)
+  id                  BigInt            @id @default(autoincrement())
   owner_address       String?
-  factory_address     String?
-  forwarder_address   String?
-  cloned_from         String?
   status              Int?
   type                String?
   version             String?
   abi                 String?
   bytecode            String?
   source_name         String?
-  deployed_at         DateTime?         @default(now()) @db.Timestamptz(6)
-  created_at          DateTime          @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime          @default(now()) @db.Timestamptz(6)
-  deployment          deployment?       @relation(fields: [deployment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "contract_deployment_id_key")
+  factory_address     String?
+  cloned_from         String?
+  contract_version_id BigInt?
+  forwarder_address   String?
+  deployment_id       BigInt?
   contract_version    contract_version? @relation(fields: [contract_version_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "contract_contract_version_id_key")
+  deployment          deployment?       @relation(fields: [deployment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "contract_deployment_id_key")
   forwarder           forwarder?        @relation(fields: [forwarder_address], references: [address], onDelete: NoAction, onUpdate: NoAction, map: "contract_forwarder_address_fkey")
 
   @@unique([contract_name, deployment_id])
@@ -112,19 +113,20 @@ model deployment {
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model forwarder {
-  key        String?
-  tier_id    Int        @default(1)
-  iv         String?
-  address    String?    @unique
-  id         Int        @id @default(autoincrement())
-  created_at DateTime?  @default(now()) @db.Timestamptz(6)
-  updated_at DateTime?  @updatedAt @db.Timestamptz(6)
-  chain      String?
-  role       String?
-  status     Int        @default(100)
-  token      Json?
-  clone      clone[]
-  contract   contract[]
+  key         String?
+  tier_id     Int        @default(1)
+  iv          String?
+  address     String?    @unique
+  id          Int        @id @default(autoincrement())
+  created_at  DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime?  @updatedAt @db.Timestamptz(6)
+  chain       String?
+  role        String?
+  status      Int        @default(100)
+  token       Json?
+  description String?
+  clone       clone[]
+  contract    contract[]
 }
 
 model inventory {
@@ -299,8 +301,7 @@ model template {
 }
 
 model transaction {
-  txn_hash String @id
-
+  txn_hash         String   @id
   class_id         String
   from             String
   to               String
@@ -331,6 +332,7 @@ model user {
   id                 String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   email              Json?                @db.Json
   phone              Json?                @db.Json
+  password           String?
   org_user           org_user[]
   verification_token verification_token[]
 }

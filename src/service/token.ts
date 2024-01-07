@@ -118,22 +118,31 @@ export class TokenService extends BaseService {
 		});
 		console.log(`Created transaction with hash: ${transaction.txn_hash}`);
 
-		// const allowlist = await this.prisma.allowlist.updateMany({
-		// 	data: {
-		// 		// txn_hash: response.hash,
-		// 		token_id,
-		// 		is_owned: true,
-		// 	},
+		// const updatedRecord = await this.prisma.allowlist.update({
 		// 	where: {
-		// 		contract_address,
-		// 		class_id,
-		// 		user_address,
+		// 		id: allowlistRecord.id,
+		// 	},
+		// 	data: {
+		// 		status: 4,
 		// 	},
 		// });
+		const allowlist = await this.prisma.allowlist.updateMany({
+			data: {
+				// txn_hash: response.hash,
+				token_id: _classTokenId,
+				is_owned: true,
+				status: 4,
+			},
+			where: {
+				contract_address,
+				class_id,
+				user_address,
+			},
+		});
 
-		// console.log("before await");
-		// await response.wait();
-		// console.log("transaction: ", transaction);
+		console.log("before await");
+		await response.wait();
+		console.log("allowlist: ", allowlist);
 
 		return transaction;
 	}

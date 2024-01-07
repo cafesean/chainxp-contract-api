@@ -7,6 +7,7 @@ dist
 .npmrc
 typechain*
 node_modules
+aws
 *.http
 README.*
 layer

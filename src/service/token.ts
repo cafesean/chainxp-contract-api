@@ -2,11 +2,11 @@
 import { BaseService } from "./base";
 import { attachContract, getAbiByName, getGasPriceOverrides } from "../utils";
 import * as errors from "../errors";
-import { ethers } from "hardhat";
+import { ethers } from "ethers";
 import dotenv from "dotenv";
 import { IForwardRequest } from "./forward.type";
 // import { decryptPrivateKey } from "../utils/encryption";
-import { getForwarderWalletKeyFromClone } from "../utils/contract.utils";
+import { getForwarderWalletKeyFromClone, getSigner } from "../utils/contract.utils";
 
 dotenv.config();
 interface JSONObject {
@@ -50,15 +50,13 @@ export class TokenService extends BaseService {
 		// get forwarder based on tier Id
 		const forwarderWalletKey = await getForwarderWalletKeyFromClone(contract_address);
 		// get signer using private key
-		const forwarderSigner = new ethers.Wallet(forwarderWalletKey, ethers.provider);
-
+		const forwarderSigner = getSigner(forwarderWalletKey);
 		// Verify signature
 		if (!verified) {
 			return { error: "Invalid signature" };
 		}
 		const forwardCalldata = calldata.concat(sender.slice(2));
 		// const [signer] = await ethers.getSigners();
-
 
 		console.log("forwarderSigner: ", forwarderSigner);
 		console.log("forwarder address:", forwarderSigner?.address);
@@ -147,8 +145,12 @@ export class TokenService extends BaseService {
 		if (abi?.toString() === undefined) {
 			throw new Error("abi is undefined");
 		}
-		const contract = new ethers.Contract(contract_address, abi?.toString(), ethers.provider);
+		const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL);
+		// const contract = new ethers.Contract(contract_address, abi?.toString(), ethers.provider);
+		// const contract = new ethers.ContractFactory(abi as ethers.ContractInterface, bytecode as ethers.utils.BytesLike);
+		const contract = new ethers.Contract(contract_address, abi as ethers.ContractInterface, provider);
 		const balance = await contract.balanceOf(user_address);
+		// const balance = await contract.balanceOf(user_address);
 		return balance;
 	}
 
@@ -225,8 +227,10 @@ export class TokenService extends BaseService {
 	}
 
 	async burn(contract_address: string, class_id: string, userAddress: string, amount: number) {
-		const [signer] = await ethers.getSigners();
-
+		// const [signer] = await ethers.getSigners();
+		const forwarderWalletKey = await getForwarderWalletKeyFromClone(contract_address);
+		// get signer using private key
+		const signer = getSigner(forwarderWalletKey);
 		const lcaseContractAddress = contract_address.toLowerCase();
 		// const [signer] = await ethers.getSigners();
 		// const factory = ethers.getContractFactory(this.config.artifacts.tokenAbi as any, signer as any);

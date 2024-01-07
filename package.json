@@ -69,7 +69,8 @@
     "http-status-codes": "^2.2.0",
     "ioredis": "^5.2.4",
     "prisma": "^5.1.1",
-    "tsx": "^3.12.7"
+    "tsx": "^3.12.7",
+    "web3": "^4.3.0"
   },
   "packageManager": "pnpm@7.26.1",
   "prettier": {

@@ -62,22 +62,26 @@ export class DeployService extends BaseService {
 			const forwarderAddress = (await getForwarderWalletAddress(proxyAddress.toLowerCase())) || "";
 
 			const contractFactory = await attachContract(factoryAddress, deployer, false);
-			const response = await contractFactory.createClone(proxyAddress);
+			const response = await contractFactory.createClone(proxyAddress, overrides);
 
 			const receipt = await response.wait(); // response is empty if using hardhat network
 
 			const [, , , contractName, ,] = await getAbiByName("TokenContract");
-			// console.log("abi=", abi);
+			console.log("receipt=", receipt);
 			for (const event of receipt.events) {
 				if (event.event === "ProxyCloned") {
 					addressClone = event.args.cloneAddress.toLowerCase();
 				}
 			}
 
+			if (!addressClone) {
+				throw new Error("addressClone is undefined");
+			}
+
 			await this.prisma.clone.create({
 				data: {
 					type: "clone",
-					fungible: fungible === 1,
+					fungible: fungible == 1 ? true : false,
 					name: contractName?.toString() || "",
 					contract_address: addressClone.toLowerCase(),
 					owner_address: signerAddress.toLowerCase(),

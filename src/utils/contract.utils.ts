@@ -9,7 +9,7 @@ export async function attachContract(contractAddress: string, signer?: any, isCl
 	// const factory = new ContractFactory(abi, bytecode);
 	// const attachedContract = factory.attach(contractAddress);
 	let attachedContract;
-	let contractName;
+	// let contractName;
 	// lookup proxyContract address based on clone address
 	const isProxyClone = isClone ? isClone : false;
 	try {
@@ -26,7 +26,7 @@ export async function attachContract(contractAddress: string, signer?: any, isCl
 	} catch (error) {
 		throw new Error("Error in attachContract: " + error);
 	}
-	console.log("Attached contract %s: %s", contractName, attachedContract.address);
+	// console.log("Attached contract %s: %s", contractName, attachedContract.address);
 	// console.log("Owner: ", await attachedContract.owner());
 
 	return attachedContract;

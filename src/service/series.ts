@@ -3,7 +3,7 @@ import { BaseService } from "./base";
 import { attachContract, getGasPriceOverrides } from "../utils";
 // import { getForwarderWalletAddressFromClone } from "../utils/contract.utils";
 import * as errors from "../errors";
-import { ethers } from "hardhat";
+import { ethers } from "ethers";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -14,12 +14,6 @@ interface JSONObject {
 // const zeroAddress = "0x0000000000000000000000000000000000000000";
 
 export class SeriesService extends BaseService {
-	async network() {
-		// get current network and chain from ethers
-		const network = await ethers.provider.getNetwork();
-		return "Current network is " + network.name + " on chain ID " + network.chainId;
-	}
-
 	async addClass(signer: any, contract_address: string, reqBody: any) {
 		let contractProxy: any;
 		let overrides: any;
@@ -51,7 +45,13 @@ export class SeriesService extends BaseService {
 
 		return new Promise(async (resolve, reject) => {
 			try {
-				const response = await contractProxy._setClass(Number(class_id), reqBody.name, reqBody.description, "", overrides);
+				const response = await contractProxy._setClass(
+					Number(class_id),
+					reqBody.name,
+					reqBody.description,
+					"",
+					overrides
+				);
 				const receipt = await response.wait();
 				console.log("Receipt: ", receipt);
 
@@ -137,7 +137,7 @@ export class SeriesService extends BaseService {
 		return new Promise(async (resolve, reject) => {
 			try {
 				const response = await contractProxy.setAttributes(Number(xp?.class_id), ids, names, values, overrides);
-				
+
 				// const response = await contractProxy.setAttributes(1,[1,2,3],["name1","name2","name3"],["value1","value2","value3"], overrides);
 				const receipt = await response.wait();
 				console.log("Receipt: ", receipt);

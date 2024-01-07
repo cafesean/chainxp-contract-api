@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { decryptPrivateKey } from "@root/src/utils/encryption";
+import { decryptPrivateKey, decryptKeystore } from "@root/src/utils/encryption";
 import { ethers } from "hardhat";
 // import * as abi from "../../constants/abi.constants";
 
@@ -101,6 +101,12 @@ export default async function contractRoute(fastify: FastifyInstance) {
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: encrypted });
 	});
 
+	fastify.post("/decryptGethPrivateKey", async (request: any, resp: any) => {
+		const { keystoreJson, password } = request.body;
+		const decrypted = await decryptKeystore(keystoreJson, password)
+
+		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: decrypted });
+	});
 	//   fastify.post(
 	//     '/transaction/speedup',
 	//     speedupTransactionSchema(fastify),

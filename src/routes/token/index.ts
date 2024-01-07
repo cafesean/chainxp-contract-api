@@ -18,9 +18,9 @@ export default async function tokenRoute(fastify: FastifyInstance) {
 	fastify.post("/:contract_id/mint/:class_id", async (request: any, resp: any) => {
 		const { contract_id, class_id } = request.params;
 		const { address } = request.query;
-		const { signedRequest } = request.body;
+		const { signed_request } = request.body;
 
-		const response = await fastify.service.token.mint(contract_id, class_id, address, signedRequest);
+		const response = await fastify.service.token.mint(contract_id, class_id, address, signed_request);
 
 		const txn = response as any;
 		// resp.header("Content-Type", "application/json");

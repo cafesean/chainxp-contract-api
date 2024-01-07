@@ -15,14 +15,14 @@ interface JSONObject {
 // const zeroAddress = "0x0000000000000000000000000000000000000000";
 
 export class TokenService extends BaseService {
-	async mint(contract_address: string, class_id: string, user_address: string, signedRequest: IForwardRequest) {
+	async mint(contract_address: string, class_id: string, user_address: string, signed_request: IForwardRequest) {
 		// await this.findContractClass(contract_address, class_id);
 
 		const tokenContract = await attachContract(contract_address, null, true);
 		const overrides = await getGasPriceOverrides(this, 2);
 
-		console.log("signedRequest: ", signedRequest);
-		const { calldata, sender, sign }: IForwardRequest = signedRequest;
+		console.log("signed_request: ", signed_request);
+		const { calldata, sender, sign }: IForwardRequest = signed_request;
 
 		// ERC2771 Forwarder
 		const verified = sender === ethers.utils.verifyMessage(calldata, sign);

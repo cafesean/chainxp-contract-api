@@ -18,6 +18,7 @@ model allowlist {
   user_address     String?
   xp_id            Int?
   status           Int?
+  series_id        Int?
   xp               xp?       @relation(fields: [xp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "allowlist_new_xp_id_fkey")
 }
 
@@ -176,11 +177,12 @@ model org_scheme {
 }
 
 model org_user {
-  org_id  Int
-  user_id String @db.Uuid
-  role    String
-  org     org    @relation(fields: [org_id], references: [id])
-  user    user   @relation(fields: [user_id], references: [id])
+  org_id    Int
+  user_id   String   @db.Uuid
+  role      String
+  create_at DateTime @default(now()) @db.Timestamptz(6)
+  org       org      @relation(fields: [org_id], references: [id])
+  user      user     @relation(fields: [user_id], references: [id])
 
   @@id([org_id, user_id])
 }
@@ -333,6 +335,8 @@ model user {
   email              Json?                @db.Json
   phone              Json?                @db.Json
   password           String?
+  name               String?
+  avatar             String?
   org_user           org_user[]
   verification_token verification_token[]
 }
@@ -386,7 +390,7 @@ model version {
 
 model verification_token {
   id         BigInt    @id @default(autoincrement())
-  user_id    String    @db.Uuid
+  user_id    String?   @db.Uuid
   type       String
   value      String
   used_at    DateTime? @db.Timestamptz(6)
@@ -394,5 +398,5 @@ model verification_token {
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   updated_at DateTime  @updatedAt @db.Timestamptz(6)
   metadata   Json?
-  user       user      @relation(fields: [user_id], references: [id])
+  user       user?     @relation(fields: [user_id], references: [id], onDelete: Restrict)
 }

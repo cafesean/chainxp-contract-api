@@ -111,9 +111,9 @@ export class TokenService extends BaseService {
 				contract_address,
 				class_id: _returnedClassId,
 				token_id: _classTokenId,
-				from: await forwarderSigner.getAddress(),
+				from: (await forwarderSigner.getAddress()).toLowerCase(),
 				to: user_address,
-				status: -1,
+				status: 0,
 			},
 		});
 		console.log(`Created transaction with hash: ${transaction.txn_hash}`);

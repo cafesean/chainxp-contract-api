@@ -61,43 +61,44 @@ export class SeriesService extends BaseService {
 						class_id = arg.toString();
 					}
 				}
+				
 
-				const newXp = await this.prisma.xp.upsert({
-					where: {
-						contract_address_class_id: {
-							contract_address: lcaseContractAddress,
-							class_id: class_id,
-						},
-					},
-					create: {
-						class_id: class_id,
-						series_id: series?.id,
-						contract_address: lcaseContractAddress,
-						title: reqBody.name,
-						description: reqBody.description,
-						requirements: reqBody.requirements,
-						image_url: reqBody.image_url,
-						slug: reqBody.slug,
-						status: 1,
-					},
-					update: {
-						title: reqBody.name,
-						description: reqBody.description,
-						requirements: reqBody.requirements,
-						image_url: reqBody.image_url,
-						slug: reqBody.slug,
-						status: 1,
-					},
-					include: {
-						series: {
-							select: {
-								id: true,
-							},
-						},
-					},
-				});
+				// const newXp = await this.prisma.xp.upsert({
+				// 	where: {
+				// 		contract_address_class_id: {
+				// 			contract_address: lcaseContractAddress,
+				// 			class_id: class_id,
+				// 		},
+				// 	},
+				// 	create: {
+				// 		class_id: class_id,
+				// 		series_id: series?.id,
+				// 		contract_address: lcaseContractAddress,
+				// 		title: reqBody.name,
+				// 		description: reqBody.description,
+				// 		requirements: reqBody.requirements,
+				// 		image_url: reqBody.image_url,
+				// 		slug: reqBody.slug,
+				// 		status: 1,
+				// 	},
+				// 	update: {
+				// 		title: reqBody.name,
+				// 		description: reqBody.description,
+				// 		requirements: reqBody.requirements,
+				// 		image_url: reqBody.image_url,
+				// 		slug: reqBody.slug,
+				// 		status: 1,
+				// 	},
+				// 	include: {
+				// 		series: {
+				// 			select: {
+				// 				id: true,
+				// 			},
+				// 		},
+				// 	},
+				// });
 
-				resolve({ xpId: newXp.id, classId: class_id });
+				resolve({ classId: class_id });
 			} catch (e) {
 				console.log(e);
 				reject(new Error("Error creating class:" + e));

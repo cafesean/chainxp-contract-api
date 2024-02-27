@@ -18,11 +18,11 @@ export class SeriesService extends BaseService {
 		let contractProxy: any;
 		let overrides: any;
 		let class_id: string;
-		let lcaseContractAddress: string;
+		// let lcaseContractAddress: string;
 		let series: any;
 
 		class_id = reqBody.class_id || "0";
-		lcaseContractAddress = contract_address.toLowerCase();
+		// lcaseContractAddress = contract_address.toLowerCase();
 
 		try {
 			contractProxy = await attachContract(contract_address, signer, true);

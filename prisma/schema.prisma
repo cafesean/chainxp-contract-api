@@ -19,6 +19,7 @@ model allowlist {
   xp_id            Int?
   status           Int?
   series_id        Int?
+  attributes       Json?
   xp               xp?       @relation(fields: [xp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "allowlist_new_xp_id_fkey")
 }
 
@@ -164,6 +165,8 @@ model org {
   member_token_image_url String?
   website                String?
   auth_wallets           Json[]
+  credit_balance         Float?     @default(0)
+  credit                 credit[]
   org_user               org_user[]
   series                 series[]
 }
@@ -177,12 +180,11 @@ model org_scheme {
 }
 
 model org_user {
-  org_id    Int
-  user_id   String   @db.Uuid
-  role      String
-  create_at DateTime @default(now()) @db.Timestamptz(6)
-  org       org      @relation(fields: [org_id], references: [id])
-  user      user     @relation(fields: [user_id], references: [id])
+  org_id  Int
+  user_id String @db.Uuid
+  role    String
+  org     org    @relation(fields: [org_id], references: [id])
+  user    user   @relation(fields: [user_id], references: [id])
 
   @@id([org_id, user_id])
 }
@@ -246,6 +248,7 @@ model series {
   fungible         Boolean?  @default(false)
   type             Int       @default(1)
   carousel         String[]
+  org_logo_url     String?
   org              org?      @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   template         template? @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "series_template_id_key")
   xp               xp[]
@@ -299,6 +302,7 @@ model template {
   chainxp_logo_xy        Json?     @db.Json
   created_at             DateTime? @default(now()) @db.Timestamptz(6)
   updated_at             DateTime? @updatedAt @db.Timestamptz(6)
+  shared                 Boolean   @default(false)
   series                 series[]
 }
 
@@ -332,10 +336,10 @@ model user {
   referred_by        String?
   is_registered      Boolean?
   id                 String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  email              Json?                @db.Json
-  phone              Json?                @db.Json
-  password           String?
   name               String?
+  email              Json?                @db.Json
+  password           String?
+  phone              Json?                @db.Json
   avatar             String?
   org_user           org_user[]
   verification_token verification_token[]
@@ -363,7 +367,10 @@ model xp {
   xp_text_y        String?
   external_link    String?
   requirements     Json?
+  attributes       Json?
+  mission_id       Int?
   allowlist        allowlist[]
+  mission          mission[]
   series           series?     @relation(fields: [series_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   xp_type          xp_type?    @relation(fields: [xp_code], references: [xp_code], onDelete: NoAction, onUpdate: NoAction)
 
@@ -398,5 +405,102 @@ model verification_token {
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   updated_at DateTime  @updatedAt @db.Timestamptz(6)
   metadata   Json?
-  user       user?     @relation(fields: [user_id], references: [id], onDelete: Restrict)
+  user       user?     @relation(fields: [user_id], references: [id])
+}
+
+model campaign {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  credit_pool Float
+  tier_id     Int?
+  rules       Json?
+  status      Int
+  start_at    DateTime? @default(now()) @db.Timestamptz(6)
+  end_at      DateTime? @db.Timestamptz(6)
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @db.Timestamptz(6)
+  credit      credit[]
+}
+
+model credit {
+  id          Int       @id @default(autoincrement())
+  org_id      Int
+  campaign_id Int?
+  type        String?
+  amount      Float
+  awarded_at  DateTime  @default(now()) @db.Timestamptz(6)
+  expire_at   DateTime? @db.Timestamptz(6)
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @db.Timestamptz(6)
+  campaign    campaign? @relation(fields: [campaign_id], references: [id])
+  org         org       @relation(fields: [org_id], references: [id])
+}
+
+model credit_transaction {
+  id                  BigInt           @id @default(autoincrement())
+  user_id             String           @db.Uuid
+  amount              Float
+  activity            String?
+  transaction_type_id Int
+  transacted_at       DateTime         @db.Timestamptz(6)
+  txn_hash            String
+  created_at          DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?        @db.Timestamptz(6)
+  status              String
+  org_id              Int
+  transaction_type    transaction_type @relation(fields: [transaction_type_id], references: [id])
+}
+
+model mission {
+  id         BigInt    @id @default(autoincrement())
+  xp_id      Int
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @db.Timestamptz(6)
+  tasks      Json?
+  xp         xp        @relation(fields: [xp_id], references: [id])
+}
+
+model plan {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  network     String
+  credits     Float
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @db.Timestamptz(6)
+}
+
+model transaction_deploy {
+  txn_hash         String    @id
+  status           Int       @default(0)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime? @db.Timestamptz(6)
+  contract_address String?
+  method           String?
+  nonce            Int?      @default(0)
+  parentNonce      Int?      @default(0)
+}
+
+model transaction_type {
+  id                 Int                  @id @default(autoincrement())
+  name               String
+  tier_id            Int
+  credits_required   Float
+  status             String
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?            @db.Timestamptz(6)
+  credit_transaction credit_transaction[]
+}
+
+model transaction_xp {
+  txn_hash         String    @id
+  class_id         String
+  status           Int       @default(0)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime? @db.Timestamptz(6)
+  contract_address String?
+  method           String?
+  nonce            Int?      @default(0)
+  parentNonce      Int?      @default(0)
 }

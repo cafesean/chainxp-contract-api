@@ -61,7 +61,23 @@ export class SeriesService extends BaseService {
 						class_id = arg.toString();
 					}
 				}
-				
+
+				const txn = [
+					{
+						txn_hash: response.hash,
+						nonce: response.nonce,
+						class_id: class_id,
+						parentNonce: response.parentNonce,
+						status: -1,
+					},
+				];
+
+				for (const t of txn) {
+					const transaction = await this.prisma.transaction_xp.create({
+						data: t,
+					});
+					console.log(`Created transaction with hash: ${transaction.txn_hash}`);
+				}
 
 				// const newXp = await this.prisma.xp.upsert({
 				// 	where: {

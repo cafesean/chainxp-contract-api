@@ -78,6 +78,23 @@ export class DeployService extends BaseService {
 				throw new Error("addressClone is undefined");
 			}
 
+			const txn = [
+				{
+					txn_hash: response.hash,
+					nonce: response.nonce,
+					parentNonce: response.parentNonce,
+					contract_address: addressClone.toLowerCase(),
+					status: -1,
+				},
+			];
+
+			for (const t of txn) {
+				const transaction = await this.prisma.transaction_deploy.create({
+					data: t,
+				});
+				console.log(`Created transaction with hash: ${transaction.txn_hash}`);
+			}
+
 			await this.prisma.clone.create({
 				data: {
 					type: "clone",

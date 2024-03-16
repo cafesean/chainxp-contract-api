@@ -269,6 +269,7 @@ export class TokenService extends BaseService {
 			{
 				txn_hash: response.hash,
 				nonce: response.nonce,
+				parentNonce: response.parentNonce,
 				contract_address: lcaseContractAddress,
 				class_id: _returnedClassId,
 				amount: _amount,

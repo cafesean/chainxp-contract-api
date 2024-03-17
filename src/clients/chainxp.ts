@@ -12,21 +12,24 @@ export default class ChainxpClient {
 		class_id: number,
 		token_id: number,
 		transaction_id: number,
-		txn_hash: string,
+		txn_hash: string
 	): Promise<T | undefined> {
 		const url = `${this.baseUrl}/api/mintCallback`;
 		const { data } = await axios.post<ApiResponse<T>>(
 			url,
 			{
-				user_address,
-				contract_address,
-				class_id,
+				txn_hash,
 				token_id,
 				transaction_id,
-				txn_hash,
+				class_id,
+				contract_address,
+				user_address,
 			},
 			{
-				headers: { "x-api-key": this.apiKey },
+				headers: {
+					"Content-Type": "application/json",
+					"x-api-key": this.apiKey,
+				},
 			}
 		);
 		if (data.code === 200) {

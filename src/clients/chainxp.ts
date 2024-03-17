@@ -15,27 +15,34 @@ export default class ChainxpClient {
 		txn_hash: string
 	): Promise<T | undefined> {
 		const url = `${this.baseUrl}/api/mintCallback`;
-		const { data } = await axios.post<ApiResponse<T>>(
-			url,
-			{
-				txn_hash,
-				token_id,
-				transaction_id,
-				class_id,
-				contract_address,
-				user_address,
-			},
-			{
-				headers: {
-					"Content-Type": "application/json",
-					"x-api-key": this.apiKey,
+		try {
+			const response = await axios.post<ApiResponse<T>>(
+				url,
+				{
+					"user_address": user_address,
+					"contract_address": contract_address,
+					"class_id": class_id,
+					"token_id": token_id,
+					"transaction_id": transaction_id,
+					"txn_hash": txn_hash,
 				},
+				{
+					headers: {
+						"Content-Type": "application/json",
+						"x-api-key": this.apiKey,
+					},
+				}
+			);
+			const { data } = response;
+			if (response.status !== 200) {
+				throw new ApiError(data.code, data.message);
 			}
-		);
-		if (data.code === 200) {
 			return data.data;
+		} catch (error) {
+			if (error instanceof ApiError) {
+				throw error;
+			}
+			throw new ApiError(500, 'Internal Server Error');
 		}
-
-		throw new ApiError(data.code, data.message);
 	}
 }

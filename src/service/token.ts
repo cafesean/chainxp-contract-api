@@ -112,16 +112,7 @@ export class TokenService extends BaseService {
 		// }
 
 		//callback to chainxp
-		const chainxp = new ChainxpClient(process.env.BASE_URL ?? "", process.env.CHAINXP_API_KEY ?? "");
 
-		await chainxp.mintCallback(
-			user_address,
-			contract_address,
-			Number(class_id),
-			_classTokenId,
-			transaction_id,
-			response.hash,
-		);
 
 		const transaction = await this.prisma.transaction.create({
 			data: {
@@ -158,6 +149,17 @@ export class TokenService extends BaseService {
 				user_address,
 			},
 		});
+
+		const chainxp = new ChainxpClient(process.env.BASE_URL ?? "", process.env.CALLBACK_API_KEY ?? "");
+
+		await chainxp.mintCallback(
+			user_address,
+			contract_address,
+			Number(class_id),
+			Number(_classTokenId),
+			transaction_id,
+			response.hash,
+		);
 
 		console.log("before await");
 		await response.wait();

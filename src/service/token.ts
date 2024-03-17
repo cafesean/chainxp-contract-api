@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import { IForwardRequest } from "./forward.type";
 // import { decryptPrivateKey } from "../utils/encryption";
 import { getForwarderWalletKeyFromClone, getSigner } from "../utils/contract.utils";
+import ChainxpClient from "../clients/chainxp";
 
 dotenv.config();
 interface JSONObject {
@@ -15,7 +16,13 @@ interface JSONObject {
 // const zeroAddress = "0x0000000000000000000000000000000000000000";
 
 export class TokenService extends BaseService {
-	async mint(contract_address: string, class_id: string, user_address: string, signed_request: IForwardRequest) {
+	async mint(
+		contract_address: string,
+		class_id: string,
+		user_address: string,
+		signed_request: IForwardRequest,
+		transaction_id: number
+	) {
 		// await this.findContractClass(contract_address, class_id);
 
 		const tokenContract = await attachContract(contract_address, null, true);
@@ -103,6 +110,17 @@ export class TokenService extends BaseService {
 		// if (_returnedClassId === undefined) {
 		// 	return { error: "No classId; mint failed" };
 		// }
+
+		//callback to chainxp
+		const chainxp = new ChainxpClient(process.env.BASE_URL ?? "", process.env.CHAINXP_API_KEY ?? "");
+
+		await chainxp.mintCallback(
+			contract_address,
+			class_id,
+			user_address,
+			response.hash,
+			transaction_id,
+		);
 
 		const transaction = await this.prisma.transaction.create({
 			data: {

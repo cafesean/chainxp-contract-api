@@ -54,6 +54,7 @@ export class DeployService extends BaseService {
 		// const salt = ethers.utils.formatBytes32String(random.toString());
 
 		let addressClone;
+		let txnHash;
 		const signerAddress = await deployer.getAddress();
 
 		// get forwarder address
@@ -63,8 +64,8 @@ export class DeployService extends BaseService {
 
 			const contractFactory = await attachContract(factoryAddress, deployer, false);
 			const response = await contractFactory.createClone(proxyAddress, overrides);
-
 			const receipt = await response.wait(); // response is empty if using hardhat network
+			txnHash = response.hash;
 
 			const [, , , contractName, ,] = await getAbiByName("TokenContract");
 			console.log("receipt=", receipt);
@@ -164,7 +165,7 @@ export class DeployService extends BaseService {
 		// const series_id = seriesData?.id;
 		console.log("Clone address: ", addressClone);
 		// return new clone (series)
-		return { cloneAddress: addressClone, seriesId: seriesData?.id };
+		return { txn_hash: txnHash, cloneAddress: addressClone, seriesId: seriesData?.id };
 	}
 
 	async deploy(deploymentId: number, name: string, deployer: any): Promise<Contract> {

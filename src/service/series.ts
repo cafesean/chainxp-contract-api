@@ -20,6 +20,7 @@ export class SeriesService extends BaseService {
 		let class_id: string;
 		// let lcaseContractAddress: string;
 		let series: any;
+		let txn_hash: string;
 
 		class_id = reqBody.class_id || "0";
 		// lcaseContractAddress = contract_address.toLowerCase();
@@ -54,6 +55,7 @@ export class SeriesService extends BaseService {
 				);
 				const receipt = await response.wait();
 				console.log("Receipt: ", receipt);
+				txn_hash = response.hash;
 
 				for (const event of receipt.events) {
 					if (event.eventSignature === "ClassUpdated(string,uint256)") {
@@ -79,42 +81,7 @@ export class SeriesService extends BaseService {
 					console.log(`Created transaction with hash: ${transaction.txn_hash}`);
 				}
 
-				// const newXp = await this.prisma.xp.upsert({
-				// 	where: {
-				// 		contract_address_class_id: {
-				// 			contract_address: lcaseContractAddress,
-				// 			class_id: class_id,
-				// 		},
-				// 	},
-				// 	create: {
-				// 		class_id: class_id,
-				// 		series_id: series?.id,
-				// 		contract_address: lcaseContractAddress,
-				// 		title: reqBody.name,
-				// 		description: reqBody.description,
-				// 		requirements: reqBody.requirements,
-				// 		image_url: reqBody.image_url,
-				// 		slug: reqBody.slug,
-				// 		status: 1,
-				// 	},
-				// 	update: {
-				// 		title: reqBody.name,
-				// 		description: reqBody.description,
-				// 		requirements: reqBody.requirements,
-				// 		image_url: reqBody.image_url,
-				// 		slug: reqBody.slug,
-				// 		status: 1,
-				// 	},
-				// 	include: {
-				// 		series: {
-				// 			select: {
-				// 				id: true,
-				// 			},
-				// 		},
-				// 	},
-				// });
-
-				resolve({ classId: class_id });
+				resolve({ txn_hash: txn_hash, classId: class_id });
 			} catch (e) {
 				console.log(e);
 				reject(new Error("Error creating class:" + e));

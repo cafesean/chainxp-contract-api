@@ -1,6 +1,6 @@
-import { ethers } from "hardhat";
-import dotenv from "dotenv";
 import { Network } from "alchemy-sdk";
+import dotenv from "dotenv";
+import { ethers } from "hardhat";
 
 dotenv.config();
 
@@ -39,7 +39,8 @@ if ((process.env.ENV = "alpha")) {
 	// export const SIGNER_ADDRESS = ethers.getSigners();
 
 	// privateKey = process.env.POLYGON_PRIVATE_KEY;
-	network = Network.MATIC_MUMBAI;
+	// network = Network.MATIC_MUMBAI;
+	network = Network.MATIC_AMOY;
 	apiKey = process.env.POLYGON_API_KEY;
 	// export const POLYGON_SIGNER = new ethers.Wallet(POLYGON_PRIVATE_KEY as string, POLYGON_PROVIDER);
 } else {
@@ -50,8 +51,8 @@ if ((process.env.ENV = "alpha")) {
 }
 
 // used by hardhat config
-export const TESTNET_PROVIDER_URL = process.env.MUMBAI_PROVIDER_URL;
-export const TESTNET_PRIVATE_KEY = process.env.MUMBAI_PRIVATE_KEY;
+export const TESTNET_PROVIDER_URL = process.env.TESTNET_PROVIDER_URL;
+export const TESTNET_PRIVATE_KEY = process.env.TESTNET_PRIVATE_KEY;
 
 export const MAINNET_PROVIDER_URL = process.env.MAINNET_PROVIDER_URL;
 export const MAINNET_PRIVATE_KEY = process.env.MAINNET_PRIVATE_KEY;

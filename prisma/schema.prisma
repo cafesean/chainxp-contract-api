@@ -8,19 +8,23 @@ datasource db {
 }
 
 model allowlist {
-  class_id         String?
-  contract_address String?
-  created_at       DateTime? @default(now()) @db.Timestamptz(6)
-  id               String    @id(map: "allowlist_new_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  is_owned         Boolean?  @default(false)
-  token_id         String?
-  updated_at       DateTime? @updatedAt @db.Timestamptz(6)
-  user_address     String?
-  xp_id            Int?
-  status           Int?
-  series_id        Int?
-  attributes       Json?
-  xp               xp?       @relation(fields: [xp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "allowlist_new_xp_id_fkey")
+  class_id              String?
+  contract_address      String?
+  created_at            DateTime?           @default(now()) @db.Timestamptz(6)
+  id                    String              @id(map: "allowlist_new_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  is_owned              Boolean?            @default(false)
+  token_id              String?
+  updated_at            DateTime?           @updatedAt @db.Timestamptz(6)
+  user_address          String?
+  xp_id                 Int?
+  status                Int?
+  series_id             Int?
+  task_id               Int?
+  attributes            Json?
+  credit_transaction_id BigInt?
+  credit_transaction    credit_transaction? @relation(fields: [credit_transaction_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  xp                    xp?                 @relation(fields: [xp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "allowlist_new_xp_id_fkey")
+  task                  task?               @relation(fields: [task_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model category {
@@ -303,23 +307,28 @@ model template {
   created_at             DateTime? @default(now()) @db.Timestamptz(6)
   updated_at             DateTime? @updatedAt @db.Timestamptz(6)
   shared                 Boolean   @default(false)
+  mask_xy                Json?     @db.Json
+  base_stroke            String?   @default("")
+  series_font_weight     String?   @default("")
+  shape_stroke_color     String?   @default("")
+  shape_stroke_width     String?   @default("")
   series                 series[]
 }
 
 model transaction {
-  txn_hash         String   @id
+  txn_hash         String    @id
   class_id         String
   from             String
   to               String
-  status           Int      @default(0)
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt @db.Timestamptz(6)
+  status           Int       @default(0)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime? @updatedAt @db.Timestamptz(6)
   contract_address String?
   token_id         String?
-  amount           Decimal? @db.Decimal
+  amount           Decimal?  @db.Decimal
   method           String?
-  nonce            Int?     @default(0)
-  parentNonce      Int?     @default(0)
+  nonce            Int?      @default(0)
+  parentNonce      Int?      @default(0)
 }
 
 model user {
@@ -356,7 +365,7 @@ model xp {
   image_url        String?
   slug             String?
   uuid             String?     @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  updated_at       DateTime?   @updatedAt @db.Timestamptz(6)
+  updated_at       DateTime?   @default(now()) @updatedAt @db.Timestamptz(6)
   class_id         String?
   contract_address String?
   xp_font          String?
@@ -368,9 +377,8 @@ model xp {
   external_link    String?
   requirements     Json?
   attributes       Json?
-  mission_id       Int?
   allowlist        allowlist[]
-  mission          mission[]
+  task             task[]
   series           series?     @relation(fields: [series_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   xp_type          xp_type?    @relation(fields: [xp_code], references: [xp_code], onDelete: NoAction, onUpdate: NoAction)
 
@@ -449,16 +457,8 @@ model credit_transaction {
   updated_at          DateTime?        @db.Timestamptz(6)
   status              String
   org_id              Int
+  allowlist           allowlist[]
   transaction_type    transaction_type @relation(fields: [transaction_type_id], references: [id])
-}
-
-model mission {
-  id         BigInt    @id @default(autoincrement())
-  xp_id      Int
-  created_at DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at DateTime? @db.Timestamptz(6)
-  tasks      Json?
-  xp         xp        @relation(fields: [xp_id], references: [id])
 }
 
 model plan {
@@ -485,11 +485,13 @@ model transaction_deploy {
 model transaction_type {
   id                 Int                  @id @default(autoincrement())
   name               String
-  tier_id            Int
   credits_required   Float
-  status             String
   created_at         DateTime             @default(now()) @db.Timestamptz(6)
   updated_at         DateTime?            @db.Timestamptz(6)
+  plan_id            Int?
+  chain_id           Int?                 @default(0)
+  description        String?
+  status             Int                  @default(1)
   credit_transaction credit_transaction[]
 }
 
@@ -503,4 +505,36 @@ model transaction_xp {
   method           String?
   nonce            Int?      @default(0)
   parentNonce      Int?      @default(0)
+}
+
+model task {
+  id               Int           @id @default(autoincrement())
+  xp_id            Int
+  task_provider_id Int
+  dependent_tasks  Int?
+  participants     Json?
+  users            Json[]
+  created_at       DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?     @db.Timestamptz(6)
+  allowlist        allowlist[]
+  task_provider    task_provider @relation(fields: [task_provider_id], references: [id])
+  xp               xp            @relation(fields: [xp_id], references: [id])
+}
+
+model task_provider {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  api_url     String?
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @db.Timestamptz(6)
+  task        task[]
+}
+
+model task_type {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @db.Timestamptz(6)
 }

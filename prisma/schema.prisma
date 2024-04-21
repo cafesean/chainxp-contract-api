@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
 }
 
 model allowlist {
@@ -22,20 +22,20 @@ model allowlist {
   attributes            Json?
   credit_transaction_id Int?
   task_id               Int?
-  credit_transaction    credit_transaction? @relation(fields: [credit_transaction_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  credit_transaction    credit_transaction? @relation(fields: [credit_transaction_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "allowlist_credit_transaction_id_fkey")
   xp                    xp?                 @relation(fields: [xp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "allowlist_new_xp_id_fkey")
-  task                  task?               @relation(fields: [task_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  task                  task?               @relation(fields: [task_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "allowlist_task_id_fkey")
 }
 
 model category {
-  id    BigInt  @id @default(autoincrement())
+  id    Int  @id @default(autoincrement())
   slug  String
   name  String
   image String?
 }
 
 model clone {
-  id                Int        @id @default(autoincrement())
+  id                Int     @id @default(autoincrement())
   name              String
   type              String?
   owner_address     String
@@ -73,7 +73,7 @@ model contract {
   source_name         String?
   factory_address     String?
   cloned_from         String?
-  contract_version_id BigInt?
+  contract_version_id Int?
   forwarder_address   String?
   deployment_id       Int?
   contract_version    contract_version? @relation(fields: [contract_version_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "contract_contract_version_id_key")
@@ -84,7 +84,7 @@ model contract {
 }
 
 model contract_version {
-  id            Int        @id @default(autoincrement())
+  id            Int     @id @default(autoincrement())
   contract_name String
   source_name   String
   version       String
@@ -100,7 +100,7 @@ model contract_version {
 }
 
 model deployment {
-  id                        Int        @id @default(autoincrement())
+  id                        Int     @id @default(autoincrement())
   proxy_contract_address    String?
   delegate_contract_address String?
   factory_contract_address  String?
@@ -160,7 +160,7 @@ model org {
   status                 Int?       @db.SmallInt
   tier_id                Int        @default(1)
   category_id            Int?
-  plan_id                BigInt?
+  plan_id                Int?
   verified_at            DateTime?
   allowlist              String[]
   business_address       String?
@@ -176,7 +176,7 @@ model org {
 }
 
 model org_scheme {
-  id         Int       @id @default(autoincrement())
+  id         Int    @id @default(autoincrement())
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   updated_at DateTime? @updatedAt @db.Timestamptz(6)
   status     Int?      @db.SmallInt
@@ -205,7 +205,7 @@ model role {
 }
 
 model role_policy {
-  id         Int       @id @default(autoincrement())
+  id         Int    @id @default(autoincrement())
   role_id    Int
   name       String
   can_create Boolean   @default(false)
@@ -259,7 +259,7 @@ model series {
 }
 
 model template {
-  id                     Int       @id(map: "template2_pkey") @default(autoincrement())
+  id                     Int    @id(map: "template2_pkey") @default(autoincrement())
   template_name          String?   @default("")
   mask                   String?   @default("")
   gradient               String?   @default("")
@@ -331,6 +331,29 @@ model transaction {
   parentNonce      Int?      @default(0)
 }
 
+model transaction_deploy {
+  txn_hash         String    @id
+  status           Int       @default(0)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime? @updatedAt @db.Timestamptz(6)
+  contract_address String?
+  method           String?
+  nonce            Int?      @default(0)
+  parentNonce      Int?      @default(0)
+}
+
+model transaction_xp {
+  txn_hash         String    @id
+  class_id         String
+  status           Int       @default(0)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime? @updatedAt @db.Timestamptz(6)
+  contract_address String?
+  method           String?
+  nonce            Int?      @default(0)
+  parentNonce      Int?      @default(0)
+}
+
 model user {
   created_at         DateTime?            @default(now()) @db.Timestamptz(6)
   status             Int?                 @db.SmallInt
@@ -396,7 +419,7 @@ model xp_type {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model version {
-  id         Int       @id @default(autoincrement())
+  id         Int    @id @default(autoincrement())
   created_at DateTime  @default(now()) @db.Timestamptz(6)
   version    String?
   chain      Int?
@@ -404,7 +427,7 @@ model version {
 }
 
 model verification_token {
-  id         Int       @id @default(autoincrement())
+  id         Int    @id @default(autoincrement())
   user_id    String?   @db.Uuid
   type       String
   value      String
@@ -414,6 +437,81 @@ model verification_token {
   updated_at DateTime  @updatedAt @db.Timestamptz(6)
   metadata   Json?
   user       user?     @relation(fields: [user_id], references: [id])
+}
+
+model task {
+  id               Int           @id @default(autoincrement())
+  created_at       DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?     @updatedAt @db.Timestamptz(6)
+  task_provider_id Int
+  xp_id            Int
+  participants     Json?
+  dependent_tasks  Int?
+  users            Json[]
+  allowlist        allowlist[]
+  task_provider    task_provider @relation(fields: [task_provider_id], references: [id])
+  xp               xp            @relation(fields: [xp_id], references: [id])
+}
+
+model task_type {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @updatedAt @db.Timestamptz(6)
+}
+
+model task_provider {
+  id          Int       @id @default(autoincrement())
+  name        String
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @updatedAt @db.Timestamptz(6)
+  api_url     String?
+  description String?
+  task        task[]
+}
+
+model credit {
+  id          Int       @id @default(autoincrement())
+  org_id      Int
+  campaign_id Int?
+  type        String?
+  amount      Float
+  awarded_at  DateTime  @default(now()) @db.Timestamptz(6)
+  expire_at   DateTime? @db.Timestamptz(6)
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @updatedAt @db.Timestamptz(6)
+  campaign    campaign? @relation(fields: [campaign_id], references: [id])
+  org         org       @relation(fields: [org_id], references: [id])
+}
+
+model credit_transaction {
+  id                  Int           @id @default(autoincrement())
+  user_id             String           @db.Uuid
+  amount              Float
+  activity            String?
+  transaction_type_id Int
+  transacted_at       DateTime         @db.Timestamptz(6)
+  txn_hash            String
+  created_at          DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?        @updatedAt @db.Timestamptz(6)
+  status              String
+  org_id              Int
+  allowlist           allowlist[]
+  transaction_type    transaction_type @relation(fields: [transaction_type_id], references: [id])
+}
+
+model transaction_type {
+  id                 Int                  @id @default(autoincrement())
+  name               String
+  credits_required   Float
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?            @updatedAt @db.Timestamptz(6)
+  plan_id            Int?
+  chain_id           Int?                 @default(0)
+  description        String?
+  status             Int                  @default(1)
+  credit_transaction credit_transaction[]
 }
 
 model campaign {
@@ -427,38 +525,8 @@ model campaign {
   start_at    DateTime? @default(now()) @db.Timestamptz(6)
   end_at      DateTime? @db.Timestamptz(6)
   created_at  DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime? @db.Timestamptz(6)
+  updated_at  DateTime? @updatedAt @db.Timestamptz(6)
   credit      credit[]
-}
-
-model credit {
-  id          Int       @id @default(autoincrement())
-  org_id      Int
-  campaign_id Int?
-  type        String?
-  amount      Float
-  awarded_at  DateTime  @default(now()) @db.Timestamptz(6)
-  expire_at   DateTime? @db.Timestamptz(6)
-  created_at  DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime? @db.Timestamptz(6)
-  campaign    campaign? @relation(fields: [campaign_id], references: [id])
-  org         org       @relation(fields: [org_id], references: [id])
-}
-
-model credit_transaction {
-  id                  Int              @id @default(autoincrement())
-  user_id             String           @db.Uuid
-  amount              Float
-  activity            String?
-  transaction_type_id Int
-  transacted_at       DateTime         @db.Timestamptz(6)
-  txn_hash            String
-  created_at          DateTime         @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime?        @db.Timestamptz(6)
-  status              String
-  org_id              Int
-  allowlist           allowlist[]
-  transaction_type    transaction_type @relation(fields: [transaction_type_id], references: [id])
 }
 
 model plan {
@@ -468,73 +536,5 @@ model plan {
   network     String
   credits     Float
   created_at  DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime? @db.Timestamptz(6)
-}
-
-model transaction_deploy {
-  txn_hash         String    @id
-  status           Int       @default(0)
-  created_at       DateTime  @default(now())
-  updated_at       DateTime? @db.Timestamptz(6)
-  contract_address String?
-  method           String?
-  nonce            Int?      @default(0)
-  parentNonce      Int?      @default(0)
-}
-
-model transaction_type {
-  id                 Int                  @id @default(autoincrement())
-  name               String
-  credits_required   Float
-  created_at         DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime?            @db.Timestamptz(6)
-  plan_id            Int?
-  chain_id           Int?                 @default(0)
-  description        String?
-  status             Int                  @default(1)
-  credit_transaction credit_transaction[]
-}
-
-model transaction_xp {
-  txn_hash         String    @id
-  class_id         String
-  status           Int       @default(0)
-  created_at       DateTime  @default(now())
-  updated_at       DateTime? @db.Timestamptz(6)
-  contract_address String?
-  method           String?
-  nonce            Int?      @default(0)
-  parentNonce      Int?      @default(0)
-}
-
-model task {
-  id               Int           @id @default(autoincrement())
-  created_at       DateTime      @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime?     @db.Timestamptz(6)
-  task_provider_id Int
-  xp_id            Int
-  participants     Json?
-  dependent_tasks  Int?
-  users            Json[]
-  allowlist        allowlist[]
-  task_provider    task_provider @relation(fields: [task_provider_id], references: [id])
-  xp               xp            @relation(fields: [xp_id], references: [id])
-}
-
-model task_provider {
-  id          Int       @id @default(autoincrement())
-  name        String
-  created_at  DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime? @db.Timestamptz(6)
-  api_url     String?
-  description String?
-  task        task[]
-}
-
-model task_type {
-  id          Int       @id @default(autoincrement())
-  name        String
-  description String?
-  created_at  DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime? @db.Timestamptz(6)
+  updated_at  DateTime? @updatedAt @db.Timestamptz(6)
 }

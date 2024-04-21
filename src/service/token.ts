@@ -16,29 +16,26 @@ interface JSONObject {
 // const zeroAddress = "0x0000000000000000000000000000000000000000";
 
 export class TokenService extends BaseService {
-	async mint(
-		contract_address: string,
-		class_id: string,
-		user_address: string,
-		signed_request: IForwardRequest,
-		transaction_id: number
-	) {
+	async mint(contract_address: string, class_id: string, user_address: string, signed_request: IForwardRequest, transaction_id: number) {
 		// await this.findContractClass(contract_address, class_id);
 
 		// check blockchain if token was already minted
-		const balance = await this.getBalance(contract_address, user_address);
-		if (balance > 0) {
-			return { error: "Token already minted" };
-		}
 
 		const tokenContract = await attachContract(contract_address, null, true);
 		const overrides = await getGasPriceOverrides(this, 2);
 
+		const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL);
+		const balance = await provider.getBalance(user_address);
+
+		// const balance = await this.getBalance(contract_address, user_address);
+		if (balance.gt(0)) {
+			return { error: "Token already minted" };
+		}
 		console.log("signed_request: ", signed_request);
 		const { calldata, sender, sign }: IForwardRequest = signed_request;
 		const verified = sender.toLowerCase() === ethers.utils.verifyMessage(calldata, sign).toLowerCase();
 		if (!verified) {
-			return { error: "Invalid signature: " + verified};
+			return { error: "Invalid signature: " + verified };
 		}
 		// ERC2771 Forwarder
 		// get signer based on correct forwarder
@@ -115,7 +112,6 @@ export class TokenService extends BaseService {
 
 		//callback to chainxp
 
-
 		const transaction = await this.prisma.transaction.create({
 			data: {
 				txn_hash: response.hash,
@@ -154,14 +150,7 @@ export class TokenService extends BaseService {
 
 		const chainxp = new ChainxpClient(process.env.BASE_URL ?? "", process.env.CALLBACK_API_KEY ?? "");
 
-		await chainxp.mintCallback(
-			user_address,
-			contract_address,
-			Number(class_id),
-			Number(_classTokenId),
-			transaction_id,
-			response.hash,
-		);
+		await chainxp.mintCallback(user_address, contract_address, Number(class_id), Number(_classTokenId), transaction_id, response.hash);
 
 		console.log("before await");
 		await response.wait();

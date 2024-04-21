@@ -19,9 +19,9 @@ model allowlist {
   xp_id                 Int?
   status                Int?
   series_id             Int?
-  task_id               Int?
   attributes            Json?
-  credit_transaction_id BigInt?
+  credit_transaction_id Int?
+  task_id               Int?
   credit_transaction    credit_transaction? @relation(fields: [credit_transaction_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   xp                    xp?                 @relation(fields: [xp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "allowlist_new_xp_id_fkey")
   task                  task?               @relation(fields: [task_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -35,7 +35,7 @@ model category {
 }
 
 model clone {
-  id                BigInt     @id @default(autoincrement())
+  id                Int        @id @default(autoincrement())
   name              String
   type              String?
   owner_address     String
@@ -63,7 +63,7 @@ model contract {
   chain_id            Int?
   contract_name       String?
   deployed_at         DateTime?         @default(now()) @db.Timestamptz(6)
-  id                  BigInt            @id @default(autoincrement())
+  id                  Int               @id @default(autoincrement())
   owner_address       String?
   status              Int?
   type                String?
@@ -75,7 +75,7 @@ model contract {
   cloned_from         String?
   contract_version_id BigInt?
   forwarder_address   String?
-  deployment_id       BigInt?
+  deployment_id       Int?
   contract_version    contract_version? @relation(fields: [contract_version_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "contract_contract_version_id_key")
   deployment          deployment?       @relation(fields: [deployment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "contract_deployment_id_key")
   forwarder           forwarder?        @relation(fields: [forwarder_address], references: [address], onDelete: NoAction, onUpdate: NoAction, map: "contract_forwarder_address_fkey")
@@ -84,7 +84,7 @@ model contract {
 }
 
 model contract_version {
-  id            BigInt     @id @default(autoincrement())
+  id            Int        @id @default(autoincrement())
   contract_name String
   source_name   String
   version       String
@@ -100,7 +100,7 @@ model contract_version {
 }
 
 model deployment {
-  id                        BigInt     @id @default(autoincrement())
+  id                        Int        @id @default(autoincrement())
   proxy_contract_address    String?
   delegate_contract_address String?
   factory_contract_address  String?
@@ -151,7 +151,7 @@ model org {
   id                     Int        @id @default(autoincrement())
   created_at             DateTime?  @default(now()) @db.Timestamptz(6)
   name                   String?
-  country_id             BigInt?
+  country_id             Int?
   type                   Int?       @db.SmallInt
   logo_url               String?
   slug                   String?
@@ -159,7 +159,7 @@ model org {
   updated_at             DateTime?  @updatedAt @db.Timestamptz(6)
   status                 Int?       @db.SmallInt
   tier_id                Int        @default(1)
-  category_id            BigInt?
+  category_id            Int?
   plan_id                BigInt?
   verified_at            DateTime?
   allowlist              String[]
@@ -176,11 +176,11 @@ model org {
 }
 
 model org_scheme {
-  id         BigInt    @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   updated_at DateTime? @updatedAt @db.Timestamptz(6)
   status     Int?      @db.SmallInt
-  scheme     BigInt?
+  scheme     Int?
 }
 
 model org_user {
@@ -205,7 +205,7 @@ model role {
 }
 
 model role_policy {
-  id         BigInt    @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   role_id    Int
   name       String
   can_create Boolean   @default(false)
@@ -246,7 +246,7 @@ model series {
   contract_address String?   @unique
   owner            String?
   delegate_address String?
-  template_id      BigInt?
+  template_id      Int?
   external_link    String?
   status           Int       @default(0)
   fungible         Boolean?  @default(false)
@@ -259,7 +259,7 @@ model series {
 }
 
 model template {
-  id                     BigInt    @id(map: "template2_pkey") @default(autoincrement())
+  id                     Int       @id(map: "template2_pkey") @default(autoincrement())
   template_name          String?   @default("")
   mask                   String?   @default("")
   gradient               String?   @default("")
@@ -339,8 +339,8 @@ model user {
   tokens             Json?
   xp                 Json?
   profile            Json?
-  role_id            BigInt[]
-  org_id             BigInt[]
+  role_id            Int[]
+  org_id             Int[]
   updated_at         DateTime?            @updatedAt @db.Timestamptz(6)
   referred_by        String?
   is_registered      Boolean?
@@ -396,7 +396,7 @@ model xp_type {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model version {
-  id         BigInt    @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   created_at DateTime  @default(now()) @db.Timestamptz(6)
   version    String?
   chain      Int?
@@ -404,7 +404,7 @@ model version {
 }
 
 model verification_token {
-  id         BigInt    @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   user_id    String?   @db.Uuid
   type       String
   value      String
@@ -446,7 +446,7 @@ model credit {
 }
 
 model credit_transaction {
-  id                  BigInt           @id @default(autoincrement())
+  id                  Int              @id @default(autoincrement())
   user_id             String           @db.Uuid
   amount              Float
   activity            String?
@@ -509,13 +509,13 @@ model transaction_xp {
 
 model task {
   id               Int           @id @default(autoincrement())
-  xp_id            Int
-  task_provider_id Int
-  dependent_tasks  Int?
-  participants     Json?
-  users            Json[]
   created_at       DateTime      @default(now()) @db.Timestamptz(6)
   updated_at       DateTime?     @db.Timestamptz(6)
+  task_provider_id Int
+  xp_id            Int
+  participants     Json?
+  dependent_tasks  Int?
+  users            Json[]
   allowlist        allowlist[]
   task_provider    task_provider @relation(fields: [task_provider_id], references: [id])
   xp               xp            @relation(fields: [xp_id], references: [id])
@@ -524,10 +524,10 @@ model task {
 model task_provider {
   id          Int       @id @default(autoincrement())
   name        String
-  description String?
-  api_url     String?
   created_at  DateTime  @default(now()) @db.Timestamptz(6)
   updated_at  DateTime? @db.Timestamptz(6)
+  api_url     String?
+  description String?
   task        task[]
 }
 

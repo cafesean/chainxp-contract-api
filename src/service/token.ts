@@ -1,13 +1,13 @@
 // @dev - user's on-chain transactions services
-import { BaseService } from "./base";
-import { attachContract, getAbiByName, getGasPriceOverrides } from "../utils";
-import * as errors from "../errors";
-import { ethers } from "ethers";
 import dotenv from "dotenv";
+import { ethers } from "ethers";
+import * as errors from "../errors";
+import { attachContract, getAbiByName, getGasPriceOverrides } from "../utils";
+import { BaseService } from "./base";
 import { IForwardRequest } from "./forward.type";
 // import { decryptPrivateKey } from "../utils/encryption";
-import { getForwarderWalletKeyFromClone, getSigner } from "../utils/contract.utils";
 import ChainxpClient from "../clients/chainxp";
+import { getForwarderWalletKeyFromClone, getSigner } from "../utils/contract.utils";
 
 dotenv.config();
 interface JSONObject {
@@ -25,15 +25,22 @@ export class TokenService extends BaseService {
 	) {
 		// await this.findContractClass(contract_address, class_id);
 
+		// check blockchain if token was already minted
+		const balance = await this.getBalance(contract_address, user_address);
+		if (balance > 0) {
+			return { error: "Token already minted" };
+		}
+
 		const tokenContract = await attachContract(contract_address, null, true);
 		const overrides = await getGasPriceOverrides(this, 2);
 
 		console.log("signed_request: ", signed_request);
 		const { calldata, sender, sign }: IForwardRequest = signed_request;
-
+		const verified = sender.toLowerCase() === ethers.utils.verifyMessage(calldata, sign).toLowerCase();
+		if (!verified) {
+			return { error: "Invalid signature: " + verified};
+		}
 		// ERC2771 Forwarder
-		const verified = sender === ethers.utils.verifyMessage(calldata, sign);
-
 		// get signer based on correct forwarder
 		const orgTierId = await this.prisma.series.findMany({
 			where: {
@@ -58,10 +65,6 @@ export class TokenService extends BaseService {
 		const forwarderWalletKey = await getForwarderWalletKeyFromClone(contract_address);
 		// get signer using private key
 		const forwarderSigner = getSigner(forwarderWalletKey);
-		// Verify signature
-		if (!verified) {
-			return { error: "Invalid signature" };
-		}
 		const forwardCalldata = calldata.concat(sender.slice(2));
 		// const [signer] = await ethers.getSigners();
 
@@ -85,7 +88,6 @@ export class TokenService extends BaseService {
 		const response = await forwarderSigner.sendTransaction(mergedTx);
 		const receipt = await response.wait();
 
-		console.log("response: ", response);
 		console.log("receipt: ", receipt);
 
 		const logs = receipt.logs.filter((log) => log.address.toLowerCase() === contract_address.toLowerCase());

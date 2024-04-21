@@ -1,17 +1,17 @@
 // @dev - contract deployment and configuration services
-import { BaseService } from "./base";
-import { attachContract, getGasPriceOverrides, addContractAbi, getAbiByName } from "../utils";
 import { ethers } from "ethers";
+import { addContractAbi, attachContract, getAbiByName, getGasPriceOverrides } from "../utils";
+import { BaseService } from "./base";
 // import { ethers as hardhatEthers } from "hardhat";
+import dotenv from "dotenv";
 import { Contract } from "ethers";
 import { getAbiByCache } from "../utils";
 import {
-	getForwarderWalletAddress,
-	getForwarderAddressFromDeployment,
-	grantAccessToForwarder,
 	getDeployedContractAddress,
+	getForwarderAddressFromDeployment,
+	getForwarderWalletAddress,
+	grantAccessToForwarder,
 } from "../utils/contract.utils";
-import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -170,7 +170,7 @@ export class DeployService extends BaseService {
 
 	async deploy(deploymentId: number, name: string, deployer: any): Promise<Contract> {
 		const formattedContractName = name.charAt(0).toUpperCase() + name.slice(1) + "Contract";
-		const [id, abi, bytecode, contractName, sourceName, version] = await getAbiByName(formattedContractName);
+		const [id, abi, bytecode, contractName, sourceName, version] = await 	getAbiByName(formattedContractName);
 
 		const contractFullName = sourceName + ":" + contractName;
 

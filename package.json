@@ -72,7 +72,6 @@
     "tsx": "^3.12.7",
     "web3": "^4.3.0"
   },
-  "packageManager": "pnpm@7.26.1",
   "prettier": {
     "arrowParens": "avoid",
     "bracketSpacing": true,

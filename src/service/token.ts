@@ -19,14 +19,36 @@ interface JSONObject {
 export class TokenService extends BaseService {
 	async mint(contract_address: string, class_id: string, user_address: string, signed_request: IForwardRequest, transaction_id: number) {
 		const alchemy = new AlchemyClient();
-
-		// await this.findContractClass(contract_address, class_id);
+		const chainxp = new ChainxpClient(process.env.BASE_URL ?? "", process.env.CALLBACK_API_KEY ?? "");
 
 		// check blockchain if token was already minted
-		if (process.env.ENV !== 'local') {
+		if (process.env.ENV !== "local") {
+			// could just check transaction table, but checking chain is ultimiate Source of Truth
 			const ownsToken = await alchemy.verifyOwnership(user_address, contract_address);
 			if (ownsToken) {
-				return { error: "Token already minted" };
+				const transaction = await this.prisma.transaction.findFirst({
+					select: {
+						token_id: true,
+						txn_hash: true,
+					},
+					where: {
+						contract_address: contract_address,
+						to: user_address,
+						class_id: class_id,
+					},
+				});
+				// callback with previous transaction info
+				if (!transaction) {
+					return { error: "Token already minted. No transaction exists." };
+				}
+
+				try {
+					await chainxp.mintCallback(user_address, contract_address, Number(class_id), Number(transaction?.token_id), transaction_id, transaction?.txn_hash);
+				} catch (err) {
+					console.log("chainxp.mintCallback error: ", err);
+					return { error: { message: "chainxp.mintCallback error: " + err, contract_address: contract_address, token_id: Number(class_id), class_token_id: Number(transaction?.token_id), txn_hash: transaction?.txn_hash } };
+				}
+				return { response: { message: "Token previously minted; allowlist has been updated.", contract_address: contract_address, token_id: Number(class_id), class_token_id: Number(transaction?.token_id), txn_hash: transaction?.txn_hash } };
 			}
 		}
 		const tokenContract = await attachContract(contract_address, null, true);
@@ -139,27 +161,25 @@ export class TokenService extends BaseService {
 		// 		status: 4,
 		// 	},
 		// });
-		const allowlist = await this.prisma.allowlist.updateMany({
-			data: {
-				// txn_hash: response.hash,
-				token_id: _classTokenId,
-				is_owned: true,
-				status: 4,
-			},
-			where: {
-				contract_address,
-				class_id,
-				user_address,
-			},
-		});
-
-		const chainxp = new ChainxpClient(process.env.BASE_URL ?? "", process.env.CALLBACK_API_KEY ?? "");
+		// const allowlist = await this.prisma.allowlist.updateMany({
+		// 	data: {
+		// 		// txn_hash: response.hash,
+		// 		token_id: _classTokenId,
+		// 		is_owned: true,
+		// 		status: 4,
+		// 	},
+		// 	where: {
+		// 		contract_address,
+		// 		class_id,
+		// 		user_address,
+		// 	},
+		// });
 
 		await chainxp.mintCallback(user_address, contract_address, Number(class_id), Number(_classTokenId), transaction_id, response.hash);
 
 		console.log("before await");
 		await response.wait();
-		console.log("allowlist: ", allowlist);
+		// console.log("allowlist: ", allowlist);
 
 		return transaction;
 	}

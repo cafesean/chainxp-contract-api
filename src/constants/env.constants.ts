@@ -30,25 +30,47 @@ let provider;
 // const signer = ethers.getSigners();
 let apiKey;
 let network;
+let nft_url;
 
-if ((process.env.ENV = "alpha")) {
-	// export const POLYGON_PROVIDER = new ethers.providers.AlchemyProvider(
-	// 	process.env.POLYGON_NETWORK,
-	// 	process.env.POLYGON_API_KEY
-	// );
-	// export const SIGNER_ADDRESS = ethers.getSigners();
-
-	// privateKey = process.env.POLYGON_PRIVATE_KEY;
-	// network = Network.MATIC_MUMBAI;
-	network = Network.MATIC_AMOY;
-	apiKey = process.env.POLYGON_API_KEY;
-	// export const POLYGON_SIGNER = new ethers.Wallet(POLYGON_PRIVATE_KEY as string, POLYGON_PROVIDER);
-} else {
-	provider = new ethers.providers.JsonRpcProvider(process.env.LOCAL_PROVIDER_URL);
-	apiKey = process.env.LOCAL_API_KEY;
-	// export const LOCAL_SIGNER = LOCAL_PROVIDER.getSigner(process.env.LOCAL_SIGNER_ADDRESS);
-	// privateKey = process.env.LOCAL_PRIVATE_KEY;
+switch (process.env.ENV) {
+	case "development":
+		provider = process.env.TESTNET_PROVIDER_URL;
+		apiKey = process.env.TESTNET_PROVIDER_API_KEY;
+		nft_url = process.env.TESTNET_NFT_URL;
+		network = Network.MATIC_AMOY;
+		break;
+	case "production":
+		provider = process.env.MAINNET_PROVIDER_URL;
+		apiKey = process.env.MAINNET_PROVIDER_API_KEY;
+		nft_url = process.env.MAINNET_NFT_URL;
+		network = Network.MATIC_MAINNET;
+		break;
+	default:
+		provider = process.env.LOCAL_PROVIDER_URL;
+		apiKey = process.env.LOCAL_PROVIDER_API_KEY;
+		break;
 }
+
+provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL);
+
+// if ((process.env.ENV = "alpha")) {
+// 	// export const POLYGON_PROVIDER = new ethers.providers.AlchemyProvider(
+// 	// 	process.env.POLYGON_NETWORK,
+// 	// 	process.env.POLYGON_API_KEY
+// 	// );
+// 	// export const SIGNER_ADDRESS = ethers.getSigners();
+
+// 	// privateKey = process.env.POLYGON_PRIVATE_KEY;
+// 	// network = Network.MATIC_MUMBAI;
+// 	network = Network.MATIC_AMOY;
+// 	apiKey = process.env.POLYGON_API_KEY;
+// 	// export const POLYGON_SIGNER = new ethers.Wallet(POLYGON_PRIVATE_KEY as string, POLYGON_PROVIDER);
+// } else {
+// 	provider = new ethers.providers.JsonRpcProvider(process.env.LOCAL_PROVIDER_URL);
+// 	apiKey = process.env.LOCAL_API_KEY;
+// 	// export const LOCAL_SIGNER = LOCAL_PROVIDER.getSigner(process.env.LOCAL_SIGNER_ADDRESS);
+// 	// privateKey = process.env.LOCAL_PRIVATE_KEY;
+// }
 
 // used by hardhat config
 export const TESTNET_PROVIDER_URL = process.env.TESTNET_PROVIDER_URL;
@@ -64,4 +86,5 @@ export const LOCAL_PRIVATE_KEY = process.env.LOCAL_PRIVATE_KEY;
 export const PROVIDER_URL = provider;
 // export const SIGNER_ADDRESS = signer;
 export const PROVIDER_API_KEY = apiKey;
+export const NFT_URL = nft_url;
 export const ETH_NETWORK = network;

@@ -7,6 +7,7 @@ import { BaseService } from "./base";
 import { IForwardRequest } from "./forward.type";
 // import { decryptPrivateKey } from "../utils/encryption";
 import ChainxpClient from "../clients/chainxp";
+import AlchemyClient from "../providers/alchemy";
 import { getForwarderWalletKeyFromClone, getSigner } from "../utils/contract.utils";
 
 dotenv.config();
@@ -17,20 +18,24 @@ interface JSONObject {
 
 export class TokenService extends BaseService {
 	async mint(contract_address: string, class_id: string, user_address: string, signed_request: IForwardRequest, transaction_id: number) {
+		const alchemy = new AlchemyClient();
+
 		// await this.findContractClass(contract_address, class_id);
 
 		// check blockchain if token was already minted
-
+		if (process.env.ENV !== 'local') {
+			const ownsToken = await alchemy.verifyOwnership(user_address, contract_address);
+			if (ownsToken) {
+				return { error: "Token already minted" };
+			}
+		}
 		const tokenContract = await attachContract(contract_address, null, true);
 		const overrides = await getGasPriceOverrides(this, 2);
 
-		const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL);
-		const balance = await provider.getBalance(user_address);
+		// const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL);
+		// const balance = await provider.getBalance(user_address);
 
 		// const balance = await this.getBalance(contract_address, user_address);
-		if (balance.gt(0)) {
-			return { error: "Token already minted" };
-		}
 		console.log("signed_request: ", signed_request);
 		const { calldata, sender, sign }: IForwardRequest = signed_request;
 		const verified = sender.toLowerCase() === ethers.utils.verifyMessage(calldata, sign).toLowerCase();

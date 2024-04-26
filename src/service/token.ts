@@ -20,43 +20,75 @@ export class TokenService extends BaseService {
 	async mint(contract_address: string, class_id: string, user_address: string, signed_request: IForwardRequest, transaction_id: number) {
 		const alchemy = new AlchemyClient();
 		const chainxp = new ChainxpClient(process.env.BASE_URL ?? "", process.env.CALLBACK_API_KEY ?? "");
-
+		
 		// check blockchain if token was already minted
-		// if (process.env.ENV !== "local") {
-		// could just check transaction table, but checking chain is ultimiate Source of Truth
-		const ownsToken = await alchemy.verifyOwnership(user_address, contract_address);
-		if (ownsToken) {
-			const transaction = await this.prisma.transaction.findFirst({
-				select: {
-					token_id: true,
-					txn_hash: true,
-				},
-				where: {
-					contract_address: contract_address,
-					to: user_address,
-					class_id: class_id,
-				},
-			});
-			// callback with previous transaction info
-			if (!transaction) {
-				return { error: "Token already minted. No transaction exists." };
+		// first check transaction table
+		
+		// let checkExistOnchain = false;
+		
+		const existingTransaction = await this.prisma.transaction.findFirst({
+			select: {
+				token_id: true,
+				txn_hash: true,
+			},
+			where: {
+				contract_address: contract_address,
+				to: user_address,
+				class_id: class_id,
+			},
+		});
+		
+		if (!existingTransaction) {
+			if (process.env.ENV !== "local") {
+				const checkExistOnchain = await alchemy.verifyOwnership(user_address, contract_address);
+				
+				if (checkExistOnchain) {
+					return { error: "Token already minted. No transaction exists." };
+				}
 			}
-
+		} else {
 			try {
-				await chainxp.mintCallback(user_address, contract_address, Number(class_id), Number(transaction?.token_id), transaction_id, transaction?.txn_hash);
+				await chainxp.mintCallback(user_address, contract_address, Number(class_id), Number(existingTransaction?.token_id), transaction_id, existingTransaction?.txn_hash);
 			} catch (err) {
 				console.log("chainxp.mintCallback error: ", err);
-				return { error: { message: "chainxp.mintCallback error: " + err, contract_address: contract_address, token_id: Number(class_id), class_token_id: Number(transaction?.token_id), txn_hash: transaction?.txn_hash } };
+				return { error: { message: "chainxp.mintCallback error: " + err, contract_address: contract_address, token_id: Number(class_id), class_token_id: Number(existingTransaction?.token_id), txn_hash: existingTransaction?.txn_hash } };
 			}
-			return { response: { message: "Token previously minted; allowlist has been updated.", contract_address: contract_address, token_id: Number(class_id), class_token_id: Number(transaction?.token_id), txn_hash: transaction?.txn_hash } };
+			return { response: { message: "Token previously minted; allowlist has been updated.", contract_address: contract_address, token_id: Number(class_id), class_token_id: Number(existingTransaction?.token_id), txn_hash: existingTransaction?.txn_hash } };
 		}
+		// if (process.env.ENV !== "local") {
+		// could just check transaction table, but checking chain is ultimiate Source of Truth
+		// const ownsToken = await alchemy.verifyOwnership(user_address, contract_address);
+		// if (ownsToken) {
+		// const transaction = await this.prisma.transaction.findFirst({
+		// 	select: {
+		// 		token_id: true,
+		// 		txn_hash: true,
+		// 	},
+		// 	where: {
+		// 		contract_address: contract_address,
+		// 		to: user_address,
+		// 		class_id: class_id,
+		// 	},
+		// });
+		// callback with previous transaction info
+		// if (!transaction) {
+		// 	return { error: "Token already minted. No transaction exists." };
 		// }
+		
+		// try {
+		// 	await chainxp.mintCallback(user_address, contract_address, Number(class_id), Number(transaction?.token_id), transaction_id, transaction?.txn_hash);
+		// } catch (err) {
+		// 	console.log("chainxp.mintCallback error: ", err);
+		// 	return { error: { message: "chainxp.mintCallback error: " + err, contract_address: contract_address, token_id: Number(class_id), class_token_id: Number(transaction?.token_id), txn_hash: transaction?.txn_hash } };
+		// }
+		// return { response: { message: "Token previously minted; allowlist has been updated.", contract_address: contract_address, token_id: Number(class_id), class_token_id: Number(transaction?.token_id), txn_hash: transaction?.txn_hash } };
+		
 		const tokenContract = await attachContract(contract_address, null, true);
 		const overrides = await getGasPriceOverrides(this, 2);
-
+		
 		// const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL);
 		// const balance = await provider.getBalance(user_address);
-
+		
 		// const balance = await this.getBalance(contract_address, user_address);
 		console.log("signed_request: ", signed_request);
 		const { calldata, sender, sign }: IForwardRequest = signed_request;
@@ -78,23 +110,23 @@ export class TokenService extends BaseService {
 				},
 			},
 		});
-
+		
 		if (!orgTierId[0]?.org?.tier_id) {
 			return { error: "No org tier Id" };
 		}
-
+		
 		// const tierId = orgTierId[0]?.org?.tier_id;
-
+		
 		// get forwarder based on tier Id
 		const forwarderWalletKey = await getForwarderWalletKeyFromClone(contract_address);
 		// get signer using private key
 		const forwarderSigner = getSigner(forwarderWalletKey);
 		const forwardCalldata = calldata.concat(sender.slice(2));
 		// const [signer] = await ethers.getSigners();
-
+		
 		console.log("forwarderSigner: ", forwarderSigner);
 		console.log("forwarder address:", forwarderSigner?.address);
-
+		
 		console.log("-- contract_address: ", contract_address);
 		console.log("-- forwardCalldata: ", forwardCalldata);
 		// Creating a transaction param
@@ -111,12 +143,12 @@ export class TokenService extends BaseService {
 		console.log("mergedTx: ", mergedTx);
 		const response = await forwarderSigner.sendTransaction(mergedTx);
 		const receipt = await response.wait();
-
+		
 		console.log("receipt: ", receipt);
-
+		
 		const logs = receipt.logs.filter((log) => log.address.toLowerCase() === contract_address.toLowerCase());
 		const events = logs.map((log) => tokenContract.interface.parseLog(log));
-
+		
 		// const response = await tokenContract.mint(user_address, Number(class_id), overrides);
 		let _returnedClassId;
 		let _classTokenId;
@@ -132,13 +164,13 @@ export class TokenService extends BaseService {
 				_classTokenId = argClassTokenId.toString();
 			}
 		}
-
+		
 		// if (_returnedClassId === undefined) {
 		// 	return { error: "No classId; mint failed" };
 		// }
-
+		
 		//callback to chainxp
-
+		
 		const transaction = await this.prisma.transaction.create({
 			data: {
 				txn_hash: response.hash,
@@ -152,7 +184,7 @@ export class TokenService extends BaseService {
 			},
 		});
 		console.log(`Created transaction with hash: ${transaction.txn_hash}`);
-
+		
 		// const updatedRecord = await this.prisma.allowlist.update({
 		// 	where: {
 		// 		id: allowlistRecord.id,
@@ -174,20 +206,20 @@ export class TokenService extends BaseService {
 		// 		user_address,
 		// 	},
 		// });
-
+		
 		await chainxp.mintCallback(user_address, contract_address, Number(class_id), Number(_classTokenId), transaction_id, response.hash);
-
+		
 		console.log("before await");
 		await response.wait();
 		// console.log("allowlist: ", allowlist);
-
+		
 		return transaction;
 	}
-
+	
 	// write a function that checks wallet for balance of a token using ethers, then return true or false
 	async getBalance(contract_address: any, user_address: any) {
 		const [abi, , ,] = await getAbiByName("TokenContract");
-
+		
 		if (abi?.toString() === undefined) {
 			throw new Error("abi is undefined");
 		}
@@ -199,16 +231,16 @@ export class TokenService extends BaseService {
 		// const balance = await contract.balanceOf(user_address);
 		return balance;
 	}
-
+	
 	async getUris(contract_address: any, from: number, to: number) {
 		var i;
 		var data: JSONObject = {};
 		const tokenContract = await attachContract(contract_address, null, true);
-
+		
 		try {
 			for (i = from; i <= to; i++) {
 				data["uri" + i] = await tokenContract.uri(i);
-
+				
 				// base64 decode the uri then encode to utf-8
 				// const uriString = Buffer.from(data["uri" + i].slice(29), "base64").toString("utf-8");
 				const uriString = data["uri" + i];
@@ -219,27 +251,27 @@ export class TokenService extends BaseService {
 			return err;
 		}
 	}
-
+	
 	async transfer(contract_address: string, class_id: string, from: string, to: string, amount: number) {
 		// const [deployer] = await ethers.getSigners();
-
+		
 		// const [signer] = await ethers.getSigners();
 		// const factory = await ethers.getContractFactory(this.config.artifacts.factoryContractName);
-
+		
 		// const factory = ethers.getContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
 		// const factoryContract = factory.attachContract(this.config.artifacts.tokenAbi, contract_address, this.config.artifacts.factoryContractName
 		let _returnedClassId;
 		let _amount;
-
+		
 		const tokenContract = await attachContract(contract_address, null, true);
-
+		
 		const response = await tokenContract.safeTransferFrom(from, to, class_id, amount, "0x00");
 		console.log(`transfer NFT from '${from}' to '${to}' Txn: ${response.hash}`);
 		// await response.wait(2);
-
+		
 		const lcaseContractAddress = contract_address.toLowerCase();
 		// note: add token_id
-
+		
 		const receipt = await response.wait();
 		for (const event of receipt.events) {
 			if (event.eventSignature === "TokenTxn(string,address,address,uint256,uint256)") {
@@ -249,7 +281,7 @@ export class TokenService extends BaseService {
 				_amount = argAmount.toString();
 			}
 		}
-
+		
 		const txn = [
 			{
 				txn_hash: response.hash,
@@ -262,7 +294,7 @@ export class TokenService extends BaseService {
 				status: -1,
 			},
 		];
-
+		
 		for (const t of txn) {
 			const transaction = await this.prisma.transaction.create({
 				data: t,
@@ -271,7 +303,7 @@ export class TokenService extends BaseService {
 		}
 		return response;
 	}
-
+	
 	async burn(contract_address: string, class_id: string, userAddress: string, amount: number) {
 		// const [signer] = await ethers.getSigners();
 		const forwarderWalletKey = await getForwarderWalletKeyFromClone(contract_address);
@@ -281,10 +313,10 @@ export class TokenService extends BaseService {
 		// const [signer] = await ethers.getSigners();
 		// const factory = ethers.getContractFactory(this.config.artifacts.tokenAbi as any, signer as any);
 		const tokenContract = await attachContract(contract_address, null, true);
-
+		
 		const response = await tokenContract.burn(userAddress, class_id, amount);
 		console.log(`burn NFT from '${userAddress}' Txn: ${response.hash}`);
-
+		
 		let _returnedClassId;
 		let _amount;
 		const receipt = await response.wait();
@@ -315,7 +347,7 @@ export class TokenService extends BaseService {
 				status: -1,
 			},
 		];
-
+		
 		for (const t of txn) {
 			const transaction = await this.prisma.transaction.create({
 				data: t,
@@ -324,20 +356,20 @@ export class TokenService extends BaseService {
 		}
 		return response;
 	}
-
+	
 	async verify(txn_hash: string): Promise<number> {
 		const transaction = await this.prisma.transaction.findUnique({
 			where: {
 				txn_hash,
 			},
 		});
-
+		
 		if (!transaction) {
 			throw errors.create(errors.StatusCodes.NOT_FOUND);
 		}
-
+		
 		const status = await this.polygon.scanTransaction(transaction.txn_hash);
-
+		
 		await this.prisma.transaction.update({
 			where: {
 				txn_hash,
@@ -346,7 +378,7 @@ export class TokenService extends BaseService {
 				status,
 			},
 		});
-
+		
 		return status;
 	}
 }

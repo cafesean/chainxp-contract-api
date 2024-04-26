@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model allowlist {
@@ -28,14 +28,14 @@ model allowlist {
 }
 
 model category {
-  id    Int  @id @default(autoincrement())
+  id    Int     @id @default(autoincrement())
   slug  String
   name  String
   image String?
 }
 
 model clone {
-  id                Int     @id @default(autoincrement())
+  id                Int        @id @default(autoincrement())
   name              String
   type              String?
   owner_address     String
@@ -84,7 +84,7 @@ model contract {
 }
 
 model contract_version {
-  id            Int     @id @default(autoincrement())
+  id            Int        @id @default(autoincrement())
   contract_name String
   source_name   String
   version       String
@@ -100,7 +100,7 @@ model contract_version {
 }
 
 model deployment {
-  id                        Int     @id @default(autoincrement())
+  id                        Int        @id @default(autoincrement())
   proxy_contract_address    String?
   delegate_contract_address String?
   factory_contract_address  String?
@@ -176,7 +176,7 @@ model org {
 }
 
 model org_scheme {
-  id         Int    @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   updated_at DateTime? @updatedAt @db.Timestamptz(6)
   status     Int?      @db.SmallInt
@@ -205,7 +205,7 @@ model role {
 }
 
 model role_policy {
-  id         Int    @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   role_id    Int
   name       String
   can_create Boolean   @default(false)
@@ -259,7 +259,7 @@ model series {
 }
 
 model template {
-  id                     Int    @id(map: "template2_pkey") @default(autoincrement())
+  id                     Int       @id(map: "template2_pkey") @default(autoincrement())
   template_name          String?   @default("")
   mask                   String?   @default("")
   gradient               String?   @default("")
@@ -373,6 +373,7 @@ model user {
   password           String?
   phone              Json?                @db.Json
   avatar             String?
+  username           String?
   org_user           org_user[]
   verification_token verification_token[]
 }
@@ -419,7 +420,7 @@ model xp_type {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model version {
-  id         Int    @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   created_at DateTime  @default(now()) @db.Timestamptz(6)
   version    String?
   chain      Int?
@@ -427,7 +428,7 @@ model version {
 }
 
 model verification_token {
-  id         Int    @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   user_id    String?   @db.Uuid
   type       String
   value      String
@@ -486,7 +487,7 @@ model credit {
 }
 
 model credit_transaction {
-  id                  Int           @id @default(autoincrement())
+  id                  Int              @id @default(autoincrement())
   user_id             String           @db.Uuid
   amount              Float
   activity            String?

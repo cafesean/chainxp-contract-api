@@ -208,7 +208,7 @@ export class TokenService extends BaseService {
 		// 	},
 		// });
 
-		await chainxp.mintCallback(user_address, contract_address, Number(class_id), Number(_classTokenId), transaction_id, response.hash);
+		await chainxp.mintCallback(user_address, contract_address, Number(class_id), Number(_classTokenId), credit_transaction_id, response.hash);
 
 		console.log("before await");
 		await response.wait();

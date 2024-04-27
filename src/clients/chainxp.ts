@@ -9,23 +9,6 @@ export default class ChainxpClient {
 	async mintCallback<T>(user_address: string, contract_address: string, class_id: number, token_id: number, transaction_id: number, txn_hash: string): Promise<T | undefined> {
 		const url = `${this.baseUrl}/api/mintCallback`;
 		try {
-			// const response = await axios.post<ApiResponse<T>>(
-			// 	"https://localhost:3000/api/mintCallback",
-			// 	{
-			// 		"user_address": "0x358a8a6f2277ea74943f31bf5dfa68bcafa99064",
-			// 		"contract_address": "0x3cfbc7ad27b3b5732b41777281d7ff933732f94a",
-			// 		"class_id": 1,
-			// 		"token_id": 1,
-			// 		"transaction_id": 88,
-			// 		"txn_hash": "0x39bf57a595a3eb8c421bd19be3e259b0cafd3dd5816569e0108a2f804025fb43"
-			// 	},
-			// 	{
-			// 		headers: {
-			// 			"Content-Type": "application/json",
-			// 			"x-api-key": "FD@d0c2xlc0",
-			// 		},
-			// 	}
-			// );
 			const response = await axios.post<ApiResponse<T>>(
 				url,
 				{

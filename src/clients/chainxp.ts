@@ -6,7 +6,7 @@ import type ApiResponse from "./response";
 export default class ChainxpClient {
 	constructor(private readonly baseUrl: string, private readonly apiKey: string) {}
 
-	async mintCallback<T>(user_address: string, contract_address: string, class_id: number, token_id: number, transaction_id: number, txn_hash: string): Promise<T | undefined> {
+	async mintCallback<T>(user_address: string, contract_address: string, class_id: number, token_id: number, credit_transaction_id: number, txn_hash: string): Promise<T | undefined> {
 		const url = `${this.baseUrl}/api/mintCallback`;
 		try {
 			const response = await axios.post<ApiResponse<T>>(
@@ -16,7 +16,7 @@ export default class ChainxpClient {
 					contract_address: contract_address,
 					class_id: class_id,
 					token_id: token_id,
-					transaction_id: transaction_id,
+					credit_transaction_id: credit_transaction_id,
 					txn_hash: txn_hash,
 				},
 				{

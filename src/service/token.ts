@@ -18,6 +18,10 @@ interface JSONObject {
 
 export class TokenService extends BaseService {
 	async mint(contract_address: string, class_id: string, user_address: string, signed_request: IForwardRequest, credit_transaction_id: number) {
+		if (!credit_transaction_id || credit_transaction_id === undefined) {
+			throw new Error("credit_transaction_id required for minting");
+		}
+
 		const alchemy = new AlchemyClient();
 		const chainxp = new ChainxpClient(process.env.BASE_URL ?? "", process.env.CALLBACK_API_KEY ?? "");
 
@@ -49,6 +53,7 @@ export class TokenService extends BaseService {
 			}
 		} else {
 			try {
+				console.log("params for mintCallback: ", user_address, contract_address, Number(class_id), Number(existingTransaction?.token_id), credit_transaction_id, existingTransaction?.txn_hash);
 				await chainxp.mintCallback(user_address, contract_address, Number(class_id), Number(existingTransaction?.token_id), credit_transaction_id, existingTransaction?.txn_hash);
 			} catch (err) {
 				console.log("chainxp.mintCallback error: ", err);

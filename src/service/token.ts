@@ -7,7 +7,7 @@ import { BaseService } from "./base";
 import { IForwardRequest } from "./forward.type";
 // import { decryptPrivateKey } from "../utils/encryption";
 import ChainxpClient from "../clients/chainxp";
-import AlchemyClient from "../providers/alchemy";
+// import AlchemyClient from "../providers/alchemy";
 import { getForwarderWalletKeyFromClone, getSigner } from "../utils/contract.utils";
 
 dotenv.config();
@@ -22,7 +22,7 @@ export class TokenService extends BaseService {
 			throw new Error("credit_transaction_id required for minting");
 		}
 
-		const alchemy = new AlchemyClient();
+		// const alchemy = new AlchemyClient();
 		const chainxp = new ChainxpClient(process.env.BASE_URL ?? "", process.env.CALLBACK_API_KEY ?? "");
 
 		// check blockchain if token was already minted
@@ -42,16 +42,7 @@ export class TokenService extends BaseService {
 			},
 		});
 
-		if (!existingTransaction) {
-			if (process.env.ENV !== "local") {
-				const checkExistOnchain = await alchemy.verifyOwnership(user_address, contract_address);
-
-				if (checkExistOnchain) {
-					await chainxp.mintCallback(user_address, contract_address, Number(class_id), 0, 0, "0x0");
-					return { error: "Token already minted. No transaction exists." };
-				}
-			}
-		} else {
+		if (existingTransaction) {
 			try {
 				console.log("params for mintCallback: ", user_address, contract_address, Number(class_id), Number(existingTransaction?.token_id), credit_transaction_id, existingTransaction?.txn_hash);
 				await chainxp.mintCallback(user_address, contract_address, Number(class_id), Number(existingTransaction?.token_id), credit_transaction_id, existingTransaction?.txn_hash);
@@ -61,33 +52,6 @@ export class TokenService extends BaseService {
 			}
 			return { response: { message: "Token previously minted; allowlist has been updated.", contract_address: contract_address, token_id: Number(class_id), class_token_id: Number(existingTransaction?.token_id), txn_hash: existingTransaction?.txn_hash } };
 		}
-		// if (process.env.ENV !== "local") {
-		// could just check transaction table, but checking chain is ultimiate Source of Truth
-		// const ownsToken = await alchemy.verifyOwnership(user_address, contract_address);
-		// if (ownsToken) {
-		// const transaction = await this.prisma.transaction.findFirst({
-		// 	select: {
-		// 		token_id: true,
-		// 		txn_hash: true,
-		// 	},
-		// 	where: {
-		// 		contract_address: contract_address,
-		// 		to: user_address,
-		// 		class_id: class_id,
-		// 	},
-		// });
-		// callback with previous transaction info
-		// if (!transaction) {
-		// 	return { error: "Token already minted. No transaction exists." };
-		// }
-
-		// try {
-		// 	await chainxp.mintCallback(user_address, contract_address, Number(class_id), Number(transaction?.token_id), transaction_id, transaction?.txn_hash);
-		// } catch (err) {
-		// 	console.log("chainxp.mintCallback error: ", err);
-		// 	return { error: { message: "chainxp.mintCallback error: " + err, contract_address: contract_address, token_id: Number(class_id), class_token_id: Number(transaction?.token_id), txn_hash: transaction?.txn_hash } };
-		// }
-		// return { response: { message: "Token previously minted; allowlist has been updated.", contract_address: contract_address, token_id: Number(class_id), class_token_id: Number(transaction?.token_id), txn_hash: transaction?.txn_hash } };
 
 		const tokenContract = await attachContract(contract_address, null, true);
 		const overrides = await getGasPriceOverrides(this, 2);

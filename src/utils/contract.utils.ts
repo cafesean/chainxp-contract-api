@@ -1,8 +1,8 @@
 // import { ContractFactory } from "ethers";
 import { ethers } from "ethers";
+import { prisma } from "src/utils/prisma";
 import { getAbiByAddress } from "../utils/abi.utils";
 import { decryptPrivateKey } from "../utils/encryption";
-import { prisma } from "src/utils/prisma";
 
 export async function attachContract(contractAddress: string, signer?: any, isClone?: boolean) {
 	// ethers
@@ -48,6 +48,7 @@ export async function getForwarderWalletKey(proxyAddress: string) {
 						address: true,
 						key: true,
 						iv: true,
+						salt: true,
 					},
 				},
 			},
@@ -58,7 +59,7 @@ export async function getForwarderWalletKey(proxyAddress: string) {
 		if (!contract?.forwarder) {
 			throw new Error("No forwarder");
 		}
-		forwarderKey = decryptPrivateKey(contract?.forwarder?.key!, password, contract.forwarder?.iv!);
+		forwarderKey = decryptPrivateKey(contract?.forwarder?.key!, password, contract.forwarder?.iv!, contract.forwarder?.salt!);
 		console.log("forwarderKey: ", forwarderKey);
 	} catch (error) {
 		throw new Error("Error in getForwarderWalletKey: " + error);
@@ -106,6 +107,7 @@ export async function getForwarderWalletKeyFromClone(cloneAddress: string) {
 						address: true,
 						key: true,
 						iv: true,
+						salt: true,
 					},
 				},
 			},
@@ -116,7 +118,7 @@ export async function getForwarderWalletKeyFromClone(cloneAddress: string) {
 		if (!contract?.forwarder) {
 			throw new Error("No forwarder");
 		}
-		forwarderKey = decryptPrivateKey(contract?.forwarder?.key!, password, contract.forwarder?.iv!);
+		forwarderKey = decryptPrivateKey(contract?.forwarder?.key!, password, contract.forwarder?.iv!, contract.forwarder?.salt!);
 		console.log("forwarderKey: ", forwarderKey);
 	} catch (error) {
 		throw new Error("Error: " + error);

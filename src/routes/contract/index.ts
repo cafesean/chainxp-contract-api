@@ -1,5 +1,5 @@
+import { decryptKeystore, decryptPrivateKey } from "@root/src/utils/encryption";
 import { FastifyInstance } from "fastify";
-import { decryptPrivateKey, decryptKeystore } from "@root/src/utils/encryption";
 import { ethers } from "hardhat";
 // import * as abi from "../../constants/abi.constants";
 
@@ -22,9 +22,9 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 	fastify.post("/:contract_address/grantAccess", async (request: any, resp: any) => {
 		const { contract_address } = request.params;
-		const { targetAddress, role, encryptedKey, password, iv, isClone = false } = request.body;
+		const { targetAddress, role, encryptedKey, password, iv, salt, isClone = false } = request.body;
 
-		const signerWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
+		const signerWalletAddress = decryptPrivateKey(encryptedKey, password, iv, salt);
 
 		const signerWallet = new ethers.Wallet(signerWalletAddress);
 		const signer = signerWallet.connect(ethers.provider);
@@ -37,8 +37,8 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 	fastify.post("/:contract_id/updateBaseUri", async (request: any, resp: any) => {
 		const { contract_id } = request.params;
-		const { baseUri, encryptedKey, password, iv } = request.body;
-		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv);
+		const { baseUri, encryptedKey, password, iv, salt } = request.body;
+		const deployWalletAddress = decryptPrivateKey(encryptedKey, password, iv, salt);
 
 		const wallet = new ethers.Wallet(deployWalletAddress);
 		const signer = wallet.connect(ethers.provider);
@@ -87,8 +87,8 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 	// create route for decoding a privatekey using the decryptPrivateKey function in contract.ts
 	fastify.post("/decryptPrivateKey", async (request: any, resp: any) => {
-		const { encryptedPrivateKey, password, iv } = request.body;
-		const decrypted = decryptPrivateKey(encryptedPrivateKey, password, iv);
+		const { encryptedPrivateKey, password, iv, salt } = request.body;
+		const decrypted = decryptPrivateKey(encryptedPrivateKey, password, iv, salt);
 
 		resp.code(200).header("Content-Type", "application/json; charset=utf-8").send({ result: decrypted });
 	});

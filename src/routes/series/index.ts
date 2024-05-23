@@ -1,5 +1,5 @@
-import { FastifyInstance } from "fastify";
 import { decryptPrivateKey } from "@root/src/utils/encryption";
+import { FastifyInstance } from "fastify";
 // import { ethers } from "hardhat";
 import { getForwarderWalletKeyFromClone, getSigner } from "@root/src/utils/contract.utils";
 import * as type from "src/types";
@@ -84,8 +84,8 @@ export default async function contractRoute(fastify: FastifyInstance) {
 
 	fastify.post("/:contract_address/god", async (request: any, resp: any) => {
 		const { contractAddress } = request.params;
-		const { encryptedKey, password, iv } = request.body;
-		const deployWalletKey = decryptPrivateKey(encryptedKey, password, iv);
+		const { encryptedKey, password, iv, salt } = request.body;
+		const deployWalletKey = decryptPrivateKey(encryptedKey, password, iv, salt);
 
 		const signer = getSigner(deployWalletKey);
 		const txnHash = await fastify.service.series.god(signer, contractAddress, request.body);

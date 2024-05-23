@@ -11,6 +11,7 @@ type Contract = {
 type DecryptWallet = {
 	iv: string;
 	encryptedKey: string;
+	salt: string;
 	password: string;
 };
 

@@ -2,8 +2,8 @@ import { decryptPrivateKey } from "@root/src/utils/encryption";
 import { FastifyInstance } from "fastify";
 // import { ethers } from "ethers";
 import { getForwarderWalletKey, getSigner } from "@root/src/utils/contract.utils";
-import * as type from "src/types";
 import dotenv from "dotenv";
+import * as type from "src/types";
 
 dotenv.config();
 // import * as abi from "../../constants/abi.constants";
@@ -30,12 +30,12 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/deploySingle/:deployment_id", async (request: any, resp: any) => {
-		const { name, baseUri, description, symbol, fungible, encryptedKey, password, iv } = request.body;
+		const { name, baseUri, description, symbol, fungible, encryptedKey, password, iv, salt } = request.body;
 		const { deployment_id } = request.params;
 
 		const options = [name, baseUri, description, symbol, fungible];
 
-		const deployWalletAddressKey = decryptPrivateKey(encryptedKey, password, iv);
+		const deployWalletAddressKey = decryptPrivateKey(encryptedKey, password, iv, salt);
 
 
 		const signer = getSigner(deployWalletAddressKey);
@@ -60,9 +60,10 @@ export default async function contractRoute(fastify: FastifyInstance) {
 			encryptedKey,
 			password,
 			iv,
+			salt,
 		}: type.DeployAllBlockchainContractRequest = request.body;
 		const { deployment_id } = request.params;
-		const deployWalletAddressKey = decryptPrivateKey(encryptedKey, password, iv);
+		const deployWalletAddressKey = decryptPrivateKey(encryptedKey, password, iv, salt);
 
 
 		const signer = getSigner(deployWalletAddressKey);
@@ -82,8 +83,8 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/configure", async (request: any, resp: any) => {
-		const { proxyAddress, delegateAddress, encryptedKey, password, iv } = request.body;
-		const deployWalletAddressKey = decryptPrivateKey(encryptedKey, password, iv);
+		const { proxyAddress, delegateAddress, encryptedKey, password, iv, salt } = request.body;
+		const deployWalletAddressKey = decryptPrivateKey(encryptedKey, password, iv, salt);
 
 		const signer = getSigner(deployWalletAddressKey);
 		const contract = (await fastify.service.deploy.configureProxy(signer, proxyAddress, delegateAddress)) as any;
@@ -105,9 +106,9 @@ export default async function contractRoute(fastify: FastifyInstance) {
 	});
 
 	fastify.post("/deployFactory/:deployment_id", async (request: any, resp: any) => {
-		const { encryptedKey, password, iv } = request.body;
+		const { encryptedKey, password, iv, salt } = request.body;
 		const { deployment_id } = request.params;
-		const deployWalletAddressKey = decryptPrivateKey(encryptedKey, password, iv);
+		const deployWalletAddressKey = decryptPrivateKey(encryptedKey, password, iv, salt);
 		// const wallet = new ethers.Wallet(deployWalletAddressKey);
 		// const signer = wallet.connect(ethers.getDefaultProvider());
 
